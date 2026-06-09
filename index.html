@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FitTriglyceride Tracker — Personal 12-week fat-loss and triglyceride reduction tracker with daily checklists, meal plans, workout routines, and progress analytics.">
+  <title>FitTriglyceride Tracker</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3/dist/chartjs-plugin-annotation.min.js" defer></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Sidebar Drawer Overlay (Mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="16" r="14" stroke="url(#logoGrad)" stroke-width="2.5" fill="none"/>
+              <path d="M10 18 L14 22 L22 12" stroke="url(#logoGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <defs>
+                <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
+                  <stop offset="0%" stop-color="#34d399"/>
+                  <stop offset="100%" stop-color="#06b6d4"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="sidebar-brand">
+            <span class="brand-name">FitTracker</span>
+            <span class="brand-sub">12-Week Program</span>
+          </div>
+        </div>
+        <button class="btn-icon sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+          <i data-lucide="panel-left-close"></i>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav" role="navigation" aria-label="Main navigation">
+        <a href="#dashboard" class="nav-item active" data-screen="dashboard" id="nav-dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="#today" class="nav-item" data-screen="today" id="nav-today">
+          <i data-lucide="calendar-check"></i>
+          <span class="nav-label">Today</span>
+        </a>
+        <a href="#meals" class="nav-item" data-screen="meals" id="nav-meals">
+          <i data-lucide="utensils"></i>
+          <span class="nav-label">Meal Plan</span>
+        </a>
+        <a href="#workout" class="nav-item" data-screen="workout" id="nav-workout">
+          <i data-lucide="dumbbell"></i>
+          <span class="nav-label">Workout</span>
+        </a>
+        <a href="#progress" class="nav-item" data-screen="progress" id="nav-progress">
+          <i data-lucide="trending-up"></i>
+          <span class="nav-label">Progress</span>
+        </a>
+        <a href="#review" class="nav-item" data-screen="review" id="nav-review">
+          <i data-lucide="clipboard-list"></i>
+          <span class="nav-label">Review</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-program-info">
+          <div class="program-day" id="programDayBadge">
+            <span class="program-day__label">Day</span>
+            <span class="program-day__value text-mono" id="programDayNum">1</span>
+            <span class="program-day__of">/ 84</span>
+          </div>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn-icon" id="themeToggle" aria-label="Toggle theme">
+            <i data-lucide="moon"></i>
+          </button>
+          <button class="btn-icon" id="exportBtn" aria-label="Export data">
+            <i data-lucide="download"></i>
+          </button>
+          <button class="btn-icon" id="settingsBtn" aria-label="Settings">
+            <i data-lucide="settings"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-nav" id="mobileNav" role="navigation" aria-label="Mobile navigation">
+      <a href="#dashboard" class="mobile-nav-item active" data-screen="dashboard">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Home</span>
+      </a>
+      <a href="#today" class="mobile-nav-item" data-screen="today">
+        <i data-lucide="calendar-check"></i>
+        <span>Today</span>
+      </a>
+      <a href="#meals" class="mobile-nav-item" data-screen="meals">
+        <i data-lucide="utensils"></i>
+        <span>Meals</span>
+      </a>
+      <a href="#workout" class="mobile-nav-item" data-screen="workout">
+        <i data-lucide="dumbbell"></i>
+        <span>Workout</span>
+      </a>
+      <a href="#progress" class="mobile-nav-item" data-screen="progress">
+        <i data-lucide="trending-up"></i>
+        <span>Progress</span>
+      </a>
+      <a href="#review" class="mobile-nav-item" data-screen="review">
+        <i data-lucide="clipboard-list"></i>
+        <span>Review</span>
+      </a>
+    </nav>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header" id="mobileHeader">
+      <button class="btn-icon" id="mobileMenuBtn" aria-label="Open menu">
+        <i data-lucide="menu"></i>
+      </button>
+      <h1 class="mobile-title">FitTracker</h1>
+      <button class="btn-icon" id="mobileThemeToggle" aria-label="Toggle theme">
+        <i data-lucide="moon"></i>
+      </button>
+    </header>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="main" id="mainContent">
+
+      <!-- ===== SCREEN 1: DASHBOARD ===== -->
+      <section class="screen active" id="screen-dashboard" aria-label="Dashboard">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Dashboard</h1>
+            <p class="screen-subtitle" id="dashboardDate">Loading...</p>
+          </div>
+          <div style="display: flex; gap: var(--space-sm); align-items: center;">
+            <span class="sex-badge" id="dashSexBadge" style="font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-full); background: var(--primary-subtle, oklch(0.65 0.15 250 / 0.12)); color: var(--primary);"></span>
+            <button class="btn btn--outline" id="dashEditProfileBtn">
+              <i data-lucide="user-cog"></i>
+              <span>Edit Profile</span>
+            </button>
+            <button class="btn btn--primary" id="logTodayBtn">
+              <i data-lucide="plus-circle"></i>
+              <span>Log Today</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hero Stats -->
+        <div class="stat-grid stat-grid--hero">
+          <div class="card card--stat card--gradient" id="statWeight" style="position: relative; cursor: pointer;">
+            <div class="card-body">
+              <i data-lucide="edit-2" style="position: absolute; top: 12px; right: 12px; width: 14px; height: 14px; opacity: 0.6;"></i>
+              <div class="stat-icon"><i data-lucide="scale"></i></div>
+              <div class="stat-content">
+                <span class="stat-label">Current Weight</span>
+                <span class="stat-value text-mono" id="currentWeight">90.0</span>
+                <span class="stat-unit">kg</span>
+              </div>
+              <div class="stat-change" id="weightChange">
+                <span class="stat-change__value">0 kg</span>
+                <span class="stat-change__label">from start</span>
+              </div>
+              <div class="stat-target">Target: <span class="text-mono" id="weightTarget">81 kg</span></div>
+            </div>
+          </div>
+          <div class="card card--stat" id="statWaist" style="position: relative; cursor: pointer;">
+            <div class="card-body">
+              <i data-lucide="edit-2" style="position: absolute; top: 12px; right: 12px; width: 14px; height: 14px; opacity: 0.6;"></i>
+              <div class="stat-icon"><i data-lucide="circle-dot"></i></div>
+              <div class="stat-content">
+                <span class="stat-label">Waist</span>
+                <span class="stat-value text-mono" id="currentWaist">38.0</span>
+                <span class="stat-unit">in</span>
+              </div>
+              <div class="stat-target">Target: <span class="text-mono" id="waistTarget">34.5 in</span></div>
+            </div>
+          </div>
+          <div class="card card--stat" id="statDays">
+            <div class="card-body">
+              <div class="stat-icon"><i data-lucide="calendar-days"></i></div>
+              <div class="stat-content">
+                <span class="stat-label">Days Completed</span>
+                <span class="stat-value text-mono" id="daysCompleted">0</span>
+                <span class="stat-unit">/ <span id="totalProgramDays">84</span></span>
+              </div>
+              <div class="stat-target">Week <span class="text-mono" id="currentWeek">1</span> of <span id="totalProgramWeeks">12</span></div>
+            </div>
+          </div>
+          <div class="card card--stat" id="statBmi" style="position: relative; cursor: pointer;">
+            <div class="card-body">
+              <i data-lucide="edit-2" style="position: absolute; top: 12px; right: 12px; width: 14px; height: 14px; opacity: 0.6;"></i>
+              <div class="stat-icon"><i data-lucide="activity"></i></div>
+              <div class="stat-content">
+                <span class="stat-label">Height & BMI</span>
+                <span class="stat-value text-mono" id="currentBmi">--</span>
+                <span class="stat-unit" id="currentBmiStatus" style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-full); margin-left: 8px;">--</span>
+              </div>
+              <div class="stat-target">Height: <span class="text-mono" id="currentHeight">-- cm</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Rings -->
+        <div class="stat-grid stat-grid--rings">
+          <div class="card">
+            <div class="card-body card-body--centered">
+              <div class="progress-ring progress-ring--lg" id="ringScore">
+                <svg viewBox="0 0 140 140">
+                  <circle class="progress-ring__bg" cx="70" cy="70" r="60"/>
+                  <circle class="progress-ring__fill" cx="70" cy="70" r="60" id="ringScoreFill"/>
+                </svg>
+                <div class="progress-ring__content">
+                  <span class="progress-ring__value text-mono" id="ringScoreValue">0</span>
+                  <span class="progress-ring__label">Today</span>
+                </div>
+              </div>
+              <span class="stat-label">Daily Score</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body card-body--centered">
+              <div class="progress-ring progress-ring--lg" id="ringCompliance">
+                <svg viewBox="0 0 140 140">
+                  <circle class="progress-ring__bg" cx="70" cy="70" r="60"/>
+                  <circle class="progress-ring__fill" cx="70" cy="70" r="60" id="ringComplianceFill"/>
+                </svg>
+                <div class="progress-ring__content">
+                  <span class="progress-ring__value text-mono" id="ringComplianceValue">0</span>
+                  <span class="progress-ring__label">Week</span>
+                </div>
+              </div>
+              <span class="stat-label">Weekly Compliance</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body card-body--centered">
+              <div class="progress-ring progress-ring--lg" id="ringProtein">
+                <svg viewBox="0 0 140 140">
+                  <circle class="progress-ring__bg" cx="70" cy="70" r="60"/>
+                  <circle class="progress-ring__fill" cx="70" cy="70" r="60" id="ringProteinFill"/>
+                </svg>
+                <div class="progress-ring__content">
+                  <span class="progress-ring__value text-mono" id="ringProteinValue">0</span>
+                  <span class="progress-ring__label">g</span>
+                </div>
+              </div>
+              <span class="stat-label">Protein Today</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Streaks & Steps -->
+        <div class="stat-grid stat-grid--4col">
+          <div class="card">
+            <div class="card-body card-body--centered">
+              <div class="streak-badge streak-badge--fire">
+                <i data-lucide="flame"></i>
+                <span class="text-mono" id="cleanStreak">0</span>
+              </div>
+              <span class="stat-label">Clean Food Streak</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body card-body--centered">
+              <div class="streak-badge streak-badge--workout">
+                <i data-lucide="trophy"></i>
+                <span class="text-mono" id="workoutStreak">0</span>
+              </div>
+              <span class="stat-label">Workout Streak</span>
+            </div>
+          </div>
+          <div class="card" id="stepsCard" style="cursor: pointer;">
+            <div class="card-body card-body--centered">
+              <div class="stat-icon--inline"><i data-lucide="footprints"></i></div>
+              <span class="stat-value text-mono text-md" id="todaySteps">0</span>
+              <span class="stat-label">Steps Today</span>
+              <div class="protein-bar protein-bar--mini">
+                <div class="protein-bar__fill" id="stepsBarFill" style="width: 0%"></div>
+              </div>
+              <div class="stat-label" id="todayStepsStatus" style="font-size: 11px; margin-top: 6px; font-weight: 600; color: var(--text-secondary);">Benchmark: 8,000 steps</div>
+              <div class="stat-label" id="todayStepsCalories" style="font-size: 11px; margin-top: 2px; color: var(--warning); display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <i data-lucide="flame" style="width: 12px; height: 12px;"></i>
+                <span id="todayStepsCaloriesValue">0 kcal</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body card-body--centered">
+              <div class="stat-icon--inline"><i data-lucide="moon"></i></div>
+              <span class="stat-value text-mono text-md" id="todaySleep">0</span>
+              <span class="stat-label">Sleep Hours</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SCREEN 2: TODAY ===== -->
+      <section class="screen" id="screen-today" aria-label="Today">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Today's Plan</h1>
+            <p class="screen-subtitle" id="todayDate">Loading...</p>
+          </div>
+          <div class="date-nav">
+            <button class="btn-icon" id="prevDay" aria-label="Previous day"><i data-lucide="chevron-left"></i></button>
+            <button class="btn btn--ghost" id="todayBtn">Today</button>
+            <button class="btn-icon" id="nextDay" aria-label="Next day"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+
+        <!-- Daily Score -->
+        <div class="score-display" id="todayScoreDisplay">
+          <div class="score-display__ring">
+            <svg viewBox="0 0 120 120">
+              <circle class="score-display__bg" cx="60" cy="60" r="52"/>
+              <circle class="score-display__fill" cx="60" cy="60" r="52" id="todayScoreFill"/>
+            </svg>
+            <span class="score-display__value text-mono" id="todayScoreValue">0</span>
+          </div>
+          <div class="score-display__info">
+            <span class="score-display__label" id="todayScoreLabel">Start logging!</span>
+            <div class="score-display__breakdown" id="todayScoreBreakdown"></div>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2><i data-lucide="clock"></i> Daily Timeline</h2>
+            <button class="btn btn--ghost btn--sm" id="editScheduleBtn" style="font-size: 12px; gap: 4px;">
+              <i data-lucide="pencil" style="width: 14px; height: 14px;"></i> Edit Schedule
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="timeline" id="dailyTimeline"></div>
+          </div>
+        </div>
+
+        <!-- Checklists -->
+        <div class="checklist-grid">
+          <!-- Health -->
+          <div class="card">
+            <div class="card-header card-header--health">
+              <h2><i data-lucide="heart-pulse"></i> Health</h2>
+              <span class="badge badge--health" id="healthCount">0/4</span>
+            </div>
+            <div class="card-body">
+              <div class="checklist" id="checklist-health"></div>
+            </div>
+          </div>
+          <!-- Food -->
+          <div class="card">
+            <div class="card-header card-header--food">
+              <h2><i data-lucide="apple"></i> Food</h2>
+              <span class="badge badge--food" id="foodCount">0/9</span>
+            </div>
+            <div class="card-body">
+              <div class="checklist" id="checklist-food"></div>
+            </div>
+          </div>
+          <!-- Movement -->
+          <div class="card">
+            <div class="card-header card-header--movement">
+              <h2><i data-lucide="activity"></i> Movement</h2>
+              <span class="badge badge--movement" id="movementCount">0/5</span>
+            </div>
+            <div class="card-body">
+              <div class="checklist" id="checklist-movement"></div>
+            </div>
+          </div>
+          <!-- Tracking -->
+          <div class="card">
+            <div class="card-header card-header--tracking">
+              <h2><i data-lucide="bar-chart-3"></i> Tracking</h2>
+              <span class="badge badge--tracking" id="trackingCount">0/4</span>
+            </div>
+            <div class="card-body">
+              <div class="checklist" id="checklist-tracking"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Inputs -->
+        <div class="card">
+          <div class="card-header">
+            <h2><i data-lucide="edit-3"></i> Quick Log</h2>
+          </div>
+          <div class="card-body">
+            <div class="input-grid">
+              <div class="input-group">
+                <label for="inputWeight">Weight</label>
+                <div class="input-with-unit">
+                  <input type="number" id="inputWeight" class="input" step="0.1" min="50" max="150" placeholder="--">
+                  <span class="input-unit">kg</span>
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="inputWaist">Waist</label>
+                <div class="input-with-unit">
+                  <input type="number" id="inputWaist" class="input" step="0.5" min="20" max="60" placeholder="--">
+                  <span class="input-unit">in</span>
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="inputSteps">Steps</label>
+                <div class="input-with-unit">
+                  <input type="number" id="inputSteps" class="input" step="100" min="0" max="50000" placeholder="--">
+                  <span class="input-unit">steps</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; width: 100%;">
+                  <span id="todayStepsStatusToday" style="font-weight: 600; color: var(--text-secondary);">Below benchmark</span>
+                  <span id="todayStepsCaloriesToday" style="color: var(--warning); display: flex; align-items: center; gap: 2px;">
+                    <i data-lucide="flame" style="width: 11px; height: 11px;"></i>
+                    <span id="todayStepsCaloriesTodayValue">0 kcal</span>
+                  </span>
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="inputSleep">Sleep</label>
+                <div class="input-with-unit">
+                  <input type="number" id="inputSleep" class="input" step="0.5" min="0" max="14" placeholder="--">
+                  <span class="input-unit">hrs</span>
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="inputWater">Water</label>
+                <div class="input-with-unit">
+                  <input type="number" id="inputWater" class="input" step="0.5" min="0" max="10" placeholder="--">
+                  <span class="input-unit">L</span>
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="inputEnergy">Energy Level</label>
+                <div class="input-with-unit">
+                  <input type="range" id="inputEnergy" class="slider" min="1" max="5" value="3">
+                  <span class="input-unit text-mono" id="energyValue">3</span>
+                </div>
+              </div>
+            </div>
+            <div class="input-group input-group--full">
+              <label for="inputNotes">Notes</label>
+              <textarea id="inputNotes" class="input input--textarea" rows="2" placeholder="How did today go?"></textarea>
+            </div>
+            <button class="btn btn--primary" id="saveQuickLog" style="margin-top: var(--space-md)">
+              <i data-lucide="save"></i> Save Log
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SCREEN 3: MEAL PLAN ===== -->
+      <section class="screen" id="screen-meals" aria-label="Meal Plan">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Meal Plan</h1>
+            <p class="screen-subtitle" id="mealsDate">Loading...</p>
+          </div>
+          <div class="date-nav">
+            <button class="btn-icon" id="prevMealsDay" aria-label="Previous day"><i data-lucide="chevron-left"></i></button>
+            <button class="btn btn--ghost" id="mealsTodayBtn">Today</button>
+            <button class="btn-icon" id="nextMealsDay" aria-label="Next day"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+
+        <!-- Day Selector -->
+        <div class="day-selector" id="mealDaySelector">
+          <button class="day-pill active" data-day="monday">Mon</button>
+          <button class="day-pill" data-day="tuesday">Tue</button>
+          <button class="day-pill" data-day="wednesday">Wed</button>
+          <button class="day-pill" data-day="thursday">Thu</button>
+          <button class="day-pill" data-day="friday">Fri</button>
+          <button class="day-pill" data-day="saturday">Sat</button>
+          <button class="day-pill" data-day="sunday">Sun</button>
+        </div>
+
+        <!-- Day Theme -->
+        <div class="card card--accent" id="dayThemeCard">
+          <div class="card-body">
+            <h3 id="dayThemeName">Monday — Vegetarian, No Non-Veg</h3>
+            <div class="protein-bar" id="mealProteinBar">
+              <div class="protein-bar__track">
+                <div class="protein-bar__fill" id="mealProteinFill" style="width: 0%"></div>
+                <div class="protein-bar__marker" id="mealProteinMarker" style="left: 95%"></div>
+              </div>
+              <div class="protein-bar__labels">
+                <span>Protein: <span class="text-mono" id="mealProteinTotal">0g</span></span>
+                <span>Target: <span class="text-mono">95–110g</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meal Cards -->
+        <div class="meal-cards" id="mealCards"></div>
+
+        <!-- Protein Reference -->
+        <div class="card">
+          <div class="card-header">
+            <h2><i data-lucide="info"></i> Protein Reference Table</h2>
+            <button class="btn-icon collapse-toggle" id="proteinRefToggle" aria-label="Toggle protein reference">
+              <i data-lucide="chevron-down"></i>
+            </button>
+          </div>
+          <div class="card-body collapsible" id="proteinRefBody">
+            <table class="data-table" id="proteinRefTable">
+              <thead>
+                <tr><th>Food</th><th>Quantity</th><th>Protein</th></tr>
+              </thead>
+              <tbody id="proteinRefRows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Dinner Rules -->
+        <div class="card">
+          <div class="card-header card-header--accent">
+            <h2><i data-lucide="alert-triangle"></i> Dinner Rules</h2>
+          </div>
+          <div class="card-body">
+            <ul class="rule-list">
+              <li><i data-lucide="x-circle"></i> No chapati + rice together</li>
+              <li><i data-lucide="calendar"></i> 4 days/week: no rice at dinner</li>
+              <li><i data-lucide="calendar-check"></i> 2 days/week: small rice allowed, no chapati</li>
+              <li><i data-lucide="smile"></i> 1 day/week: controlled flexible home meal</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SCREEN 4: WORKOUT ===== -->
+      <section class="screen" id="screen-workout" aria-label="Workout">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Workout</h1>
+            <p class="screen-subtitle" id="workoutSubtitle">Today's training</p>
+          </div>
+          <div class="tag" id="workoutTypeTag">Workout A</div>
+        </div>
+
+        <!-- Workout Schedule -->
+        <div class="card card--accent" id="workoutScheduleCard">
+          <div class="card-body">
+            <div class="workout-schedule" id="weeklyScheduleDisplay"></div>
+          </div>
+        </div>
+
+        <!-- Today's Workout -->
+        <div class="card" id="workoutCard">
+          <div class="card-header">
+            <h2><i data-lucide="zap"></i> <span id="workoutTitle">Morning Workout</span></h2>
+            <span class="badge" id="workoutTime">8:10–8:40 AM</span>
+          </div>
+          <div class="card-body">
+            <div class="workout-exercises" id="exerciseList"></div>
+          </div>
+          <div class="card-footer" style="display: flex; flex-direction: column; gap: var(--space-md);">
+            <div class="input-group" style="width: 100%;">
+              <label style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Difficulty</label>
+              <div class="difficulty-stars" id="difficultyStars">
+                <button class="star" data-val="1">★</button>
+                <button class="star" data-val="2">★</button>
+                <button class="star" data-val="3">★</button>
+                <button class="star" data-val="4">★</button>
+                <button class="star" data-val="5">★</button>
+              </div>
+            </div>
+            <div class="input-group input-group--full" style="width: 100%;">
+              <label for="workoutNotes" style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Workout Notes / Feedback</label>
+              <textarea id="workoutNotes" class="input input--textarea" rows="2" placeholder="What did you do right? Any exercises skipped/modified?"></textarea>
+            </div>
+            <div class="btn-group" style="display: flex; gap: var(--space-sm); width: 100%;">
+              <button class="btn btn--primary" id="saveWorkout" style="flex: 1;">
+                <i data-lucide="check-circle"></i> Complete Workout
+              </button>
+              <button class="btn btn--danger" id="saveWorkoutPartial" style="flex: 1; background: transparent; border-color: var(--danger); color: var(--danger);">
+                <i data-lucide="alert-triangle"></i> Log Partial / Skip
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Walking -->
+        <div class="card">
+          <div class="card-header">
+            <h2><i data-lucide="footprints"></i> Walking Tracker</h2>
+          </div>
+          <div class="card-body">
+            <div class="checklist" id="walkingChecklist">
+              <!-- Dynamically rendered from active schedule -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Safety Warning -->
+        <div class="disclaimer disclaimer--exercise">
+          <i data-lucide="alert-octagon"></i>
+          <div>
+            <strong>Stop immediately if you experience:</strong>
+            <span>chest pain, dizziness, fainting, unusual breathlessness, or palpitations.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SCREEN 5: PROGRESS ===== -->
+      <section class="screen" id="screen-progress" aria-label="Progress">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Progress</h1>
+            <p class="screen-subtitle">Track your transformation</p>
+          </div>
+          <div class="range-selector" id="chartRange">
+            <button class="range-pill" data-range="7d">7D</button>
+            <button class="range-pill active" data-range="30d">30D</button>
+            <button class="range-pill" data-range="12w">12W</button>
+            <button class="range-pill" data-range="all">All</button>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="card card--chart">
+            <div class="card-header">
+              <h2><i data-lucide="scale"></i> Weight Trend</h2>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="weightChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card card--chart">
+            <div class="card-header">
+              <h2><i data-lucide="circle-dot"></i> Waist Trend</h2>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="waistChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card card--chart">
+            <div class="card-header">
+              <h2><i data-lucide="footprints"></i> Steps</h2>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="stepsChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card card--chart">
+            <div class="card-header">
+              <h2><i data-lucide="beef"></i> Protein Intake</h2>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="proteinChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card card--chart card--chart-wide">
+            <div class="card-header">
+              <h2><i data-lucide="target"></i> Goal Trajectory</h2>
+            </div>
+            <div class="card-body">
+              <div class="chart-container chart-container--wide"><canvas id="trajectoryChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card card--chart">
+            <div class="card-header">
+              <h2><i data-lucide="award"></i> Daily Scores</h2>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="complianceChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card card--chart">
+            <div class="card-header">
+              <h2><i data-lucide="dumbbell"></i> Workouts</h2>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="workoutHeatmap"></canvas></div>
+            </div>
+          </div>
+          <div class="card card--chart">
+            <div class="card-header">
+              <h2><i data-lucide="flame"></i> Clean Food Streak</h2>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="streakChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SCREEN 6: REVIEW ===== -->
+      <section class="screen" id="screen-review" aria-label="Review & Adjustments">
+        <div class="screen-header">
+          <div>
+            <h1 class="screen-title">Review & Adjustments</h1>
+            <p class="screen-subtitle">Weekly and monthly analysis</p>
+          </div>
+          <div class="date-nav">
+            <button class="btn-icon" id="prevWeek" aria-label="Previous week"><i data-lucide="chevron-left"></i></button>
+            <span class="text-mono" id="reviewWeekLabel">Week 1</span>
+            <button class="btn-icon" id="nextWeek" aria-label="Next week"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+
+        <!-- Weekly Summary -->
+        <div class="card">
+          <div class="card-header">
+            <h2><i data-lucide="calendar-range"></i> 7-Day Summary</h2>
+          </div>
+          <div class="card-body">
+            <div class="review-stats" id="weeklyStats">
+              <div class="review-stat">
+                <span class="review-stat__label">Avg Weight</span>
+                <span class="review-stat__value text-mono" id="reviewAvgWeight">--</span>
+              </div>
+              <div class="review-stat">
+                <span class="review-stat__label">Weight Δ</span>
+                <span class="review-stat__value text-mono" id="reviewWeightDelta">--</span>
+              </div>
+              <div class="review-stat">
+                <span class="review-stat__label">Avg BMI</span>
+                <span class="review-stat__value text-mono" id="reviewAvgBmi">--</span>
+              </div>
+              <div class="review-stat">
+                <span class="review-stat__label">Avg Steps</span>
+                <span class="review-stat__value text-mono" id="reviewAvgSteps">--</span>
+              </div>
+              <div class="review-stat">
+                <span class="review-stat__label">Workouts</span>
+                <span class="review-stat__value text-mono" id="reviewWorkouts">--</span>
+              </div>
+              <div class="review-stat">
+                <span class="review-stat__label">Protein %</span>
+                <span class="review-stat__value text-mono" id="reviewProtein">--</span>
+              </div>
+              <div class="review-stat">
+                <span class="review-stat__label">Clean Food %</span>
+                <span class="review-stat__value text-mono" id="reviewCleanFood">--</span>
+              </div>
+              <div class="review-stat">
+                <span class="review-stat__label">Avg Score</span>
+                <span class="review-stat__value text-mono" id="reviewAvgScore">--</span>
+              </div>
+              <div class="review-stat">
+                <span class="review-stat__label">Office Walks</span>
+                <span class="review-stat__value text-mono" id="reviewOfficeWalks">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wins & Problems -->
+        <div class="review-grid">
+          <div class="card review-card review-card--win">
+            <div class="card-header">
+              <h2><i data-lucide="thumbs-up"></i> What Improved</h2>
+            </div>
+            <div class="card-body">
+              <ul class="review-list" id="reviewWins">
+                <li class="review-list__empty">Complete a week to see wins</li>
+              </ul>
+            </div>
+          </div>
+          <div class="card review-card review-card--problem">
+            <div class="card-header">
+              <h2><i data-lucide="alert-circle"></i> What Needs Work</h2>
+            </div>
+            <div class="card-body">
+              <ul class="review-list" id="reviewProblems">
+                <li class="review-list__empty">Complete a week to see areas for improvement</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card review-card review-card--recommendation">
+          <div class="card-header">
+            <h2><i data-lucide="lightbulb"></i> Recommendations</h2>
+          </div>
+          <div class="card-body">
+            <div class="recommendations" id="reviewRecommendations">
+              <p class="review-list__empty">Recommendations will appear after your first full week</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly Message -->
+        <div class="card" id="weeklyMessageCard" style="display: none;">
+          <div class="card-header">
+            <h2><i data-lucide="message-circle"></i> Coach's Message</h2>
+          </div>
+          <div class="card-body">
+            <blockquote class="coach-message" id="coachMessage"></blockquote>
+          </div>
+        </div>
+
+        <!-- Medical Disclaimer -->
+        <div class="disclaimer">
+          <i data-lucide="shield-alert"></i>
+          <div>
+            <strong>Medical Disclaimer</strong>
+            <p>This app does not adjust thyroid medication or diagnose lipid disorders. Please consult your doctor for TSH, lipid profile, HbA1c, and medication decisions.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+  <!-- Settings Modal -->
+  <dialog class="modal" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button class="btn-icon modal-close" aria-label="Close settings"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3>Profile & Goals</h3>
+          <div class="input-grid">
+            <div class="input-group">
+              <label for="settingName">Name</label>
+              <input type="text" id="settingName" class="input" value="Amit">
+            </div>
+            <div class="input-group">
+              <label for="settingAge">Age (Years)</label>
+              <input type="number" id="settingAge" class="input" value="46">
+            </div>
+            <div class="input-group">
+              <label for="settingGender">Sex</label>
+              <select id="settingGender" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="settingFitnessLevel">Fitness Level</label>
+              <select id="settingFitnessLevel" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="beginner">Beginner (New to exercise)</option>
+                <option value="intermediate">Intermediate (Regular)</option>
+                <option value="advanced">Advanced (Experienced)</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="settingStartDate">Program Start Date</label>
+              <input type="date" id="settingStartDate" class="input">
+            </div>
+            <div class="input-group">
+              <label for="settingGoal">Primary Goal</label>
+              <select id="settingGoal" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="weight_loss">Weight Loss & Fat Reduction</option>
+                <option value="muscle_gain">Muscle Gain & Strength</option>
+                <option value="health_management">Cardiovascular & Metabolic Health</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="settingMeals">Meals Per Day</label>
+              <input type="number" id="settingMeals" class="input" min="2" max="6" value="4">
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Body Metrics & Targets</h3>
+          <div class="input-grid">
+            <div class="input-group">
+              <label for="settingCurrentWeight">Starting Weight (kg)</label>
+              <input type="number" id="settingCurrentWeight" class="input" step="0.1" value="90">
+            </div>
+            <div class="input-group">
+              <label for="settingHeight">Height (cm)</label>
+              <input type="number" id="settingHeight" class="input" step="0.5" value="178">
+            </div>
+            <div class="input-group">
+              <label for="settingTargetWeight">Target Weight (kg)</label>
+              <input type="number" id="settingTargetWeight" class="input" step="0.5" value="81">
+            </div>
+            <div class="input-group">
+              <label for="settingStartWaist">Starting Waist (in)</label>
+              <input type="number" id="settingStartWaist" class="input" step="0.5" value="38">
+            </div>
+            <div class="input-group">
+              <label for="settingTargetWaist">Target Waist (in)</label>
+              <input type="number" id="settingTargetWaist" class="input" step="0.5" value="34.5">
+            </div>
+            <div class="input-group">
+              <label for="settingTimelineVal">Program Duration</label>
+              <input type="number" id="settingTimelineVal" class="input" value="3">
+            </div>
+            <div class="input-group">
+              <label for="settingTimelineUnit">Duration Unit</label>
+              <select id="settingTimelineUnit" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="months">Months</option>
+                <option value="weeks">Weeks</option>
+                <option value="days">Days</option>
+              </select>
+            </div>
+            <div class="input-group" style="grid-column: span 2; display: flex; align-items: center; justify-content: space-between; background: var(--bg-elevated); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-top: var(--space-xs);">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Calculated Live BMI:</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="text-mono" id="settingBmiValue" style="font-size: 18px; font-weight: 800; color: var(--primary);">--</span>
+                <span id="settingBmiStatus" style="font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-full);">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Dietary Profile & Preferences</h3>
+          <div class="input-grid">
+            <div class="input-group">
+              <label for="settingDiet">Diet Type</label>
+              <select id="settingDiet" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="non_veg">Non-Vegetarian</option>
+                <option value="veg">Vegetarian</option>
+                <option value="eggitarian">Eggitarian</option>
+                <option value="vegan">Vegan</option>
+              </select>
+            </div>
+            <div class="input-group" id="settingNonVegFreqWrap">
+              <label for="settingNonVegFreq">Non-Veg Frequency</label>
+              <select id="settingNonVegFreq" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="rarely">Rarely</option>
+                <option value="1_2_weekly">1-2 times/week</option>
+                <option value="3_4_weekly">3-4 times/week</option>
+                <option value="daily">Daily</option>
+              </select>
+            </div>
+            <div class="input-group" style="grid-column: span 2;">
+              <label class="input-label" style="margin-bottom: 6px;">Restricted Non-Veg Days</label>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; background: var(--bg-elevated); padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-day-chk" value="monday"> Mon</label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-day-chk" value="tuesday"> Tue</label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-day-chk" value="wednesday"> Wed</label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-day-chk" value="thursday"> Thu</label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-day-chk" value="friday"> Fri</label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-day-chk" value="saturday"> Sat</label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-day-chk" value="sunday"> Sun</label>
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="settingDietRegion">Regional Preference</label>
+              <select id="settingDietRegion" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="standard">Standard / General</option>
+                <option value="north_indian">North Indian</option>
+                <option value="south_indian">South Indian</option>
+                <option value="east_indian">East Indian</option>
+                <option value="west_indian">West Indian</option>
+                <option value="western">Western / Continental</option>
+              </select>
+            </div>
+            <div class="input-group" style="align-items: center; display: flex; padding-top: 24px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="settingGlutenFree" style="accent-color: var(--primary);">
+                <span>Gluten Intolerant (Gluten-Free)</span>
+              </label>
+            </div>
+            <div class="input-group" style="align-items: center; display: flex; padding-top: 24px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="settingLactoseFree" style="accent-color: var(--primary);">
+                <span>Lactose Intolerant (Dairy-Free)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Medical History & Pathological Screening</h3>
+          <div class="input-grid" style="grid-template-columns: 1fr; gap: var(--space-sm);">
+            <div style="background: var(--bg-elevated); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-sm);">
+              <h4 style="font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase;">Diagnosed Conditions</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="settingHasTriglycerides" style="accent-color: var(--primary);">
+                  <span>High Triglycerides</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="settingHasLdl" style="accent-color: var(--primary);">
+                  <span>High LDL Cholesterol</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="settingHasHeartBlockage" style="accent-color: var(--primary);">
+                  <span>Heart Blockage / CAD</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="settingHasHypertension" style="accent-color: var(--primary);">
+                  <span>High BP (Hypertension)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="settingHasDiabetes" style="accent-color: var(--primary);">
+                  <span>Diabetes / Pre-diabetes</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="settingHasThyroid" style="accent-color: var(--primary);">
+                  <span>Thyroid Condition</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Conditional Thyroid details -->
+            <div id="settingThyroidDetailsWrap" style="display: none; flex-direction: column; gap: var(--space-sm); padding-left: var(--space-md); border-left: 2px solid var(--border-subtle); margin-top: 4px;">
+              <div class="input-grid">
+                <div class="input-group">
+                  <label for="settingThyroidType">Thyroid Type</label>
+                  <select id="settingThyroidType" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                    <option value="hypothyroidism">Hypothyroidism</option>
+                    <option value="hyperthyroidism">Hyperthyroidism</option>
+                    <option value="euthyroid">Euthyroid / Other</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="settingThyroidMed">Medication & Dose</label>
+                  <input type="text" id="settingThyroidMed" class="input" placeholder="e.g. Levothyroxine 62.5 mcg">
+                </div>
+              </div>
+            </div>
+
+            <!-- Joint pain screening -->
+            <div style="background: var(--bg-elevated); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-sm);">
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">
+                <input type="checkbox" id="settingHasJointPain" style="accent-color: var(--primary);">
+                <span>Active Joint Pain / Chronic Musculoskeletal Issues</span>
+              </label>
+              <div id="settingJointPainDetailsWrap" style="display: none; grid-template-columns: repeat(4, 1fr); gap: 10px; padding-left: var(--space-sm); margin-top: 4px;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-joint-chk" value="knee"> Knee</label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-joint-chk" value="back"> Back</label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-joint-chk" value="shoulder"> Shoulder</label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="setting-joint-chk" value="neck"> Neck</label>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="settingMeds">Active Daily Medications & Dosages</label>
+              <input type="text" id="settingMeds" class="input" placeholder="e.g. Metformin 500mg, Omeprazole 20mg">
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Lifestyle & Habits</h3>
+          <div class="input-grid">
+            <div class="input-group">
+              <label for="settingWorkActivity">Occupational Activity Level</label>
+              <select id="settingWorkActivity" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="sedentary">Sedentary (Sitting IT/Desk Job)</option>
+                <option value="moderate">Moderately Active (Standing/walking)</option>
+                <option value="active">Highly Active (Physical Labor)</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="settingSleepCategory">Average Sleep Duration</label>
+              <select id="settingSleepCategory" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="deprived">Less than 6 hours (Sleep deprived)</option>
+                <option value="optimal">7-8 hours (Optimal)</option>
+                <option value="extended">More than 8 hours</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="settingStressLevel">Daily Stress Level</label>
+              <select id="settingStressLevel" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="low">Low</option>
+                <option value="moderate">Moderate</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="settingCommuteDetails">Daily Commute Details</label>
+              <input type="text" id="settingCommuteDetails" class="input" placeholder="e.g. Cab, around 1 hour commute">
+            </div>
+            <div class="input-group">
+              <label for="settingSmoking">Smoking Habit</label>
+              <select id="settingSmoking" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="non_smoker">Non-smoker</option>
+                <option value="smoker">Smoker</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="settingDrinking">Alcohol Consumption</label>
+              <select id="settingDrinking" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="non_drinking">Non-drinking</option>
+                <option value="occasional">Occasional</option>
+                <option value="alcoholic">Regular (Drinking)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Walk Alarms</h3>
+          <div class="input-grid">
+            <div class="input-group">
+              <label for="settingLunchWalkAlarm">Post-Lunch Walk Alarm</label>
+              <input type="time" id="settingLunchWalkAlarm" class="input" value="13:15">
+            </div>
+            <div class="input-group">
+              <label for="settingDinnerWalkAlarm">Post-Dinner Walk Alarm</label>
+              <input type="time" id="settingDinnerWalkAlarm" class="input" value="21:45">
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Data</h3>
+          <div class="btn-group">
+            <button class="btn btn--ghost" id="loadSampleData">
+              <i data-lucide="database"></i> Load Sample Data
+            </button>
+            <button class="btn btn--ghost" id="exportDataBtn">
+              <i data-lucide="download"></i> Export as JSON
+            </button>
+            <button class="btn btn--danger" id="clearDataBtn">
+              <i data-lucide="trash-2"></i> Clear All Data
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn--primary" id="saveSettings">Save Settings</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Schedule Editor Modal -->
+  <dialog class="modal" id="scheduleEditorModal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2><i data-lucide="calendar-clock" style="color: var(--primary); vertical-align: middle; margin-right: 8px;"></i> Edit Daily Schedule</h2>
+        <button class="btn-icon modal-close" aria-label="Close editor" id="scheduleEditorClose"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: var(--space-md);">
+          Customize your daily schedule. Changes apply to all future days. Drag to reorder, or use the buttons to add/remove time blocks.
+        </p>
+        <div id="scheduleEditorList" class="schedule-editor-list">
+          <!-- Dynamically populated -->
+        </div>
+        <button class="btn btn--ghost" id="scheduleAddBlock" style="width: 100%; margin-top: var(--space-md); border-style: dashed;">
+          <i data-lucide="plus-circle"></i> Add Time Block
+        </button>
+      </div>
+      <div class="modal-footer" style="display: flex; gap: var(--space-sm); justify-content: space-between;">
+        <button class="btn btn--ghost btn--danger" id="scheduleResetBtn" style="color: var(--danger);">
+          <i data-lucide="rotate-ccw"></i> Reset to Default
+        </button>
+        <button class="btn btn--primary" id="scheduleSaveBtn">
+          <i data-lucide="save"></i> Save Schedule
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Step Calculator & Calorie Burner Modal -->
+  <dialog class="modal" id="stepCalculatorModal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2><i data-lucide="footprints" style="color: var(--primary); vertical-align: middle; margin-right: 8px;"></i> Step Calculator</h2>
+        <button class="btn-icon modal-close" aria-label="Close calculator" onclick="document.getElementById('stepCalculatorModal').close()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: var(--space-lg);">
+        <div style="text-align: center; padding: var(--space-md) 0;">
+          <div style="font-size: 48px; font-weight: 800; color: var(--primary); line-height: 1;" id="calcStepsToday">0</div>
+          <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-top: var(--space-xs);">Steps Logged Today</div>
+          <div style="font-size: 13px; margin-top: 8px; color: var(--success); font-weight: 600;" id="calcConnectionStatus"><span class="live-pulse"></span>Pedometer Active (Standing Still)</div>
+          <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 12px;">
+            <span id="calcDeviceInfo">Device: Web Browser</span>
+            <span style="width: 3px; height: 3px; background: var(--border); border-radius: 50%;"></span>
+            <span id="calcSensorEngine">Engine: Simulator</span>
+          </div>
+
+        </div>
+        
+        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
+          <div style="background: var(--surface); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); text-align: center;">
+            <div style="font-size: 20px; font-weight: 700; color: var(--warning); display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <i data-lucide="flame" style="width: 18px; height: 18px;"></i>
+              <span id="calcCalories">0 kcal</span>
+            </div>
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; margin-top: 4px;">Est. Calories Burned</div>
+          </div>
+          <div style="background: var(--surface); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); text-align: center;">
+            <div style="font-size: 20px; font-weight: 700; color: var(--info); display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <i data-lucide="map-pin" style="width: 18px; height: 18px;"></i>
+              <span id="calcDistance">0.0 km</span>
+            </div>
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; margin-top: 4px;">Distance Walked</div>
+          </div>
+          <div style="background: var(--surface); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); text-align: center;">
+            <div style="font-size: 20px; font-weight: 700; color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <i data-lucide="timer" style="width: 18px; height: 18px;"></i>
+              <span id="calcActiveMinutes">0 mins</span>
+            </div>
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; margin-top: 4px;">Active Time</div>
+          </div>
+          <div style="background: var(--surface); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); text-align: center;">
+            <div style="font-size: 20px; font-weight: 700; color: var(--text); display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <i data-lucide="compass" style="width: 18px; height: 18px;"></i>
+              <span id="calcBaseTarget">8,000</span>
+            </div>
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; margin-top: 4px;">Base Goal Target</div>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-elevated); padding: var(--space-md); border-radius: var(--radius-md); border: 1px dashed var(--border); display: flex; flex-direction: column; gap: var(--space-xs);">
+          <h4 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); margin-bottom: 2px;">Yesterday's Goal Rollover</h4>
+          <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span style="color: var(--text-secondary);">Yesterday's Steps Logged:</span>
+            <span class="text-mono" id="calcYesterdaySteps" style="font-weight: 600;">0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span style="color: var(--text-secondary);">Yesterday's Target:</span>
+            <span class="text-mono" id="calcYesterdayTarget" style="font-weight: 600;">8,000</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 4px;">
+            <span style="color: var(--text-secondary);">Yesterday's Deficit/Credit:</span>
+            <span class="text-mono" id="calcYesterdayDelta" style="font-weight: 700; color: var(--text);">0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-top: 4px;">
+            <span style="color: var(--text);">Adjusted Step Goal Today:</span>
+            <span class="text-mono" id="calcAdjustedTarget" style="color: var(--primary);">8,000</span>
+          </div>
+          <p style="font-size: 11px; color: var(--text-tertiary); line-height: 1.4; margin-top: 6px;" id="calcRolloverExplanation">
+            * Base target is adjusted based on yesterday's deficit (increases today's goal to compensate) or credit (decreases today's goal). Goal is bounded between 4,000 and 15,000 steps.
+          </p>
+        </div>
+
+        <!-- Live Walk Simulator & Testing Tool -->
+        <div style="background: var(--surface); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-sm); margin-top: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--warning); display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="play" style="width: 14px; height: 14px;"></i> Pedometer Simulator
+            </span>
+            <span class="text-mono" id="simStatusText" style="font-size: 11px; font-weight: 600; color: var(--text-tertiary);">Idle</span>
+          </div>
+          <p style="font-size: 11px; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+            Use this tool to simulate physical steps in real-time, verifying calories, dynamic rollover targets, and notifications.
+          </p>
+          <div style="display: flex; gap: var(--space-sm); margin-top: 4px;">
+            <button class="btn btn--outline" id="btnSimStep" style="flex: 1; padding: 8px 12px; font-size: 12px; font-weight: 700;">
+              Take +100 Steps
+            </button>
+            <button class="btn btn--primary" id="btnSimAutoWalk" style="flex: 1; padding: 8px 12px; font-size: 12px; font-weight: 700; background: var(--warning); border-color: var(--warning); color: var(--bg);">
+              Start Auto-Walk
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+
+        <button class="btn btn--primary" onclick="document.getElementById('stepCalculatorModal').close()">Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Walk Verification Modal -->
+  <dialog class="modal" id="walkReminderModal">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <div class="modal-header" style="justify-content: center; position: relative;">
+        <h2><i data-lucide="bell-ring" style="color: var(--accent); vertical-align: middle; margin-right: 8px;"></i> Walk Reminder</h2>
+        <button class="btn-icon modal-close" aria-label="Close reminder" onclick="document.getElementById('walkReminderModal').close()" style="position: absolute; right: 16px; top: 16px;"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-md) 0;">
+        <div style="font-size: 48px; margin-bottom: 8px;">🚶‍♂️</div>
+        <h3 id="walkReminderTitle" style="font-size: 18px; font-weight: 700;">Time for your Walk!</h3>
+        <p id="walkReminderMsg" style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin: 0 16px;">Did you complete your scheduled walk?</p>
+      </div>
+      <div class="modal-footer" style="display: flex; gap: var(--space-sm); width: 100%; justify-content: center;">
+        <button class="btn btn--primary" id="btnLogWalkYes" style="flex: 1;">Yes, logged</button>
+        <button class="btn btn--danger" id="btnLogWalkNo" style="flex: 1; background: transparent; border: 1px solid var(--danger); color: var(--danger);">No, skipped</button>
+      </div>
+  </dialog>
+
+  <!-- Exercise Detail Modal -->
+  <dialog class="modal" id="exerciseDetailModal">
+    <div class="modal-content" style="max-width: 500px; padding: var(--space-lg); border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-lg);">
+      <div class="modal-header" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-md); margin-bottom: var(--space-md); position: relative; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <h2 id="exDetailTitle" style="font-size: 18px; font-weight: 800; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="zap" style="color: var(--primary); width: 20px; height: 20px;"></i>
+          <span>Exercise Details</span>
+        </h2>
+        <button class="btn-icon modal-close" aria-label="Close details" onclick="document.getElementById('exerciseDetailModal').close()" style="position: absolute; right: 0; top: 0;"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: var(--space-md); max-height: 65vh; overflow-y: auto; padding-right: 4px;">
+        <!-- Big image container with premium glassmorphism styling -->
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: var(--space-md); height: 240px; position: relative;">
+          <img id="exDetailImage" src="" alt="Exercise Illustration" style="max-height: 100%; max-width: 100%; object-fit: contain; filter: drop-shadow(0px 4px 12px rgba(0,255,255,0.15));">
+        </div>
+
+        <!-- Volume Target Details -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-elevated); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border-left: 4px solid var(--primary);">
+          <div>
+            <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); display: block;">Target Volume</span>
+            <span id="exDetailSets" style="font-size: 16px; font-weight: 800; color: var(--primary); font-family: monospace;">3 × 15 reps</span>
+          </div>
+          <span id="exDetailLevel" class="badge" style="font-size: 11px; padding: 4px 10px; border-radius: var(--radius-full); font-weight: 700;">Beginner</span>
+        </div>
+
+        <!-- Description/Steps -->
+        <div>
+          <h4 style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.03em;">Instructions</h4>
+          <p id="exDetailDesc" style="font-size: 13.5px; color: var(--text); line-height: 1.5; margin: 0; white-space: pre-line;"></p>
+        </div>
+
+        <!-- Safety Advice -->
+        <div id="exDetailCoachTipsContainer" style="background: oklch(0.62 0.25 29 / 0.05); border: 1px solid var(--border-subtle); padding: var(--space-md); border-radius: var(--radius-md);">
+          <h4 style="font-size: 11px; font-weight: 700; color: var(--accent); margin: 0 0 4px 0; text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
+            <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Coach Safety Tip
+          </h4>
+          <p id="exDetailCoachTips" style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;"></p>
+        </div>
+      </div>
+      <div class="modal-footer" style="margin-top: var(--space-lg); border-top: 1px solid var(--border-subtle); padding-top: var(--space-md); display: flex; gap: var(--space-sm);">
+        <a id="exDetailVideoBtn" href="" target="_blank" class="btn btn--primary" style="flex: 1; justify-content: center; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="play-circle"></i> Watch Video Demo
+        </a>
+        <button class="btn btn--outline" onclick="document.getElementById('exerciseDetailModal').close()" style="flex: 1;">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="onboardingModal" style="backdrop-filter: blur(12px);">
+    <div class="modal-content" style="max-width: 550px; padding: var(--space-lg); border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-lg);">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-md); margin-bottom: var(--space-md);">
+        <h2 style="font-size: 20px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0;">
+          <i data-lucide="shield-check" style="color: var(--primary);"></i> Setup Personalized Plan
+        </h2>
+        <span class="text-mono" id="onboardingStepIndicator" style="font-size: 12px; font-weight: 700; color: var(--text-secondary); background: var(--bg-elevated); padding: 4px 10px; border-radius: var(--radius-full);">Step 1 of 5</span>
+      </div>
+
+      <!-- Step Progress Bar -->
+      <div style="width: 100%; height: 6px; background: var(--bg-elevated); border-radius: var(--radius-full); margin-bottom: var(--space-lg); overflow: hidden;">
+        <div id="onboardingProgressBar" style="width: 20%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
+      </div>
+
+      <!-- Step 1: Personal Profile & Goals -->
+      <div class="onboarding-step" id="onboardingStep1" style="display: flex; flex-direction: column; gap: var(--space-md);">
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--accent); margin: 0;">Clinical Intake & Biological Baseline</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+          Hello! I am your clinical health coach. To start, let's establish your biological baseline and identify your primary health focus.
+        </p>
+        <div class="input-group">
+          <label class="input-label" for="obName">Your First Name</label>
+          <input class="input-field" type="text" id="obName" placeholder="Enter your name" value="">
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="obAge">Age (Years)</label>
+          <input class="input-field" type="number" id="obAge" placeholder="e.g. 40" value="">
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="obGender">Biological Sex</label>
+          <select class="input-field" id="obGender" style="background: var(--bg-elevated); color: var(--text);">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="input-label">What is your primary clinical health goal?</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+            <label style="display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: pointer;">
+              <input type="radio" name="obGoal" value="weight_loss" checked style="accent-color: var(--primary);">
+              <div>
+                <strong style="font-size: 13px; display: block; color: var(--text);">Weight Loss & Fat Reduction</strong>
+                <span style="font-size: 11px; color: var(--text-tertiary);">Safe fat reduction & waist correction</span>
+              </div>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: pointer;">
+              <input type="radio" name="obGoal" value="muscle_gain" style="accent-color: var(--primary);">
+              <div>
+                <strong style="font-size: 13px; display: block; color: var(--text);">Muscle Gain & Strength</strong>
+                <span style="font-size: 11px; color: var(--text-tertiary);">Strength building and lean tissue increase</span>
+              </div>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; padding: 12px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: pointer;">
+              <input type="radio" name="obGoal" value="health_management" style="accent-color: var(--primary);">
+              <div>
+                <strong style="font-size: 13px; display: block; color: var(--text);">Cardiovascular & Metabolic Health</strong>
+                <span style="font-size: 11px; color: var(--text-tertiary);">Pathology-based dietary and lifestyle management</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Body Metrics & Live BMI -->
+      <div class="onboarding-step" id="onboardingStep2" style="display: none; flex-direction: column; gap: var(--space-md);">
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--accent); margin: 0;">Anthropometrics & Timeline</h3>
+        <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+          A clinical target: Healthy weight loss should be limited to **0.5 - 1 kg per week** to prevent muscle wasting, metabolism stalling, or rebound weight gain.
+        </p>
+        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
+          <div class="input-group">
+            <label class="input-label" for="obWeight">Current Weight (kg)</label>
+            <input class="input-field" type="number" id="obWeight" step="0.1" value="">
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="obHeight">Height (cm)</label>
+            <input class="input-field" type="number" id="obHeight" value="">
+          </div>
+        </div>
+        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
+          <div class="input-group">
+            <label class="input-label" for="obWaist">Waist (inches)</label>
+            <input class="input-field" type="number" id="obWaist" step="0.5" value="">
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="obTargetWeight">Target Weight (kg)</label>
+            <input class="input-field" type="number" id="obTargetWeight" step="0.1" value="">
+          </div>
+        </div>
+        <div class="input-grid" style="grid-template-columns: 2fr 1fr; gap: var(--space-md);">
+          <div class="input-group">
+            <label class="input-label" for="obTimelineVal">Target Time Duration</label>
+            <input class="input-field" type="number" id="obTimelineVal" value="3">
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="obTimelineUnit">Unit</label>
+            <select class="input-field" id="obTimelineUnit" style="background: var(--bg-elevated); color: var(--text);">
+              <option value="months">Months</option>
+              <option value="weeks">Weeks</option>
+              <option value="days">Days</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Live BMI Calculator Card -->
+        <div style="background: var(--bg-elevated); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-top: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Calculated BMI:</span>
+            <span class="text-mono" id="obBmiValue" style="font-size: 18px; font-weight: 800; color: var(--primary);">--</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+            <span style="font-size: 12px; color: var(--text-tertiary);">Classification Status:</span>
+            <span id="obBmiStatus" style="font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-full);">--</span>
+          </div>
+        </div>
+
+        <!-- Live Validation Alert Box -->
+        <div id="obGoalAlert" style="display: none; background: oklch(0.62 0.25 29 / 0.12); border: 1px solid var(--danger); padding: var(--space-md); border-radius: var(--radius-md); margin-top: 4px;">
+          <div style="font-weight: 700; color: var(--danger); font-size: 13px; display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i> Non-Realistic Target Rate!
+          </div>
+          <p id="obGoalAlertText" style="font-size: 12px; color: var(--text-secondary); margin: 6px 0 0 0; line-height: 1.4;">
+            Losing weight too fast is clinical high-risk. We suggest a safer timeline.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 3: Dietary Profile & Cultural Preferences -->
+      <div class="onboarding-step" id="onboardingStep3" style="display: none; flex-direction: column; gap: var(--space-md);">
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--accent); margin: 0;">Dietary Habits & Intolerances</h3>
+        <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+          Your menu vocabulary, restricted days, and ingredient selections are tailored to your demographic and clinical dietary profile.
+        </p>
+        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
+          <div class="input-group">
+            <label class="input-label" for="obDiet">Dietary Habit</label>
+            <select class="input-field" id="obDiet" style="background: var(--bg-elevated); color: var(--text);">
+              <option value="non_veg">Non-Vegetarian</option>
+              <option value="veg">Vegetarian</option>
+              <option value="eggitarian">Eggitarian</option>
+              <option value="vegan">Vegan</option>
+            </select>
+          </div>
+          <div class="input-group" id="obNonVegFreqWrap">
+            <label class="input-label" for="obNonVegFreq">Non-Veg Frequency</label>
+            <select class="input-field" id="obNonVegFreq" style="background: var(--bg-elevated); color: var(--text);">
+              <option value="rarely">Rarely</option>
+              <option value="1_2_weekly">1-2 times/week</option>
+              <option value="3_4_weekly">3-4 times/week</option>
+              <option value="daily">Daily</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group" id="obRestrictedDaysWrap">
+          <label class="input-label" style="margin-bottom: 6px;">Restricted Non-Veg Days</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; background: var(--bg-elevated); padding: 8px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-day-chk" value="monday"> Mon</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-day-chk" value="tuesday"> Tue</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-day-chk" value="wednesday"> Wed</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-day-chk" value="thursday"> Thu</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-day-chk" value="friday"> Fri</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-day-chk" value="saturday"> Sat</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-day-chk" value="sunday"> Sun</label>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="obDietRegion">Regional Indian/Western Preference</label>
+          <select class="input-field" id="obDietRegion" style="background: var(--bg-elevated); color: var(--text);">
+            <option value="standard">Standard / General Diet</option>
+            <option value="north_indian">North Indian Diet</option>
+            <option value="south_indian">South Indian Diet</option>
+            <option value="east_indian">East Indian Diet</option>
+            <option value="west_indian">West Indian Diet</option>
+            <option value="western">Western / Continental Diet</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: var(--space-md); margin-top: 4px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer; flex: 1;">
+            <input type="checkbox" id="obGlutenFree" style="accent-color: var(--primary);">
+            <span>Gluten-Free (Celiac / Sensitivity)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); cursor: pointer; flex: 1;">
+            <input type="checkbox" id="obLactoseFree" style="accent-color: var(--primary);">
+            <span>Lactose-Free (Dairy Sensitive)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Step 4: Clinical History & Pathology Screening -->
+      <div class="onboarding-step" id="onboardingStep4" style="display: none; flex-direction: column; gap: var(--space-md);">
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--accent); margin: 0;">Clinical History & Pathological Screening</h3>
+        <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+          Our personalized engine automatically restricts saturated fats, adapts glycemic load, and modifies exercise routines to protect your cardiovascular health and joint structures.
+        </p>
+        
+        <div style="background: var(--bg-elevated); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-sm);">
+          <h4 style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase;">Diagnosed Conditions</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+              <input type="checkbox" id="obHasTriglycerides" style="accent-color: var(--primary);">
+              <span>High Triglycerides</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+              <input type="checkbox" id="obHasLdl" style="accent-color: var(--primary);">
+              <span>High LDL Cholesterol</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+              <input type="checkbox" id="obHasHeartBlockage" style="accent-color: var(--primary);">
+              <span>Heart Blockage / CAD</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+              <input type="checkbox" id="obHasHypertension" style="accent-color: var(--primary);">
+              <span>High BP (Hypertension)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+              <input type="checkbox" id="obHasDiabetes" style="accent-color: var(--primary);">
+              <span>Diabetes / Pre-diabetes</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+              <input type="checkbox" id="obHasThyroid" style="accent-color: var(--primary);">
+              <span>Thyroid Condition</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Conditional Thyroid Options -->
+        <div id="obThyroidDetailsWrap" style="display: none; flex-direction: column; gap: var(--space-xs); padding-left: var(--space-md); border-left: 2px solid var(--border-subtle); margin-top: -4px;">
+          <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
+            <div class="input-group">
+              <label class="input-label" for="obThyroidType">Thyroid Type</label>
+              <select class="input-field" id="obThyroidType" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="hypothyroidism">Hypothyroidism</option>
+                <option value="hyperthyroidism">Hyperthyroidism</option>
+                <option value="euthyroid">Euthyroid / Other</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label class="input-label" for="obThyroidMed">Thyroid Medication & Dose</label>
+              <input class="input-field" type="text" id="obThyroidMed" placeholder="e.g. Levothyroxine 62.5 mcg" value="">
+            </div>
+          </div>
+        </div>
+
+        <!-- Joint pain screening -->
+        <div style="background: var(--bg-elevated); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-sm);">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">
+            <input type="checkbox" id="obHasJointPain" style="accent-color: var(--primary);">
+            <span>Active Joint Pain / Chronic Musculoskeletal Issues</span>
+          </label>
+          <div id="obJointPainDetailsWrap" style="display: none; grid-template-columns: repeat(4, 1fr); gap: 10px; padding-left: var(--space-sm); margin-top: 2px;">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-joint-chk" value="knee"> Knee</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-joint-chk" value="back"> Back</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-joint-chk" value="shoulder"> Shoulder</label>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"><input type="checkbox" class="ob-joint-chk" value="neck"> Neck</label>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="obMeds">Active Daily Medications & Dosages</label>
+          <input class="input-field" type="text" id="obMeds" placeholder="e.g. Metformin 500mg, Omeprazole 20mg" value="">
+        </div>
+      </div>
+
+      <!-- Step 5: Lifestyle Stress & Recovery Habits -->
+      <div class="onboarding-step" id="onboardingStep5" style="display: none; flex-direction: column; gap: var(--space-md);">
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--accent); margin: 0;">Lifestyle & Habits Assessment</h3>
+        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
+          <div class="input-group">
+            <label class="input-label" for="obWorkActivity">Occupational Activity Level</label>
+            <select class="input-field" id="obWorkActivity" style="background: var(--bg-elevated); color: var(--text);">
+              <option value="sedentary">Sedentary (Sitting IT/Desk Job)</option>
+              <option value="moderate">Moderately Active (Standing/walking)</option>
+              <option value="active">Highly Active (Physical Labor)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="obSleepCategory">Average Sleep Duration</label>
+            <select class="input-field" id="obSleepCategory" style="background: var(--bg-elevated); color: var(--text);">
+              <option value="deprived">Less than 6 hours (Sleep deprived)</option>
+              <option value="optimal" selected>7-8 hours (Optimal)</option>
+              <option value="extended">More than 8 hours</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
+          <div class="input-group">
+            <label class="input-label" for="obStressLevel">Daily Stress Level</label>
+            <select class="input-field" id="obStressLevel" style="background: var(--bg-elevated); color: var(--text);">
+              <option value="low">Low</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="obCommuteDetails">Daily Commute Details</label>
+            <input class="input-field" type="text" id="obCommuteDetails" placeholder="e.g. Cab, around 1 hour commute" value="">
+          </div>
+        </div>
+
+        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
+          <div class="input-group">
+            <label class="input-label" for="obSmoking">Smoking Habit</label>
+            <select class="input-field" id="obSmoking" style="background: var(--bg-elevated); color: var(--text);">
+              <option value="non_smoker">Non-smoker</option>
+              <option value="smoker">Smoker</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="obDrinking">Alcohol Consumption</label>
+            <select class="input-field" id="obDrinking" style="background: var(--bg-elevated); color: var(--text);">
+              <option value="non_drinking">Non-drinking</option>
+              <option value="occasional" selected>Occasional</option>
+              <option value="regular">Regular (Drinking)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="obMeals">Meals Per Day</label>
+          <input class="input-field" type="number" id="obMeals" value="4" min="2" max="6">
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="obFitnessLevel">Exercise Experience / Fitness Level</label>
+          <select class="input-field" id="obFitnessLevel" style="background: var(--bg-elevated); color: var(--text);">
+            <option value="beginner">Beginner (New to exercise / currently inactive)</option>
+            <option value="intermediate">Intermediate (Active / exercises 2-3x weekly)</option>
+            <option value="advanced">Advanced (Experienced / strength trains 4x+ weekly)</option>
+          </select>
+        </div>
+      </div>
+      </div>
+
+      <!-- Footer navigation -->
+      <div class="modal-footer" style="display: flex; justify-content: space-between; margin-top: var(--space-lg);">
+        <button class="btn btn--outline" id="btnObBack" style="display: none; width: 100px;">Back</button>
+        <div id="obSpacer" style="flex: 1;"></div>
+        <button class="btn btn--primary" id="btnObNext" style="width: 120px;">Next</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- App Scripts -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

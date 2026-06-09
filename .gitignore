@@ -1,0 +1,15 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Android builds & Gradle cache
+.gradle/
+.kotlin/
+**/build/
+**/local.properties
+**/*.iml
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
