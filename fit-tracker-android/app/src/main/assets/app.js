@@ -512,9 +512,23 @@ function renderDashboard() {
   }
 
   // Calories and benchmark status
-  const weight = latestWeight || 75;
-  const calories = Math.round(weight * (steps * 0.0007) * 1.036);
-  setTextContent('todayStepsCaloriesValue', `${calories} kcal`);
+  const weight = latestWeight || profile.start_weight_kg;
+  const height = profile.height_cm;
+  const stepsMetrics = getStepsMetrics(steps, weight, height, profile.sex);
+  
+  if (stepsMetrics.requiresProfile) {
+    setTextContent('todayStepsCaloriesValue', '-- kcal');
+    const caloriesEl = document.getElementById('todayStepsCalories');
+    if (caloriesEl) {
+      caloriesEl.title = "Set weight and height in settings to calculate precise calories";
+    }
+  } else {
+    setTextContent('todayStepsCaloriesValue', `${stepsMetrics.calories} kcal`);
+    const caloriesEl = document.getElementById('todayStepsCalories');
+    if (caloriesEl) {
+      caloriesEl.title = "";
+    }
+  }
 
   const statusEl = document.getElementById('todayStepsStatus');
   if (statusEl) {
@@ -763,10 +777,23 @@ function loadQuickLogValues() {
   const steps = log.steps || 0;
   const allLogs = getAllDailyLogs();
   const profile = getProfile();
-  const latestWeight = findLatestValue(allLogs, 'weight_kg') || profile.start_weight_kg || 75;
-  const calories = Math.round(latestWeight * (steps * 0.0007) * 1.036);
+  const latestWeight = findLatestValue(allLogs, 'weight_kg') || profile.start_weight_kg;
+  const height = profile.height_cm;
+  const stepsMetrics = getStepsMetrics(steps, latestWeight, height, profile.sex);
 
-  setTextContent('todayStepsCaloriesTodayValue', `${calories} kcal`);
+  if (stepsMetrics.requiresProfile) {
+    setTextContent('todayStepsCaloriesTodayValue', '-- kcal');
+    const caloriesEl = document.getElementById('todayStepsCaloriesToday');
+    if (caloriesEl) {
+      caloriesEl.title = "Set weight and height in settings to calculate precise calories";
+    }
+  } else {
+    setTextContent('todayStepsCaloriesTodayValue', `${stepsMetrics.calories} kcal`);
+    const caloriesEl = document.getElementById('todayStepsCaloriesToday');
+    if (caloriesEl) {
+      caloriesEl.title = "";
+    }
+  }
   const adjustedTarget = getAdjustedStepTarget(currentDate);
   const statusElToday = document.getElementById('todayStepsStatusToday');
   if (statusElToday) {
@@ -2403,6 +2430,40 @@ function capitalize(str) {
   return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
 }
 
+function getStepsMetrics(steps, weight, height, sex) {
+  const w = parseFloat(weight);
+  const h = parseFloat(height);
+  if (isNaN(w) || isNaN(h) || w <= 0 || h <= 0) {
+    return {
+      calories: 0,
+      distance: '0.00',
+      requiresProfile: true
+    };
+  }
+
+  // Calculate sex-specific stride length multiplier
+  // Standard stride length ratio is height * 0.413 for females and height * 0.415 for males/default
+  const s = sex || 'male';
+  const strideMultiplier = (s.toLowerCase() === 'female') ? 0.00413 : 0.00415;
+  const strideMeters = h * strideMultiplier;
+  
+  // Calculate distance in kilometers
+  const distanceKm = (steps * strideMeters) / 1000;
+
+  // Calculate calories using the Metabolic Equivalent of Task (MET) walking equation:
+  // Calories = MET * 3.5 * weight (kg) / 200 * duration (mins)
+  // For standard moderate walking (3 mph), MET = 3.5.
+  // Assuming a standard walking cadence of 120 steps per minute, duration in minutes = steps / 120.
+  // Calories = 3.5 * 3.5 * weight * (steps / 120) / 200 = 12.25 * weight * steps / 24000 = 0.0005104 * weight * steps.
+  const calories = Math.round(0.0005104 * w * steps);
+
+  return {
+    calories,
+    distance: distanceKm.toFixed(2),
+    requiresProfile: false
+  };
+}
+
 function findLatestValue(logs, key) {
   const dates = Object.keys(logs).sort().reverse();
   for (const date of dates) {
@@ -2560,16 +2621,24 @@ function bindStepCalculatorModal() {
       const details = getStepRolloverDetails(today);
       const allLogs = getAllDailyLogs();
       const profile = getProfile();
-      const latestWeight = findLatestValue(allLogs, 'weight_kg') || profile.start_weight_kg || 75;
+      const latestWeight = findLatestValue(allLogs, 'weight_kg') || profile.start_weight_kg;
+      const height = profile.height_cm;
       
-      const calories = Math.round(latestWeight * (steps * 0.0007) * 1.036);
-      const distance = (steps * 0.0007).toFixed(2);
+      const stepsMetrics = getStepsMetrics(steps, latestWeight, height, profile.sex);
       const activeMinutes = Math.round(steps * 0.008);
       
       // Update DOM elements
       setTextContent('calcStepsToday', steps.toLocaleString());
-      setTextContent('calcCalories', `${calories} kcal`);
-      setTextContent('calcDistance', `${distance} km`);
+      const warningEl = document.getElementById('calcProfileWarning');
+      if (stepsMetrics.requiresProfile) {
+        setTextContent('calcCalories', '-- kcal');
+        setTextContent('calcDistance', '-- km');
+        if (warningEl) warningEl.style.display = 'block';
+      } else {
+        setTextContent('calcCalories', `${stepsMetrics.calories} kcal`);
+        setTextContent('calcDistance', `${stepsMetrics.distance} km`);
+        if (warningEl) warningEl.style.display = 'none';
+      }
       setTextContent('calcActiveMinutes', `${activeMinutes} mins`);
       setTextContent('calcBaseTarget', details.baseTarget.toLocaleString());
       

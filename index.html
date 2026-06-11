@@ -1172,6 +1172,9 @@
         <button class="btn-icon modal-close" aria-label="Close calculator" onclick="document.getElementById('stepCalculatorModal').close()"><i data-lucide="x"></i></button>
       </div>
       <div class="modal-body" style="display: flex; flex-direction: column; gap: var(--space-lg);">
+        <div id="calcProfileWarning" style="display: none; background: rgba(245, 158, 11, 0.1); color: var(--warning); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); font-size: 12px; font-weight: 600; text-align: center; border: 1px solid var(--warning); margin-bottom: var(--space-xs);">
+          ⚠️ Complete your weight and height in Settings to compute precise distance and calories.
+        </div>
         <div style="text-align: center; padding: var(--space-md) 0;">
           <div style="font-size: 48px; font-weight: 800; color: var(--primary); line-height: 1;" id="calcStepsToday">0</div>
           <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-top: var(--space-xs);">Steps Logged Today</div>
