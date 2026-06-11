@@ -1199,13 +1199,15 @@ export function generateSampleData() {
 }
 
 export const REGIONAL_SPECIALTIES = {
-  "mumbai": [
+  "maharashtra": [
+    { name: "Punyeri Misal Pav (1 plate)", calories: 450, protein: 10, warning: "Pav adds simple carbs; spicy Kat/Rassa can trigger acidity and spike lipid markers.", swap: "Sprouts Salad (no pav) or Moong Dal Chilla" },
     { name: "Vada Pav (1 piece)", calories: 300, protein: 5, warning: "High in simple carbs & deep-fried oil. Bad for triglycerides/LDL.", swap: "Grilled Paneer Sandwich or Roasted Chana Sprouts" },
-    { name: "Misal Pav (1 plate)", calories: 450, protein: 12, warning: "Pav adds simple carbs; spicy rassa can trigger acidity.", swap: "Moong Dal Chilla or Sprouts Salad without Pav" },
-    { name: "Kanda Poha (1 plate)", calories: 250, protein: 4, warning: "Moderate carbs. Low in protein.", swap: "Poha topped with 50g grated paneer or boiled egg white" },
-    { name: "Sabudana Khichdi (1 plate)", calories: 350, protein: 2, warning: "High starch, very low protein. Spike blood sugar.", swap: "Oats Upma or Sattu Drink" }
+    { name: "Bhakarwadi (50g / 4 pieces)", calories: 280, protein: 4, warning: "Deep fried refined flour. Loaded with trans-fats and high sodium.", swap: "Roasted Makhana or Roasted Chana" },
+    { name: "Pithla Bhakri (1 serving + 1 Jowar Bhakri)", calories: 350, protein: 9, warning: "Healthy complex carbs/fiber. Besan (chickpea flour) can cause minor bloating in some.", swap: "Add 100g low-fat curd or a side of paneer for protein" },
+    { name: "Mango Mastani (1 glass)", calories: 400, protein: 6, warning: "Heavy milk fats, processed ice cream, and extremely high added sugars.", swap: "Fresh mango slices with low-fat Greek yogurt" },
+    { name: "Sabudana Vada (2 pieces)", calories: 350, protein: 3, warning: "Deep fried sago starch. Very high glycemic index with minimal protein.", swap: "Boiled egg whites or Moong Dal Chilla" }
   ],
-  "delhi": [
+  "delhi_region": [
     { name: "Chole Bhature (2 bhature + chole)", calories: 650, protein: 15, warning: "Deep fried bhatura, high saturated fats. Highly clinically discouraged.", swap: "Chole with 1 whole wheat Chapati or Chana Chat" },
     { name: "Aloo Paratha with Butter (1 piece)", calories: 350, protein: 5, warning: "Refined carbs, high butter fat. Elevates cholesterol.", swap: "Paneer Paratha (dry) or Multigrain Roti with curd" },
     { name: "Butter Chicken (1 serving / 150g)", calories: 420, protein: 22, warning: "Heavy butter & cream. Increases risk of CAD.", swap: "Tandoori Chicken or Chicken Tikka (Dry)" },
@@ -1215,16 +1217,24 @@ export const REGIONAL_SPECIALTIES = {
     { name: "Masala Dosa (1 piece with sambar)", calories: 350, protein: 6, warning: "High in simple carbs (white rice batter) and potato filling.", swap: "Ragi Dosa or Moong Dal Pesarattu" },
     { name: "Medu Vada (2 pieces with sambar)", calories: 320, protein: 8, warning: "Deep fried lentil batter. High trans-fats.", swap: "Steamed Idli (3) or Oats Idli" },
     { name: "Idli (3 pieces with sambar)", calories: 210, protein: 6, warning: "Clean steamed food, but low in protein.", swap: "Add 1 cup of curd or a side of boiled egg whites" },
-    { name: "Ragi Mudde (1 ball)", calories: 300, protein: 7, warning: "High fiber, great for diabetes. Low fat.", swap: "Add Sambar with high vegetables and paneer chunks" }
+    { name: "Ragi Mudde (1 ball)", calories: 300, protein: 7, warning: "High fiber, great for diabetes. Low fat.", swap: "Add Sambar with high vegetables and paneer chunks" },
+    { name: "Hyderabadi Chicken Biryani (1 plate)", calories: 600, protein: 24, warning: "High fat, simple carbs (polished rice), high oil/ghee.", swap: "Brown rice chicken biryani or Tandoori Chicken + salad" }
   ],
-  "kolkata": [
+  "east_india": [
     { name: "Luchi Alur Dom (4 luchi + potato curry)", calories: 500, protein: 8, warning: "Deep fried maida (luchi), high oil. Clinically discouraged.", swap: "Whole wheat chapati with aloo-patal curry" },
     { name: "Macher Jhol (Fish Curry, 1 serving)", calories: 250, protein: 20, warning: "Great lean protein, but watch out for excess mustard oil.", swap: "Grilled/Baked fish with minimal oil" },
     { name: "Roshogolla (2 pieces)", calories: 250, protein: 4, warning: "Extremely high sugar syrup. Spike triglycerides.", swap: "Double toned curd with fresh berries or apple" }
   ],
-  "hyderabad": [
-    { name: "Hyderabadi Chicken Biryani (1 plate)", calories: 600, protein: 24, warning: "High fat, simple carbs (polished rice), high oil/ghee.", swap: "Brown rice chicken biryani or Tandoori Chicken + salad" },
-    { name: "Mirchi Bajji (3 pieces)", calories: 350, protein: 5, warning: "Deep fried chili fritters. Heavy acidity & fat.", swap: "Roasted papad with tomato onion salsa" }
+  "west_india": [
+    { name: "Dal Baati Churma (1 plate)", calories: 550, protein: 11, warning: "Extremely high in calorie density and saturated fat (soaked in ghee). Highly discouraged.", swap: "Moong dal khichdi or whole wheat chapati with dal tadka" },
+    { name: "Dhokla (3 pieces)", calories: 220, protein: 6, warning: "Steamed chickpea batter, relatively clean but low protein.", swap: "Sprouted moong salad or Moong dal chilla" },
+    { name: "Poha Jalebi (1 plate)", calories: 380, protein: 5, warning: "Deep fried sugar-sweetened jalebi combined with simple carbs.", swap: "Sprouts Poha without jalebi" }
+  ],
+  "default_india": [
+    { name: "Moong Dal Chilla (2 pieces)", calories: 260, protein: 12, warning: "Great clean option. Low-fat, plant protein.", swap: "None! This is an excellent high-protein meal" },
+    { name: "Paneer Tikka (Grilled, 4 pieces)", calories: 280, protein: 15, warning: "Excellent high protein option! Highly clinical approved.", swap: "None! This is an excellent high-protein meal" },
+    { name: "Grilled Chicken Salad (1 serving)", calories: 240, protein: 26, warning: "High lean protein option, keep oil dress/mayo low.", swap: "None! This is an excellent high-protein meal" },
+    { name: "Boiled Egg (Large, 2)", calories: 156, protein: 12, warning: "Clean option, yolks contain some cholesterol.", swap: "4 egg whites (whites contain zero fat)" }
   ]
 };
 

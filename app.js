@@ -117,7 +117,7 @@ function initializeApp() {
 
   // Initialize theme
   const settings = getSettings();
-  applyTheme(settings.theme || 'dark');
+  applyTheme(settings.theme || 'light');
 
   // Initialize Lucide icons
   if (typeof lucide !== 'undefined') {
@@ -3419,6 +3419,110 @@ function getDailyCalorieTarget(profile) {
   return target;
 }
 
+let isLiveLocationEnabled = false;
+
+function showLocationRequiredModal() {
+  let modal = document.getElementById('locationRequiredModal');
+  if (!modal) {
+    modal = document.createElement('dialog');
+    modal.id = 'locationRequiredModal';
+    modal.className = 'modal';
+    modal.style.border = 'none';
+    modal.style.borderRadius = 'var(--radius-lg)';
+    modal.style.padding = '0';
+    modal.style.background = 'transparent';
+    modal.style.boxShadow = 'var(--shadow-lg)';
+    modal.style.maxWidth = '400px';
+    modal.style.width = '90%';
+    
+    modal.innerHTML = `
+      <div class="card" style="margin: 0; border-color: var(--primary);">
+        <div class="card-header" style="justify-content: center; padding-bottom: var(--space-sm);">
+          <h2 style="display: flex; flex-direction: column; align-items: center; gap: var(--space-sm); text-align: center;">
+            <i data-lucide="map-pin-off" style="width: 48px; height: 48px; color: var(--danger); animation: pulse 2s infinite;"></i>
+            GPS Location Required
+          </h2>
+        </div>
+        <div class="card-body" style="text-align: center; display: flex; flex-direction: column; gap: var(--space-md); padding-top: var(--space-md);">
+          <p style="font-size: 14px; line-height: 1.5; color: var(--text-secondary); margin: 0;">
+            To search the food database or discover local specialties, the app needs to reference your mobile's live location.
+          </p>
+          <p style="font-size: 12px; color: var(--text-tertiary); margin: 0;">
+            Please enable Location Services (GPS) in your mobile settings and grant browser access, then try again.
+          </p>
+          <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-sm);">
+            <button class="btn btn--primary" id="btnRetryLocation" style="flex: 1;">
+              <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Enable & Sync
+            </button>
+            <button class="btn btn--ghost" id="btnCloseLocationModal" style="flex: 1;">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('#btnCloseLocationModal').addEventListener('click', () => {
+      modal.close();
+    });
+    modal.querySelector('#btnRetryLocation').addEventListener('click', () => {
+      modal.close();
+      detectUserLocation();
+    });
+
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons({ attrs: { class: 'lucide' }, node: modal });
+    }
+  }
+  modal.showModal();
+}
+
+function handleLocationFailure() {
+  const activeLocationSpan = document.getElementById('activeLocationName');
+  if (activeLocationSpan) {
+    activeLocationSpan.textContent = "GPS Off (Tap to Sync)";
+    activeLocationSpan.style.cursor = 'pointer';
+  }
+
+  const regionalCard = document.getElementById('regionalSpecialtiesCard');
+  if (regionalCard) {
+    regionalCard.style.display = 'block';
+  }
+
+  const coachBox = document.getElementById('aiCoachTipBox');
+  if (coachBox) {
+    coachBox.style.display = 'none';
+  }
+
+  const grid = document.getElementById('regionalSpecialtiesGrid');
+  if (grid) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: var(--space-md) var(--space-lg); border: 1.5px dashed var(--border); border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.03); display: flex; flex-direction: column; align-items: center; gap: var(--space-xs);">
+        <i data-lucide="map-pin-off" style="width: 28px; height: 28px; color: var(--danger);"></i>
+        <h4 style="font-size: 13px; font-weight: 700; margin: 0; color: var(--text);">Live Location Services Off</h4>
+        <p style="font-size: 11px; color: var(--text-secondary); margin: 0; max-width: 300px; line-height: 1.4;">
+          Your mobile's live location is required to search the database and view healthy regional specialties in your area.
+        </p>
+        <button class="btn btn--sm btn--primary" id="btnEnableLocationInline" style="margin-top: 6px; padding: 4px 12px; font-size: 11px; height: auto;">
+          Enable Live Location
+        </button>
+      </div>
+    `;
+    
+    const inlineBtn = grid.querySelector('#btnEnableLocationInline');
+    if (inlineBtn) {
+      inlineBtn.addEventListener('click', () => {
+        detectUserLocation();
+      });
+    }
+
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons({ attrs: { class: 'lucide' }, node: grid });
+    }
+  }
+}
+
 function detectUserLocation() {
   const badge = document.getElementById('activeLocationName');
   if (badge) badge.textContent = "Detecting location...";
@@ -3440,20 +3544,23 @@ function detectUserLocation() {
           const data = await response.json();
           const address = data.address || {};
           const city = address.city || address.town || address.state_district || address.village || address.suburb || address.state || "";
+          const state = address.state || "";
           
           if (city) {
-            handleDetectedCity(city);
+            isLiveLocationEnabled = true;
+            handleDetectedCity(city, state);
           } else {
-            detectLocationByIP();
+            isLiveLocationEnabled = false;
+            handleLocationFailure();
           }
         } catch (e) {
           console.warn("GPS reverse geocoding failed, falling back to IP", e);
-          detectLocationByIP();
+          detectLocationByIP(); // fallback to IP
         }
       },
       (error) => {
         console.warn("GPS lookup failed, falling back to IP", error);
-        detectLocationByIP();
+        detectLocationByIP(); // fallback to IP
       },
       options
     );
@@ -3463,60 +3570,69 @@ function detectUserLocation() {
 }
 
 async function detectLocationByIP() {
-  const badge = document.getElementById('activeLocationName');
   try {
     const response = await fetch("https://ipapi.co/json/");
     if (!response.ok) throw new Error("IP API fetch failed");
     const data = await response.json();
     const city = data.city || "";
+    const regionName = data.region || ""; // In ipapi.co, region is the state (e.g. Maharashtra)
     if (city) {
-      handleDetectedCity(city);
+      isLiveLocationEnabled = true;
+      handleDetectedCity(city, regionName);
     } else {
-      handleDetectedCity("Delhi"); // Default fallback
+      isLiveLocationEnabled = false;
+      handleLocationFailure();
     }
   } catch (e) {
     console.error("IP geolocation failed", e);
-    handleDetectedCity("Delhi"); // Default fallback
+    isLiveLocationEnabled = false;
+    handleLocationFailure();
   }
 }
 
-function handleDetectedCity(cityName) {
+function handleDetectedCity(cityName, stateName) {
   const activeLocationSpan = document.getElementById('activeLocationName');
   if (activeLocationSpan) {
     activeLocationSpan.textContent = cityName;
   }
 
-  const standardized = cityName.toLowerCase().trim();
-  let regionKey = 'delhi'; // Default fallback
+  const stateLower = (stateName || '').toLowerCase().trim();
+  const cityLower = (cityName || '').toLowerCase().trim();
+  let regionKey = 'default_india';
 
-  if (standardized.includes('mumbai') || standardized.includes('bombay')) {
-    regionKey = 'mumbai';
-  } else if (standardized.includes('delhi') || standardized.includes('noida') || standardized.includes('gurgaon') || standardized.includes('ghaziabad')) {
-    regionKey = 'delhi';
-  } else if (standardized.includes('kolkata') || standardized.includes('calcutta') || standardized.includes('howrah')) {
-    regionKey = 'kolkata';
-  } else if (standardized.includes('hyderabad') || standardized.includes('secunderabad')) {
-    regionKey = 'hyderabad';
+  if (stateLower.includes('maharashtra') || cityLower.includes('pune') || cityLower.includes('mumbai') || cityLower.includes('bombay') || cityLower.includes('nagpur') || cityLower.includes('pimpri')) {
+    regionKey = 'maharashtra';
   } else if (
-    standardized.includes('bengaluru') || standardized.includes('bangalore') ||
-    standardized.includes('chennai') || standardized.includes('madras') ||
-    standardized.includes('kochi') || standardized.includes('cochin') ||
-    standardized.includes('trivandrum') || standardized.includes('thiruvananthapuram') ||
-    standardized.includes('coimbatore') || standardized.includes('madurai') ||
-    standardized.includes('mysore') || standardized.includes('mysuru') ||
-    standardized.includes('visakhapatnam') || standardized.includes('vizag') ||
-    standardized.includes('karnataka') || standardized.includes('tamil nadu') ||
-    standardized.includes('kerala') || standardized.includes('andhra pradesh')
+    stateLower.includes('delhi') || stateLower.includes('punjab') || stateLower.includes('haryana') || 
+    stateLower.includes('uttar pradesh') || stateLower.includes('uttarakhand') || stateLower.includes('himachal pradesh') ||
+    cityLower.includes('noida') || cityLower.includes('gurgaon')
+  ) {
+    regionKey = 'delhi_region';
+  } else if (
+    stateLower.includes('karnataka') || stateLower.includes('tamil nadu') || stateLower.includes('kerala') || 
+    stateLower.includes('andhra pradesh') || stateLower.includes('telangana') || 
+    cityLower.includes('bengaluru') || cityLower.includes('bangalore') || cityLower.includes('chennai') || cityLower.includes('hyderabad')
   ) {
     regionKey = 'south_india';
+  } else if (
+    stateLower.includes('west bengal') || stateLower.includes('bihar') || stateLower.includes('odisha') || 
+    stateLower.includes('jharkhand') || cityLower.includes('kolkata')
+  ) {
+    regionKey = 'east_india';
+  } else if (
+    stateLower.includes('gujarat') || stateLower.includes('rajasthan') || stateLower.includes('madhya pradesh') || 
+    stateLower.includes('goa') || cityLower.includes('ahmedabad') || cityLower.includes('jaipur')
+  ) {
+    regionKey = 'west_india';
   }
 
   const regionLabels = {
-    'mumbai': 'Mumbai Specials',
-    'delhi': 'Delhi Specials',
-    'kolkata': 'Kolkata Specials',
-    'hyderabad': 'Hyderabad Specials',
-    'south_india': 'South India Specials'
+    'maharashtra': 'Maharashtra Specials',
+    'delhi_region': 'North India Specials',
+    'south_india': 'South India Specials',
+    'east_india': 'East India Specials',
+    'west_india': 'Western India Specials',
+    'default_india': 'Healthy Local Specials'
   };
   
   const localRegionLabel = document.getElementById('localRegionLabel');
@@ -3532,6 +3648,85 @@ function handleDetectedCity(cityName) {
   renderRegionalSpecialties(regionKey);
 }
 
+function getClinicalRecommendation(item, profile) {
+  if (!profile) return { status: 'moderation', text: 'Moderation Advised', reason: 'Set up your goals in profile settings to customize recommendation.' };
+  
+  const isWeightLoss = profile.primary_goal === 'weight_loss';
+  const hasTriglycerides = profile.has_triglycerides;
+  const hasLdl = profile.has_ldl;
+  const name = item.name.toLowerCase();
+  const warning = (item.warning || '').toLowerCase();
+  
+  const isFried = warning.includes('fried') || warning.includes('deep fried') || name.includes('bajji') || name.includes('vada') || name.includes('bhature') || name.includes('fritters') || name.includes('bhakarwadi');
+  const isHighSugar = warning.includes('sugar') || warning.includes('sweet') || name.includes('roshogolla') || name.includes('mastani') || name.includes('jalebi');
+  const isHighFat = warning.includes('butter') || warning.includes('ghee') || warning.includes('cream') || warning.includes('saturated fats') || name.includes('butter chicken');
+  
+  if (isWeightLoss && (item.calories > 350 || isFried || isHighSugar)) {
+    return {
+      status: 'discouraged',
+      text: 'Clinically Discouraged',
+      reason: 'High calorie load, simple carbs, or trans-fats. Highly counterproductive for weight reduction.'
+    };
+  }
+
+  if ((hasTriglycerides || hasLdl) && (isFried || isHighFat || isHighSugar)) {
+    return {
+      status: 'discouraged',
+      text: 'Clinically Discouraged',
+      reason: 'Fats, trans-fats, or added sugars. Elevates lipids and cardiovascular risk.'
+    };
+  }
+
+  const isCleanProtein = (item.protein >= 12 && item.calories <= 300) || name.includes('tikka') || name.includes('grilled') || name.includes('sprouts') || name.includes('chilla');
+  const isLowCalSteamed = (item.calories < 250 && !isFried) || name.includes('idli') || name.includes('mudde');
+
+  if (isCleanProtein || isLowCalSteamed) {
+    return {
+      status: 'approved',
+      text: 'Clinically Approved',
+      reason: 'Excellent protein-to-calorie density or low glycemic load. Highly recommended.'
+    };
+  }
+
+  return {
+    status: 'moderation',
+    text: 'Moderation Advised',
+    reason: 'Consume in controlled portions, watch the oil, and prioritize recommended healthy swaps.'
+  };
+}
+
+function generateAICoachTip(region, specialties, profile) {
+  if (!profile) return "Enable profile details for smart AI coaching.";
+  
+  const isWeightLoss = profile.primary_goal === 'weight_loss';
+  const hasTriglycerides = profile.has_triglycerides;
+  const conditionsText = [];
+  if (isWeightLoss) conditionsText.push("weight loss");
+  if (hasTriglycerides) conditionsText.push("triglyceride management");
+  if (profile.has_ldl) conditionsText.push("cholesterol control");
+
+  const regionName = region.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+  let tip = `🤖 <strong>AI Health Coach:</strong> Welcome! `;
+  if (conditionsText.length > 0) {
+    tip += `Optimizing local ${regionName} dishes for your <strong>${conditionsText.join(' & ')}</strong> plan. `;
+  }
+
+  const discouragedCount = specialties.filter(item => getClinicalRecommendation(item, profile).status === 'discouraged').length;
+  const approvedItems = specialties.filter(item => getClinicalRecommendation(item, profile).status === 'approved').map(item => item.name.split('(')[0].trim());
+
+  if (discouragedCount > 0) {
+    tip += `Avoid deep-fried and high-fat options like Vada/Bhature. `;
+  }
+  if (approvedItems.length > 0) {
+    tip += `We highly recommend choosing <strong>${approvedItems.slice(0, 2).join(' or ')}</strong> as they fit perfectly into your daily targets.`;
+  } else {
+    tip += `Be sure to scale down quantities and log healthy clinical swaps!`;
+  }
+
+  return tip;
+}
+
 function renderRegionalSpecialties(region) {
   const grid = document.getElementById('regionalSpecialtiesGrid');
   if (!grid) return;
@@ -3541,6 +3736,27 @@ function renderRegionalSpecialties(region) {
     grid.innerHTML = `<p style="font-size: 13px; color: var(--text-secondary);">No specific local foods configured for this region.</p>`;
     return;
   }
+
+  const cardBody = grid.parentNode;
+  let coachBox = document.getElementById('aiCoachTipBox');
+  if (!coachBox) {
+    coachBox = document.createElement('div');
+    coachBox.id = 'aiCoachTipBox';
+    coachBox.className = 'ai-coach-summary-box';
+    coachBox.style.marginTop = 'var(--space-sm)';
+    coachBox.style.marginBottom = 'var(--space-md)';
+    coachBox.style.padding = 'var(--space-sm)';
+    coachBox.style.border = '1px solid rgba(147, 51, 234, 0.2)';
+    coachBox.style.borderRadius = 'var(--radius-md)';
+    coachBox.style.background = 'rgba(147, 51, 234, 0.05)';
+    coachBox.style.fontSize = '12px';
+    coachBox.style.lineHeight = '1.5';
+    cardBody.insertBefore(coachBox, grid);
+  }
+
+  const profile = getProfile();
+  coachBox.innerHTML = generateAICoachTip(region, specialties, profile);
+  coachBox.style.display = 'block';
 
   grid.innerHTML = specialties.map((item, idx) => {
     let clinicalWarningHtml = '';
@@ -3561,14 +3777,23 @@ function renderRegionalSpecialties(region) {
       `;
     }
 
+    const rec = getClinicalRecommendation(item, profile);
+    const badgeClass = rec.status === 'approved' ? 'clinical-badge--approved' : (rec.status === 'discouraged' ? 'clinical-badge--discouraged' : 'clinical-badge--moderation');
+
     return `
       <div class="card regional-specialty-card" style="padding: var(--space-sm); border-color: rgba(147, 51, 234, 0.2); display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-xs);">
         <div>
-          <h4 style="font-size: 14px; font-weight: 700; margin: 0;">${item.name}</h4>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 4px;">
+            <h4 style="font-size: 14px; font-weight: 700; margin: 0; line-height: 1.3;">${item.name}</h4>
+            <span class="badge ${badgeClass}" style="font-size: 9px; font-weight: 700; text-transform: uppercase; white-space: nowrap; padding: 2px 6px;">${rec.text}</span>
+          </div>
           <div style="display: flex; gap: 8px; margin-top: 4px;">
             <span class="badge text-mono" style="background: rgba(245, 158, 11, 0.15); color: var(--warning); font-size: 10px; font-weight: 600;">${item.calories} kcal</span>
             <span class="badge text-mono" style="background: rgba(37, 99, 235, 0.15); color: var(--primary); font-size: 10px; font-weight: 600;">${item.protein}g protein</span>
           </div>
+          <p style="font-size: 11px; color: var(--text-secondary); margin: 6px 0 0 0; line-height: 1.4;">
+            <em>AI Coach Tip:</em> ${rec.reason}
+          </p>
           ${clinicalWarningHtml}
           ${swapHtml}
         </div>
@@ -3731,11 +3956,18 @@ function bindLocationAwareLoggerEvents() {
   }
 
   if (searchInput && resultsList) {
+    searchInput.addEventListener('focus', () => {
+      if (!isLiveLocationEnabled) {
+        searchInput.blur();
+        showLocationRequiredModal();
+      }
+    });
+
     searchInput.addEventListener('input', () => {
-      const query = searchInput.value.toLowerCase().trim();
-      if (!query) {
-        resultsList.style.display = 'none';
-        resultsList.innerHTML = '';
+      if (!isLiveLocationEnabled) {
+        searchInput.value = '';
+        searchInput.blur();
+        showLocationRequiredModal();
         return;
       }
 
