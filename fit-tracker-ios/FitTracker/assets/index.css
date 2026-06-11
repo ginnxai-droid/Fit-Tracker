@@ -675,15 +675,16 @@ h1, h2, h3, h4, h5, h6 {
   height: 140px;
 }
 
-.progress-ring__svg {
+.progress-ring svg {
   width: 100%;
   height: 100%;
   transform: rotate(-90deg);
 }
 
-.progress-ring__track {
+.progress-ring__track,
+.progress-ring__bg {
   fill: none;
-  stroke: var(--border);
+  stroke: var(--border-subtle);
   stroke-width: 6;
 }
 
@@ -702,14 +703,31 @@ h1, h2, h3, h4, h5, h6 {
   stroke: url(#progressGradient);
 }
 
-.progress-ring__value {
+.progress-ring__content {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.progress-ring__value {
   font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
+  line-height: 1.1;
+}
+
+.progress-ring__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
 }
 
 .progress-ring--sm .progress-ring__value {
@@ -1618,9 +1636,10 @@ h1, h2, h3, h4, h5, h6 {
   transform: rotate(-90deg);
 }
 
-.score-display__ring-track {
+.score-display__ring-track,
+.score-display__bg {
   fill: none;
-  stroke: var(--border);
+  stroke: var(--border-subtle);
   stroke-width: 8;
 }
 
