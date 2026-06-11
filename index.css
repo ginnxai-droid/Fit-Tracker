@@ -797,7 +797,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Custom checkbox */
-.checklist-item__checkbox {
+.checklist-item__checkbox,
+.checklist-item .checkmark {
   position: relative;
   width: 22px;
   height: 22px;
@@ -806,12 +807,15 @@ h1, h2, h3, h4, h5, h6 {
   flex-shrink: 0;
   transition: border-color var(--transition-fast), background var(--transition-fast);
   cursor: pointer;
+  background: var(--bg-elevated);
+  display: inline-block;
 }
 
-.checklist-item__checkbox::after {
+.checklist-item__checkbox::after,
+.checklist-item .checkmark::after {
   content: '';
   position: absolute;
-  top: 3px;
+  top: 2px;
   left: 6px;
   width: 6px;
   height: 10px;
@@ -822,13 +826,17 @@ h1, h2, h3, h4, h5, h6 {
   transition: transform var(--transition-spring);
 }
 
-.checklist-item.checked .checklist-item__checkbox {
-  background: var(--primary);
-  border-color: var(--primary);
+.checklist-item.checked .checklist-item__checkbox,
+.checklist-item input:checked + .checkmark,
+.checklist-item.checked .checkmark {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
 }
 
-.checklist-item.checked .checklist-item__checkbox::after {
-  border-color: oklch(0.13 0.015 260);
+.checklist-item.checked .checklist-item__checkbox::after,
+.checklist-item input:checked + .checkmark::after,
+.checklist-item.checked .checkmark::after {
+  border-color: #ffffff !important;
   transform: rotate(45deg) scale(1);
   animation: checkmark 0.3s ease forwards;
 }
@@ -851,6 +859,60 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0;
   width: 0;
   height: 0;
+}
+
+/* Workout exercise circular checkbox */
+.workout-exercise__check {
+  position: relative;
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.workout-exercise__check input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.workout-exercise__check .checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border);
+  border-radius: 50% !important; /* Force circle shape */
+  background: var(--bg-elevated);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.workout-exercise__check input:checked + .checkmark {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+.workout-exercise__check .checkmark::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 6px;
+  height: 10px;
+  border: 2px solid transparent;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) scale(0);
+  transition: transform var(--transition-spring);
+}
+
+.workout-exercise__check input:checked + .checkmark::after {
+  border-color: #ffffff !important;
+  transform: rotate(45deg) scale(1);
+  animation: checkmark 0.3s ease forwards;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2441,7 +2503,7 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-2px) scale(1.05) !important; /* Highlight & pop out effect */
 }
 
-/* ── High Contrast Native Overrides for Android WebView & Dark Mode ── */
+/* ── High Contrast Native Overrides for Android WebView & Theme awareness ── */
 input,
 textarea,
 select,
@@ -2452,7 +2514,6 @@ input[type="range"] {
   background-color: var(--surface) !important;
   color: var(--text) !important;
   border: 1px solid var(--border-subtle) !important;
-  color-scheme: dark !important;
 }
 
 input:focus,
@@ -2462,9 +2523,19 @@ select:focus {
   box-shadow: 0 0 0 3px var(--primary-glow) !important;
 }
 
-/* Force dark color scheme on all buttons to prevent native OS light backgrounds */
-button {
+/* Theme-specific color-schemes to prevent native controls from displaying in dark mode under light theme */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select,
+[data-theme="dark"] button {
   color-scheme: dark !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select,
+[data-theme="light"] button {
+  color-scheme: light !important;
 }
 
 /* Force solid card background (prevent transparent or blurred overlay bugs in Android WebViews) */

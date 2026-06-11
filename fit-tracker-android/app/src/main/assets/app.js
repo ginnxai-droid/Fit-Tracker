@@ -1271,7 +1271,7 @@ function renderMealPlan() {
             <label class="checklist-item ${meal.completed ? 'checked' : ''}" style="padding: 0; margin: 0; display: flex; align-items: center; gap: var(--space-sm); cursor: pointer; user-select: none;">
               <input type="checkbox" class="meal-completed-checkbox" data-meal-index="${i}" ${meal.completed ? 'checked' : ''} style="position: absolute; opacity: 0; width: 0; height: 0;">
               <span class="checkmark" style="position: relative; display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 6px; background: ${meal.completed ? 'var(--success)' : 'transparent'}; border-color: ${meal.completed ? 'var(--success)' : 'var(--border)'};">
-                ${meal.completed ? '<i data-lucide="check" style="position: absolute; top: -1px; left: -1px; width: 18px; height: 18px; color: oklch(0.13 0.015 260); stroke-width: 3;"></i>' : ''}
+                ${meal.completed ? '<i data-lucide="check" style="position: absolute; top: -1px; left: -1px; width: 18px; height: 18px; color: #ffffff; stroke-width: 3;"></i>' : ''}
               </span>
               <span style="font-size: 13px; font-weight: 600; color: ${meal.completed ? 'var(--success)' : 'var(--text-secondary)'};">I ate this</span>
             </label>
@@ -3478,12 +3478,44 @@ function showLocationRequiredModal() {
   modal.showModal();
 }
 
-function handleLocationFailure() {
+function updateLocationUI(isEnabled, cityName) {
   const activeLocationSpan = document.getElementById('activeLocationName');
-  if (activeLocationSpan) {
-    activeLocationSpan.textContent = "GPS Off (Tap to Sync)";
-    activeLocationSpan.style.cursor = 'pointer';
+  const chkEnableLiveLocation = document.getElementById('chkEnableLiveLocation');
+  const locationDot = document.getElementById('locationDot');
+
+  if (isEnabled) {
+    isLiveLocationEnabled = true;
+    if (activeLocationSpan) {
+      activeLocationSpan.textContent = cityName || "Location Synced";
+      activeLocationSpan.style.cursor = 'default';
+    }
+    if (chkEnableLiveLocation) {
+      chkEnableLiveLocation.checked = true;
+    }
+    if (locationDot) {
+      locationDot.style.background = 'var(--success)';
+      locationDot.style.boxShadow = '0 0 8px var(--success)';
+      locationDot.classList.add('live-pulse--active');
+    }
+  } else {
+    isLiveLocationEnabled = false;
+    if (activeLocationSpan) {
+      activeLocationSpan.textContent = "Live location service is off";
+      activeLocationSpan.style.cursor = 'default';
+    }
+    if (chkEnableLiveLocation) {
+      chkEnableLiveLocation.checked = false;
+    }
+    if (locationDot) {
+      locationDot.style.background = 'var(--text-tertiary)';
+      locationDot.style.boxShadow = 'none';
+      locationDot.classList.remove('live-pulse--active');
+    }
   }
+}
+
+function handleLocationFailure() {
+  updateLocationUI(false);
 
   const regionalCard = document.getElementById('regionalSpecialtiesCard');
   if (regionalCard) {
@@ -3513,6 +3545,8 @@ function handleLocationFailure() {
     const inlineBtn = grid.querySelector('#btnEnableLocationInline');
     if (inlineBtn) {
       inlineBtn.addEventListener('click', () => {
+        const chk = document.getElementById('chkEnableLiveLocation');
+        if (chk) chk.checked = true;
         detectUserLocation();
       });
     }
@@ -3526,11 +3560,18 @@ function handleLocationFailure() {
 function detectUserLocation() {
   const badge = document.getElementById('activeLocationName');
   if (badge) badge.textContent = "Detecting location...";
+  const chk = document.getElementById('chkEnableLiveLocation');
+  if (chk) chk.checked = true;
+  const locationDot = document.getElementById('locationDot');
+  if (locationDot) {
+    locationDot.style.background = 'var(--warning)';
+    locationDot.style.boxShadow = '0 0 8px var(--warning)';
+  }
 
   if (navigator.geolocation) {
     const options = {
-      enableHighAccuracy: false,
-      timeout: 5000,
+      enableHighAccuracy: true,
+      timeout: 6000,
       maximumAge: 600000 // 10 minutes cache
     };
 
@@ -3575,7 +3616,7 @@ async function detectLocationByIP() {
     if (!response.ok) throw new Error("IP API fetch failed");
     const data = await response.json();
     const city = data.city || "";
-    const regionName = data.region || ""; // In ipapi.co, region is the state (e.g. Maharashtra)
+    const regionName = data.region || "";
     if (city) {
       isLiveLocationEnabled = true;
       handleDetectedCity(city, regionName);
@@ -3591,10 +3632,7 @@ async function detectLocationByIP() {
 }
 
 function handleDetectedCity(cityName, stateName) {
-  const activeLocationSpan = document.getElementById('activeLocationName');
-  if (activeLocationSpan) {
-    activeLocationSpan.textContent = cityName;
-  }
+  updateLocationUI(true, cityName + (stateName ? ", " + stateName : ""));
 
   const stateLower = (stateName || '').toLowerCase().trim();
   const cityLower = (cityName || '').toLowerCase().trim();
@@ -3947,11 +3985,17 @@ function bindLocationAwareLoggerEvents() {
   const proteinInput = document.getElementById('foodLogProtein');
   const nameInput = document.getElementById('foodLogName');
   const logBtn = document.getElementById('btnLogCustomFood');
-  const refreshLocationBtn = document.getElementById('btnRefreshLocation');
+  const chkEnableLiveLocation = document.getElementById('chkEnableLiveLocation');
 
-  if (refreshLocationBtn) {
-    refreshLocationBtn.addEventListener('click', () => {
-      detectUserLocation();
+  if (chkEnableLiveLocation) {
+    chkEnableLiveLocation.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        detectUserLocation();
+      } else {
+        isLiveLocationEnabled = false;
+        updateLocationUI(false);
+        handleLocationFailure();
+      }
     });
   }
 

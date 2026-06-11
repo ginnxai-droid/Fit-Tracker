@@ -519,14 +519,17 @@
 
         <!-- Active Location Bar -->
         <div class="location-bar" style="margin-top: var(--space-md);">
-          <div class="location-badge">
-            <div class="location-dot"></div>
-            <i data-lucide="map-pin" style="width: 14px; height: 14px; margin-right: 2px;"></i>
-            <span id="activeLocationName">Detecting location...</span>
+          <div class="location-status-container" style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: var(--space-sm); flex-wrap: wrap;">
+            <div class="location-badge" style="display: flex; align-items: center; gap: 6px; color: var(--text);">
+              <div class="location-dot" id="locationDot"></div>
+              <i data-lucide="map-pin" style="width: 14px; height: 14px; color: var(--primary);"></i>
+              <span id="activeLocationName">Detecting location...</span>
+            </div>
+            <label class="location-toggle-label" style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; user-select: none; color: var(--text-secondary);">
+              <input type="checkbox" id="chkEnableLiveLocation" style="width: 16px; height: 16px; cursor: pointer; margin: 0; accent-color: var(--primary);">
+              <span>Enable live location</span>
+            </label>
           </div>
-          <button class="btn btn--ghost btn--sm" id="btnRefreshLocation" style="padding: 4px 8px; font-size: 11px; gap: 4px; height: auto;" title="Refresh active location">
-            <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i> Sync City
-          </button>
         </div>
 
         <!-- Day Selector -->
