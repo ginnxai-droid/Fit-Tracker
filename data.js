@@ -1197,3 +1197,58 @@ export function generateSampleData() {
     }
   }
 }
+
+export const REGIONAL_SPECIALTIES = {
+  "mumbai": [
+    { name: "Vada Pav (1 piece)", calories: 300, protein: 5, warning: "High in simple carbs & deep-fried oil. Bad for triglycerides/LDL.", swap: "Grilled Paneer Sandwich or Roasted Chana Sprouts" },
+    { name: "Misal Pav (1 plate)", calories: 450, protein: 12, warning: "Pav adds simple carbs; spicy rassa can trigger acidity.", swap: "Moong Dal Chilla or Sprouts Salad without Pav" },
+    { name: "Kanda Poha (1 plate)", calories: 250, protein: 4, warning: "Moderate carbs. Low in protein.", swap: "Poha topped with 50g grated paneer or boiled egg white" },
+    { name: "Sabudana Khichdi (1 plate)", calories: 350, protein: 2, warning: "High starch, very low protein. Spike blood sugar.", swap: "Oats Upma or Sattu Drink" }
+  ],
+  "delhi": [
+    { name: "Chole Bhature (2 bhature + chole)", calories: 650, protein: 15, warning: "Deep fried bhatura, high saturated fats. Highly clinically discouraged.", swap: "Chole with 1 whole wheat Chapati or Chana Chat" },
+    { name: "Aloo Paratha with Butter (1 piece)", calories: 350, protein: 5, warning: "Refined carbs, high butter fat. Elevates cholesterol.", swap: "Paneer Paratha (dry) or Multigrain Roti with curd" },
+    { name: "Butter Chicken (1 serving / 150g)", calories: 420, protein: 22, warning: "Heavy butter & cream. Increases risk of CAD.", swap: "Tandoori Chicken or Chicken Tikka (Dry)" },
+    { name: "Paneer Tikka (Grilled, 4 pieces)", calories: 280, protein: 15, warning: "Excellent high protein option! Highly clinical approved.", swap: "None! This is an excellent high-protein meal" }
+  ],
+  "south_india": [
+    { name: "Masala Dosa (1 piece with sambar)", calories: 350, protein: 6, warning: "High in simple carbs (white rice batter) and potato filling.", swap: "Ragi Dosa or Moong Dal Pesarattu" },
+    { name: "Medu Vada (2 pieces with sambar)", calories: 320, protein: 8, warning: "Deep fried lentil batter. High trans-fats.", swap: "Steamed Idli (3) or Oats Idli" },
+    { name: "Idli (3 pieces with sambar)", calories: 210, protein: 6, warning: "Clean steamed food, but low in protein.", swap: "Add 1 cup of curd or a side of boiled egg whites" },
+    { name: "Ragi Mudde (1 ball)", calories: 300, protein: 7, warning: "High fiber, great for diabetes. Low fat.", swap: "Add Sambar with high vegetables and paneer chunks" }
+  ],
+  "kolkata": [
+    { name: "Luchi Alur Dom (4 luchi + potato curry)", calories: 500, protein: 8, warning: "Deep fried maida (luchi), high oil. Clinically discouraged.", swap: "Whole wheat chapati with aloo-patal curry" },
+    { name: "Macher Jhol (Fish Curry, 1 serving)", calories: 250, protein: 20, warning: "Great lean protein, but watch out for excess mustard oil.", swap: "Grilled/Baked fish with minimal oil" },
+    { name: "Roshogolla (2 pieces)", calories: 250, protein: 4, warning: "Extremely high sugar syrup. Spike triglycerides.", swap: "Double toned curd with fresh berries or apple" }
+  ],
+  "hyderabad": [
+    { name: "Hyderabadi Chicken Biryani (1 plate)", calories: 600, protein: 24, warning: "High fat, simple carbs (polished rice), high oil/ghee.", swap: "Brown rice chicken biryani or Tandoori Chicken + salad" },
+    { name: "Mirchi Bajji (3 pieces)", calories: 350, protein: 5, warning: "Deep fried chili fritters. Heavy acidity & fat.", swap: "Roasted papad with tomato onion salsa" }
+  ]
+};
+
+export const FOOD_DATABASE = [
+  { name: 'Double Toned Milk (1 glass / 250ml)', calories: 120, protein: 8 },
+  { name: 'Paneer (Raw, 100g)', calories: 265, protein: 18 },
+  { name: 'Moong Dal Chilla (1 piece)', calories: 150, protein: 6 },
+  { name: 'Boiled Egg (Large, 1)', calories: 78, protein: 6 },
+  { name: 'Chicken Breast (Grilled, 100g)', calories: 165, protein: 31 },
+  { name: 'Whey Protein (1 scoop / 30g)', calories: 120, protein: 24 },
+  { name: 'Roti / Chapati (Whole Wheat, 1)', calories: 80, protein: 3 },
+  { name: 'White Rice (Cooked, 1 katori / 150g)', calories: 200, protein: 4 },
+  { name: 'Dal (Tarka, 1 katori / 150g)', calories: 150, protein: 7 },
+  { name: 'Mixed Sprouts (1 cup / 100g)', calories: 120, protein: 9 },
+  { name: 'Apple (Medium, 1)', calories: 95, protein: 0.5 },
+  { name: 'Banana (Medium, 1)', calories: 105, protein: 1.3 },
+  { name: 'Almonds (10 pieces)', calories: 70, protein: 2.5 },
+  { name: 'Oats (Cooked in water, 1 cup / 150g)', calories: 140, protein: 5 },
+  { name: 'Greek Yogurt (Low-fat, 100g)', calories: 73, protein: 10 },
+  { name: 'Tofu (100g)', calories: 144, protein: 14 },
+  { name: 'Fish (Grilled, 100g)', calories: 130, protein: 22 },
+  { name: 'Sattu (1 glass / 3 tbsp)', calories: 180, protein: 9 },
+  { name: 'Soaked Chana (1 cup / 100g)', calories: 160, protein: 8 },
+  { name: 'Peanut Butter (1 tbsp / 16g)', calories: 95, protein: 4 },
+  { name: 'Soya Chunks (Cooked, 50g)', calories: 170, protein: 26 }
+];
+

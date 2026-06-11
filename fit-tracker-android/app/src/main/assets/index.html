@@ -310,6 +310,43 @@
             </div>
           </div>
         </div>
+
+        <!-- 3D Water Tracker Widget -->
+        <div class="card water-card" style="margin-top: var(--space-md); border-color: rgba(37, 99, 235, 0.2);">
+          <div class="card-header">
+            <h2><i data-lucide="droplet" style="color: var(--primary);"></i> 3D Water Tracker</h2>
+          </div>
+          <div class="card-body water-widget-container">
+            <div class="water-3d-glass">
+              <div class="glass-rim"></div>
+              <div class="glass-cylinder" id="water3DGlass">
+                <div class="glass-sheen"></div>
+                <div class="liquid-top" id="liquidTop"></div>
+                <div class="liquid-body" id="liquidBody"></div>
+              </div>
+            </div>
+            <div class="water-controls">
+              <div class="water-amount-display">
+                <div class="water-amount-value" id="waterDisplayVal">0.0 L</div>
+                <div class="water-amount-goal" id="waterGoalVal">Target: 3.5 Litres</div>
+              </div>
+              <div class="water-buttons">
+                <button class="water-btn" id="btnWater250" title="Add 250ml glass">
+                  <i data-lucide="glass-water" style="width: 16px; height: 16px;"></i> +250ml
+                </button>
+                <button class="water-btn" id="btnWater500" title="Add 500ml bottle">
+                  <i data-lucide="droplet" style="width: 16px; height: 16px;"></i> +500ml
+                </button>
+                <button class="water-btn" id="btnWater750" title="Add 750ml flask">
+                  <i data-lucide="cup-soda" style="width: 16px; height: 16px;"></i> +750ml
+                </button>
+                <button class="water-btn water-btn--reset" id="btnWaterReset" title="Reset Today's Water">
+                  <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Reset Water
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ===== SCREEN 2: TODAY ===== -->
@@ -480,8 +517,20 @@
           </div>
         </div>
 
+        <!-- Active Location Bar -->
+        <div class="location-bar" style="margin-top: var(--space-md);">
+          <div class="location-badge">
+            <div class="location-dot"></div>
+            <i data-lucide="map-pin" style="width: 14px; height: 14px; margin-right: 2px;"></i>
+            <span id="activeLocationName">Detecting location...</span>
+          </div>
+          <button class="btn btn--ghost btn--sm" id="btnRefreshLocation" style="padding: 4px 8px; font-size: 11px; gap: 4px; height: auto;" title="Refresh active location">
+            <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i> Sync City
+          </button>
+        </div>
+
         <!-- Day Selector -->
-        <div class="day-selector" id="mealDaySelector">
+        <div class="day-selector" id="mealDaySelector" style="margin-top: var(--space-sm);">
           <button class="day-pill active" data-day="monday">Mon</button>
           <button class="day-pill" data-day="tuesday">Tue</button>
           <button class="day-pill" data-day="wednesday">Wed</button>
@@ -491,25 +540,112 @@
           <button class="day-pill" data-day="sunday">Sun</button>
         </div>
 
-        <!-- Day Theme -->
+        <!-- Day Theme & Targets -->
         <div class="card card--accent" id="dayThemeCard">
-          <div class="card-body">
+          <div class="card-body" style="display: flex; flex-direction: column; gap: var(--space-md);">
             <h3 id="dayThemeName">Monday — Vegetarian, No Non-Veg</h3>
-            <div class="protein-bar" id="mealProteinBar">
-              <div class="protein-bar__track">
-                <div class="protein-bar__fill" id="mealProteinFill" style="width: 0%"></div>
-                <div class="protein-bar__marker" id="mealProteinMarker" style="left: 95%"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); flex-wrap: wrap;">
+              
+              <!-- Protein Progress -->
+              <div class="protein-bar" id="mealProteinBar">
+                <div class="protein-bar__track">
+                  <div class="protein-bar__fill" id="mealProteinFill" style="width: 0%"></div>
+                  <div class="protein-bar__marker" id="mealProteinMarker" style="left: 95%"></div>
+                </div>
+                <div class="protein-bar__labels" style="margin-top: 4px;">
+                  <span>Protein: <span class="text-mono" id="mealProteinTotal">0g</span></span>
+                  <span>Target: <span class="text-mono" id="mealProteinTargetRange">95–110g</span></span>
+                </div>
               </div>
-              <div class="protein-bar__labels">
-                <span>Protein: <span class="text-mono" id="mealProteinTotal">0g</span></span>
-                <span>Target: <span class="text-mono">95–110g</span></span>
+
+              <!-- Calorie Progress -->
+              <div class="protein-bar" id="mealCalorieBar">
+                <div class="protein-bar__track" style="background: rgba(245, 158, 11, 0.15);">
+                  <div class="protein-bar__fill" id="mealCalorieFill" style="width: 0%; background: var(--warning);"></div>
+                  <div class="protein-bar__marker" id="mealCalorieMarker" style="left: 90%; background: var(--warning);"></div>
+                </div>
+                <div class="protein-bar__labels" style="margin-top: 4px;">
+                  <span>Calories: <span class="text-mono" id="mealCalorieTotal" style="color: var(--warning);">0 kcal</span></span>
+                  <span>Goal: <span class="text-mono" id="mealCalorieTargetVal">2,000 kcal</span></span>
+                </div>
               </div>
+
             </div>
           </div>
         </div>
 
+        <!-- Regional Specialties & Clinical Swaps -->
+        <div class="card" id="regionalSpecialtiesCard" style="display: none; border-color: rgba(147, 51, 234, 0.3); margin-top: var(--space-md);">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0;">
+            <h2><i data-lucide="compass" style="color: var(--accent);"></i> Regional Specialties & Healthy Swaps</h2>
+            <span style="font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase;" id="localRegionLabel">Local Specials</span>
+          </div>
+          <div class="card-body" style="padding-top: var(--space-sm);">
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+              Famous local dishes detected in your city. Click any dish to log it, or check the recommended swap to fit it into your plan!
+            </p>
+            <div class="regional-grid" id="regionalSpecialtiesGrid"></div>
+          </div>
+        </div>
+
         <!-- Meal Cards -->
-        <div class="meal-cards" id="mealCards"></div>
+        <div class="meal-cards" id="mealCards" style="margin-top: var(--space-md);"></div>
+
+        <!-- Custom Food Logger & Search -->
+        <div class="card" style="border-color: rgba(0, 229, 153, 0.2); margin-top: var(--space-md);">
+          <div class="card-header">
+            <h2><i data-lucide="plus-circle" style="color: var(--success);"></i> Local Custom Food Logger</h2>
+          </div>
+          <div class="card-body" style="display: flex; flex-direction: column; gap: var(--space-md);">
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+              Search the local food database or log a custom food manually. Logged items will update your protein and calorie metrics.
+            </p>
+            
+            <div style="display: flex; flex-direction: column; gap: var(--space-sm); position: relative;">
+              <label for="foodSearchInput" style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Search Food Database</label>
+              <div class="food-search-wrap">
+                <input type="text" id="foodSearchInput" class="input" style="width: 100%;" placeholder="Type to search paneer, oats, egg, vada pav...">
+                <ul class="food-search-results" id="foodSearchResults"></ul>
+              </div>
+            </div>
+
+            <!-- Manual Log fields (auto-filled on click or entered manually) -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: var(--space-sm); align-items: flex-end; flex-wrap: wrap;">
+              <div class="input-group">
+                <label for="foodLogName" style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Food Name</label>
+                <input type="text" id="foodLogName" class="input" placeholder="e.g. Boiled Oats">
+              </div>
+              <div class="input-group">
+                <label for="foodLogGrams" style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;" id="foodLogGramsLabel">Grams/Qty</label>
+                <input type="number" id="foodLogGrams" class="input" placeholder="100" min="1">
+              </div>
+              <div class="input-group">
+                <label for="foodLogMealSlot" style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Time Slot</label>
+                <select id="foodLogMealSlot" class="input" style="background: var(--bg-elevated); color: var(--text); height: 38px;">
+                  <option value="0">First Meal</option>
+                  <option value="1">Lunch</option>
+                  <option value="2">Office Snack</option>
+                  <option value="3">Dinner</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm);">
+              <div class="input-group">
+                <label for="foodLogCalories" style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Calories (kcal)</label>
+                <input type="number" id="foodLogCalories" class="input" placeholder="0" min="0">
+              </div>
+              <div class="input-group">
+                <label for="foodLogProtein" style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Protein (grams)</label>
+                <input type="number" id="foodLogProtein" class="input" placeholder="0" min="0">
+              </div>
+            </div>
+
+            <button class="btn btn--primary" id="btnLogCustomFood" style="margin-top: var(--space-xs); font-size: 13px; font-weight: 700; width: 100%;">
+              <i data-lucide="plus"></i> Log Food Entry
+            </button>
+          </div>
+        </div>
 
         <!-- Protein Reference -->
         <div class="card">

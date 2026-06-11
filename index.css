@@ -2772,3 +2772,374 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     height: 40px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3D GLASSMORPHIC WATER TRACKER & LOCATION-AWARE FOOD LOGGER STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Location Badge & Bar */
+.location-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-md);
+  font-size: 13px;
+}
+
+.location-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.location-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--success);
+  animation: pulse-ring 1.5s infinite;
+}
+
+/* 3D Glassmorphic Water Tracker */
+.water-card {
+  margin-top: var(--space-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.water-widget-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
+  flex-wrap: wrap;
+}
+
+.water-3d-glass {
+  width: 120px;
+  height: 180px;
+  position: relative;
+  perspective: 600px;
+  margin: 0 auto;
+}
+
+.glass-cylinder {
+  position: absolute;
+  bottom: 0;
+  left: 10px;
+  width: 100px;
+  height: 160px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-bottom: 8px solid rgba(255, 255, 255, 0.35);
+  border-radius: 0 0 25px 25px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 5px 0 15px rgba(255,255,255,0.05),
+              inset -5px 0 15px rgba(0,0,0,0.3),
+              0 10px 20px rgba(0,0,0,0.25);
+  overflow: hidden;
+  transition: all 0.5s ease;
+}
+
+/* Glass glowing effect when target reached */
+.glass-cylinder.target-reached {
+  border-color: rgba(0, 255, 255, 0.6);
+  box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.3),
+              0 0 25px rgba(0, 255, 255, 0.4);
+}
+
+/* Rims representing top opening in perspective */
+.glass-rim {
+  position: absolute;
+  top: 15px;
+  left: 10px;
+  width: 100px;
+  height: 16px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Specification for the liquid cylinder body */
+.liquid-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%; /* Dynamic height in JS */
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.6) 0%, rgba(59, 130, 246, 0.75) 50%, rgba(37, 99, 235, 0.6) 100%);
+  border-radius: 0 0 16px 16px;
+  transition: height 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  overflow: hidden;
+}
+
+/* Water surface ellipse */
+.liquid-top {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 14px;
+  background: linear-gradient(135deg, rgba(147, 197, 253, 0.8) 0%, rgba(59, 130, 246, 0.9) 100%);
+  border-radius: 50%;
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.5), 0 2px 4px rgba(0,0,0,0.1);
+  transform: translateY(-7px);
+  z-index: 2;
+  transition: bottom 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+}
+
+/* Specular glass reflection shine */
+.glass-sheen {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  width: 12px;
+  height: 140px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%);
+  border-radius: 6px;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* 3D spheres rising inside water */
+.water-bubble {
+  position: absolute;
+  bottom: -10px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  box-shadow: inset 1px 1px 2px rgba(255,255,255,0.8), inset -1px -1px 2px rgba(0,0,0,0.2);
+  animation: bubble-up 3s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes bubble-up {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-160px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* Inertia / sloshing animation class */
+.sloshing {
+  animation: slosh-effect 0.8s ease-in-out;
+}
+
+@keyframes slosh-effect {
+  0% { transform: translateY(-7px) rotate(0deg); }
+  25% { transform: translateY(-7px) rotate(-4deg); }
+  50% { transform: translateY(-7px) rotate(3deg); }
+  75% { transform: translateY(-7px) rotate(-1.5deg); }
+  100% { transform: translateY(-7px) rotate(0deg); }
+}
+
+/* Water controls */
+.water-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+  min-width: 180px;
+}
+
+.water-amount-display {
+  text-align: center;
+}
+
+.water-amount-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.water-amount-goal {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.water-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.water-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.water-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.water-btn--reset {
+  grid-column: span 2;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.water-btn--reset:hover {
+  border-color: transparent;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+/* Regional Specialties Card Grid */
+.regional-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.regional-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.regional-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.regional-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.regional-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.regional-card__calories {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--warning);
+}
+
+.regional-card__protein {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.regional-card__swap {
+  background: rgba(147, 51, 234, 0.08);
+  border: 1px solid rgba(147, 51, 234, 0.2);
+  color: var(--accent);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  margin-top: var(--space-sm);
+  line-height: 1.4;
+}
+
+.regional-card__warning {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  margin-top: var(--space-xs);
+  line-height: 1.4;
+}
+
+/* Custom Food Logger & Autocomplete Styles */
+.food-search-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.food-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  z-index: 50;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  display: none;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.food-search-item {
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color var(--transition-fast);
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text);
+}
+
+.food-search-item:hover {
+  background-color: var(--primary-glow);
+  color: var(--primary);
+}
+
+.food-search-item__nutrition {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.custom-meal-card {
+  border-left: 4px solid var(--accent) !important;
+}
+

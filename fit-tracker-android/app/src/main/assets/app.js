@@ -15,7 +15,8 @@ import {
   MEAL_PLANS, PROTEIN_REFERENCE, CHECKLIST_TEMPLATE, DINNER_RULES,
   generateSampleData, DAY_THEMES,
   getActiveSchedule, getCustomSchedule, saveCustomSchedule, resetCustomSchedule,
-  getPersonalizedWorkout, getHealthMetrics, getPersonalizedMeals
+  getPersonalizedWorkout, getHealthMetrics, getPersonalizedMeals,
+  FOOD_DATABASE, REGIONAL_SPECIALTIES
 } from './data.js';
 
 import {
@@ -146,6 +147,11 @@ function initializeApp() {
   bindExportEvents();
   bindStepCalculatorModal();
   initMotionPedometer();
+
+  // Custom Widgets & Location Initializations
+  bindWaterWidgetEvents();
+  bindLocationAwareLoggerEvents();
+  detectUserLocation();
 
   // Onboarding setup check & automated test bypass
   const isTestEnv = window.navigator.webdriver || window.location.search.includes('test');
@@ -541,6 +547,9 @@ function renderDashboard() {
       statusEl.style.color = 'var(--text-secondary)';
     }
   }
+
+  // Update 3D water widget
+  updateWaterWidget(currentDate);
 }
 
 
@@ -1079,6 +1088,20 @@ function bindMealEditEvents() {
       renderMealPlan();
       return;
     }
+
+    // Handle Delete Custom Meal button click
+    const deleteBtn = e.target.closest('.delete-custom-meal-btn');
+    if (deleteBtn) {
+      e.preventDefault();
+      const index = parseInt(deleteBtn.dataset.mealIndex);
+      const meals = getOrCreateMealLogs(currentDate);
+      const deletedMealLabel = meals[index].items[0];
+      meals.splice(index, 1);
+      saveAllMealLogs(currentDate, meals);
+      showToast(`${deletedMealLabel} deleted! 🗑️`);
+      renderMealPlan();
+      return;
+    }
   });
 
   // Handle Checkbox changes
@@ -1139,11 +1162,43 @@ function renderMealPlan() {
   if (!templates || !loggedMeals) return;
 
   let totalActualProtein = 0;
+  let totalActualCalories = 0;
 
   container.innerHTML = loggedMeals.map((meal, i) => {
-    totalActualProtein += meal.completed ? (meal.protein_estimated || 0) : 0;
-    const templateMeal = templates[i] || templates[0];
+    // If it's a custom logged entry
+    if (meal.is_custom) {
+      totalActualProtein += meal.protein_estimated || 0;
+      totalActualCalories += meal.calories_estimated || 0;
+      return `
+        <div class="meal-card card custom-meal-card meal-completed" data-meal-index="${i}" style="border-color: var(--accent); margin-bottom: var(--space-md);">
+          <div class="card-header" style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 0;">
+            <div class="meal-card__header">
+              <i data-lucide="utensils" style="color: var(--accent);"></i>
+              <div>
+                <h3>${meal.items[0]}</h3>
+                <span class="meal-card__time text-mono">${meal.time} — Custom Entry</span>
+              </div>
+            </div>
+            <div class="meal-card__protein-badges" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <span class="badge text-mono" style="background: var(--warning); color: oklch(0.13 0.015 260); font-weight: 700; font-size: 11px;">${meal.calories_estimated || 0} kcal</span>
+              <span class="badge text-mono" style="background: var(--primary); color: oklch(0.13 0.015 260); font-weight: 700; font-size: 11px;">${meal.protein_estimated || 0}g protein</span>
+            </div>
+          </div>
+          <div class="card-body" style="padding-top: 0; display: flex; justify-content: flex-end; margin-top: 4px;">
+            <button class="btn btn--danger btn--sm delete-custom-meal-btn" data-meal-index="${i}" style="padding: 4px 8px; font-size: 11px; height: auto; background: transparent; border-color: transparent; color: var(--danger);">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px; margin-right: 4px;"></i> Delete Entry
+            </button>
+          </div>
+        </div>
+      `;
+    }
 
+    // Standard templates rendering
+    totalActualProtein += meal.completed ? (meal.protein_estimated || 0) : 0;
+    // Standard template calories estimation (e.g. 450 kcal average per main meal)
+    totalActualCalories += meal.completed ? 450 : 0;
+
+    const templateMeal = templates[i] || templates[0];
     const mealIcons = { 'First Meal': 'sunrise', 'Lunch': 'sun', 'Office Snack': 'coffee', 'Dinner': 'moon' };
     const icon = mealIcons[meal.label] || 'utensils';
     
@@ -1151,7 +1206,7 @@ function renderMealPlan() {
 
     if (isEditing) {
       return `
-        <div class="meal-card card meal-card--editing" data-meal-index="${i}">
+        <div class="meal-card card meal-card--editing" data-meal-index="${i}" style="margin-bottom: var(--space-md);">
           <div class="card-header">
             <div class="meal-card__header">
               <i data-lucide="${icon}"></i>
@@ -1186,7 +1241,7 @@ function renderMealPlan() {
     }
 
     return `
-      <div class="meal-card card ${meal.completed ? 'meal-completed' : ''}" data-meal-index="${i}" style="${meal.completed ? 'border-color: var(--success);' : ''}">
+      <div class="meal-card card ${meal.completed ? 'meal-completed' : ''}" data-meal-index="${i}" style="${meal.completed ? 'border-color: var(--success);' : ''}; margin-bottom: var(--space-md);">
         <div class="card-header" style="display: flex; align-items: flex-start; justify-content: space-between;">
           <div class="meal-card__header">
             <i data-lucide="${icon}"></i>
@@ -1237,15 +1292,41 @@ function renderMealPlan() {
   }).join('');
 
   // Update protein bar
+  const settings = getSettings();
+  const proteinTarget = settings.protein_target_g || 100;
   setTextContent('mealProteinTotal', `${totalActualProtein}g`);
+  const rangeEl = document.getElementById('mealProteinTargetRange');
+  if (rangeEl) rangeEl.textContent = `${Math.round(proteinTarget * 0.95)}–${Math.round(proteinTarget * 1.1)}g`;
   const fill = document.getElementById('mealProteinFill');
   if (fill) {
-    fill.style.width = Math.min(100, (totalActualProtein / 95) * 100) + '%';
-    if (totalActualProtein >= 95) {
+    fill.style.width = Math.min(100, (totalActualProtein / proteinTarget) * 100) + '%';
+    if (totalActualProtein >= proteinTarget * 0.95) {
       fill.style.background = 'var(--success)';
     } else {
       fill.style.background = 'var(--primary)';
     }
+  }
+
+  // Update calorie bar
+  const calorieTarget = getDailyCalorieTarget(profile);
+  setTextContent('mealCalorieTotal', `${totalActualCalories} kcal`);
+  setTextContent('mealCalorieTargetVal', `${calorieTarget} kcal`);
+  const calFill = document.getElementById('mealCalorieFill');
+  if (calFill) {
+    const calPercent = Math.min(100, (totalActualCalories / calorieTarget) * 100);
+    calFill.style.width = calPercent + '%';
+    if (totalActualCalories > calorieTarget * 1.1) {
+      calFill.style.background = 'var(--danger)';
+    } else if (totalActualCalories >= calorieTarget * 0.9) {
+      calFill.style.background = 'var(--success)';
+    } else {
+      calFill.style.background = 'var(--warning)';
+    }
+  }
+
+  // Trigger Lucide icons rebuild
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
   }
 
   // Protein reference table
@@ -2450,12 +2531,26 @@ function getStepsMetrics(steps, weight, height, sex) {
   // Calculate distance in kilometers
   const distanceKm = (steps * strideMeters) / 1000;
 
-  // Calculate calories using the Metabolic Equivalent of Task (MET) walking equation:
-  // Calories = MET * 3.5 * weight (kg) / 200 * duration (mins)
-  // For standard moderate walking (3 mph), MET = 3.5.
-  // Assuming a standard walking cadence of 120 steps per minute, duration in minutes = steps / 120.
-  // Calories = 3.5 * 3.5 * weight * (steps / 120) / 200 = 12.25 * weight * steps / 24000 = 0.0005104 * weight * steps.
-  const calories = Math.round(0.0005104 * w * steps);
+  // Personalized Metabolic Equivalent of Task (MET) adjustment
+  // Standard moderate walking (3 mph) is 3.5 MET.
+  // Clinically, beginners burn ~10% more energy due to lower movement efficiency, 
+  // while advanced trainees adapt, saving ~5% energy.
+  let metAdjustment = 1.0;
+  try {
+    const profile = getProfile();
+    if (profile && profile.fitness_level) {
+      if (profile.fitness_level === 'beginner') {
+        metAdjustment = 1.10;
+      } else if (profile.fitness_level === 'advanced') {
+        metAdjustment = 0.95;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to read profile for fitness MET adjustment, using baseline", e);
+  }
+
+  // Calories = MET * 3.5 * weight * (steps / 120) / 200 * metAdjustment
+  const calories = Math.round(0.0005104 * w * steps * metAdjustment);
 
   return {
     calories,
@@ -3279,6 +3374,616 @@ function bindOnboardingEvents() {
       updateStepView();
     }
   });
+}
+
+
+// ── Custom Food Logger, Location Engine & 3D Water Tracker ────
+
+function getDailyCalorieTarget(profile) {
+  if (!profile) return 2000;
+  
+  const w = profile.start_weight_kg || 70;
+  const h = profile.height_cm || 170;
+  const age = profile.age || 30;
+  const sex = profile.sex || 'male';
+  const fitness = profile.fitness_level || 'beginner';
+  const goal = profile.primary_goal || 'weight_loss';
+
+  // Mifflin-St Jeor Equation
+  let bmr = 0;
+  if (sex === 'female') {
+    bmr = 10 * w + 6.25 * h - 5 * age - 161;
+  } else {
+    bmr = 10 * w + 6.25 * h - 5 * age + 5;
+  }
+
+  // Activity factor
+  let factor = 1.2;
+  if (fitness === 'intermediate') {
+    factor = 1.375;
+  } else if (fitness === 'advanced') {
+    factor = 1.55;
+  }
+
+  let target = bmr * factor;
+
+  // Deficit / Surplus adjustment
+  if (goal === 'weight_loss') {
+    target -= 350;
+  } else if (goal === 'muscle_gain') {
+    target += 250;
+  }
+
+  // Medical boundary clamping (1200 - 4000 kcal)
+  target = Math.max(1200, Math.min(4000, Math.round(target)));
+  return target;
+}
+
+function detectUserLocation() {
+  const badge = document.getElementById('activeLocationName');
+  if (badge) badge.textContent = "Detecting location...";
+
+  if (navigator.geolocation) {
+    const options = {
+      enableHighAccuracy: false,
+      timeout: 5000,
+      maximumAge: 600000 // 10 minutes cache
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
+          if (!response.ok) throw new Error("Nominatim fetch failed");
+          const data = await response.json();
+          const address = data.address || {};
+          const city = address.city || address.town || address.state_district || address.village || address.suburb || address.state || "";
+          
+          if (city) {
+            handleDetectedCity(city);
+          } else {
+            detectLocationByIP();
+          }
+        } catch (e) {
+          console.warn("GPS reverse geocoding failed, falling back to IP", e);
+          detectLocationByIP();
+        }
+      },
+      (error) => {
+        console.warn("GPS lookup failed, falling back to IP", error);
+        detectLocationByIP();
+      },
+      options
+    );
+  } else {
+    detectLocationByIP();
+  }
+}
+
+async function detectLocationByIP() {
+  const badge = document.getElementById('activeLocationName');
+  try {
+    const response = await fetch("https://ipapi.co/json/");
+    if (!response.ok) throw new Error("IP API fetch failed");
+    const data = await response.json();
+    const city = data.city || "";
+    if (city) {
+      handleDetectedCity(city);
+    } else {
+      handleDetectedCity("Delhi"); // Default fallback
+    }
+  } catch (e) {
+    console.error("IP geolocation failed", e);
+    handleDetectedCity("Delhi"); // Default fallback
+  }
+}
+
+function handleDetectedCity(cityName) {
+  const activeLocationSpan = document.getElementById('activeLocationName');
+  if (activeLocationSpan) {
+    activeLocationSpan.textContent = cityName;
+  }
+
+  const standardized = cityName.toLowerCase().trim();
+  let regionKey = 'delhi'; // Default fallback
+
+  if (standardized.includes('mumbai') || standardized.includes('bombay')) {
+    regionKey = 'mumbai';
+  } else if (standardized.includes('delhi') || standardized.includes('noida') || standardized.includes('gurgaon') || standardized.includes('ghaziabad')) {
+    regionKey = 'delhi';
+  } else if (standardized.includes('kolkata') || standardized.includes('calcutta') || standardized.includes('howrah')) {
+    regionKey = 'kolkata';
+  } else if (standardized.includes('hyderabad') || standardized.includes('secunderabad')) {
+    regionKey = 'hyderabad';
+  } else if (
+    standardized.includes('bengaluru') || standardized.includes('bangalore') ||
+    standardized.includes('chennai') || standardized.includes('madras') ||
+    standardized.includes('kochi') || standardized.includes('cochin') ||
+    standardized.includes('trivandrum') || standardized.includes('thiruvananthapuram') ||
+    standardized.includes('coimbatore') || standardized.includes('madurai') ||
+    standardized.includes('mysore') || standardized.includes('mysuru') ||
+    standardized.includes('visakhapatnam') || standardized.includes('vizag') ||
+    standardized.includes('karnataka') || standardized.includes('tamil nadu') ||
+    standardized.includes('kerala') || standardized.includes('andhra pradesh')
+  ) {
+    regionKey = 'south_india';
+  }
+
+  const regionLabels = {
+    'mumbai': 'Mumbai Specials',
+    'delhi': 'Delhi Specials',
+    'kolkata': 'Kolkata Specials',
+    'hyderabad': 'Hyderabad Specials',
+    'south_india': 'South India Specials'
+  };
+  
+  const localRegionLabel = document.getElementById('localRegionLabel');
+  if (localRegionLabel) {
+    localRegionLabel.textContent = regionLabels[regionKey] || 'Local Specials';
+  }
+
+  const regionalCard = document.getElementById('regionalSpecialtiesCard');
+  if (regionalCard) {
+    regionalCard.style.display = 'block';
+  }
+
+  renderRegionalSpecialties(regionKey);
+}
+
+function renderRegionalSpecialties(region) {
+  const grid = document.getElementById('regionalSpecialtiesGrid');
+  if (!grid) return;
+
+  const specialties = REGIONAL_SPECIALTIES[region] || [];
+  if (specialties.length === 0) {
+    grid.innerHTML = `<p style="font-size: 13px; color: var(--text-secondary);">No specific local foods configured for this region.</p>`;
+    return;
+  }
+
+  grid.innerHTML = specialties.map((item, idx) => {
+    let clinicalWarningHtml = '';
+    if (item.warning) {
+      clinicalWarningHtml = `
+        <div class="clinical-warning-box" style="margin-top: 8px; font-size: 11px; color: var(--danger); background: rgba(239, 68, 68, 0.1); padding: var(--space-xs); border-radius: var(--border-radius-sm); border-left: 2px solid var(--danger);">
+          <strong>⚠️ Clinical Alert:</strong> ${item.warning}
+        </div>
+      `;
+    }
+
+    let swapHtml = '';
+    if (item.swap) {
+      swapHtml = `
+        <div class="swap-box" style="margin-top: 6px; font-size: 11px; color: var(--success); background: rgba(0, 229, 153, 0.1); padding: var(--space-xs); border-radius: var(--border-radius-sm); border-left: 2px solid var(--success);">
+          <strong>💡 Healthy Swap:</strong> ${item.swap}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="card regional-specialty-card" style="padding: var(--space-sm); border-color: rgba(147, 51, 234, 0.2); display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-xs);">
+        <div>
+          <h4 style="font-size: 14px; font-weight: 700; margin: 0;">${item.name}</h4>
+          <div style="display: flex; gap: 8px; margin-top: 4px;">
+            <span class="badge text-mono" style="background: rgba(245, 158, 11, 0.15); color: var(--warning); font-size: 10px; font-weight: 600;">${item.calories} kcal</span>
+            <span class="badge text-mono" style="background: rgba(37, 99, 235, 0.15); color: var(--primary); font-size: 10px; font-weight: 600;">${item.protein}g protein</span>
+          </div>
+          ${clinicalWarningHtml}
+          ${swapHtml}
+        </div>
+        <div style="display: flex; gap: 6px; margin-top: 8px;">
+          <button class="btn btn--sm btn--primary log-specialty-btn" data-region="${region}" data-idx="${idx}" style="flex: 1; padding: 4px 8px; font-size: 11px; height: auto;">
+            Log Directly
+          </button>
+          <button class="btn btn--sm btn--ghost fill-specialty-btn" data-region="${region}" data-idx="${idx}" style="padding: 4px 8px; font-size: 11px; height: auto;" title="Scale & Customize">
+            Customize
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('.log-specialty-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const reg = e.target.dataset.region;
+      const idx = parseInt(e.target.dataset.idx);
+      const foodItem = REGIONAL_SPECIALTIES[reg][idx];
+      logFoodDirect(foodItem.name, foodItem.calories, foodItem.protein);
+    });
+  });
+
+  grid.querySelectorAll('.fill-specialty-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const reg = e.target.dataset.region;
+      const idx = parseInt(e.target.dataset.idx);
+      const foodItem = REGIONAL_SPECIALTIES[reg][idx];
+      fillFoodLogger(foodItem.name, foodItem.calories, foodItem.protein);
+    });
+  });
+}
+
+function logFoodDirect(name, calories, protein) {
+  const slotSelect = document.getElementById('foodLogMealSlot');
+  const mealSlotText = slotSelect ? slotSelect.options[slotSelect.selectedIndex].text : "First Meal";
+  
+  const newMeal = {
+    is_custom: true,
+    time: mealSlotText,
+    items: [name],
+    calories_estimated: Math.round(calories),
+    protein_estimated: Math.round(protein),
+    completed: true
+  };
+
+  const meals = getOrCreateMealLogs(currentDate);
+  meals.push(newMeal);
+  saveAllMealLogs(currentDate, meals);
+  
+  showToast(`Logged "${name}" to ${newMeal.time}! ✅`);
+  renderMealPlan();
+}
+
+function fillFoodLogger(name, calories, protein) {
+  const nameInput = document.getElementById('foodLogName');
+  const gramsInput = document.getElementById('foodLogGrams');
+  const caloriesInput = document.getElementById('foodLogCalories');
+  const proteinInput = document.getElementById('foodLogProtein');
+
+  if (nameInput) nameInput.value = name;
+  if (caloriesInput) caloriesInput.value = calories;
+  if (proteinInput) proteinInput.value = protein;
+
+  let baseUnit = 'grams';
+  let baseQty = 100;
+
+  if (name.toLowerCase().includes('piece') || name.toLowerCase().includes('plate') || name.toLowerCase().includes('scoop') || name.toLowerCase().includes('glass') || name.toLowerCase().includes('katori') || name.toLowerCase().includes('ball')) {
+    baseUnit = 'pieces';
+    baseQty = 1;
+    const match = name.match(/(\d+)\s+(piece|bhature|luchi|ball|katori)/i);
+    if (match) {
+      baseQty = parseInt(match[1]);
+    }
+  } else {
+    const match = name.match(/(\d+)\s*g/i);
+    if (match) {
+      baseQty = parseInt(match[1]);
+    }
+  }
+
+  const gramsLabel = document.getElementById('foodLogGramsLabel');
+  if (gramsLabel) {
+    gramsLabel.textContent = baseUnit === 'pieces' ? 'Quantity' : 'Grams';
+  }
+
+  if (gramsInput) {
+    gramsInput.value = baseQty;
+    gramsInput.dataset.baseQty = baseQty;
+    gramsInput.dataset.baseCalories = calories;
+    gramsInput.dataset.baseProtein = protein;
+  }
+
+  let tipBox = document.getElementById('foodLogWarningTip');
+  if (!tipBox) {
+    tipBox = document.createElement('div');
+    tipBox.id = 'foodLogWarningTip';
+    tipBox.style.marginTop = 'var(--space-xs)';
+    tipBox.style.marginBottom = 'var(--space-xs)';
+    tipBox.style.fontSize = '12px';
+    tipBox.style.lineHeight = '1.4';
+    const btn = document.getElementById('btnLogCustomFood');
+    if (btn) {
+      btn.parentNode.insertBefore(tipBox, btn);
+    }
+  }
+
+  let foundWarning = '';
+  let foundSwap = '';
+  
+  for (const region of Object.keys(REGIONAL_SPECIALTIES)) {
+    const matched = REGIONAL_SPECIALTIES[region].find(item => item.name.split('(')[0].trim().toLowerCase() === name.split('(')[0].trim().toLowerCase());
+    if (matched) {
+      foundWarning = matched.warning || '';
+      foundSwap = matched.swap || '';
+      break;
+    }
+  }
+
+  if (foundWarning || foundSwap) {
+    tipBox.innerHTML = `
+      ${foundWarning ? `
+        <div style="color: var(--danger); background: rgba(239, 68, 68, 0.08); padding: var(--space-sm); border-radius: var(--radius-md); border-left: 3px solid var(--danger); margin-bottom: 6px;">
+          <strong>⚠️ Clinical Warning:</strong> ${foundWarning}
+        </div>
+      ` : ''}
+      ${foundSwap ? `
+        <div style="color: var(--success); background: rgba(0, 229, 153, 0.08); padding: var(--space-sm); border-radius: var(--radius-md); border-left: 3px solid var(--success);">
+          <strong>💡 Clinically Suggested Swap:</strong> ${foundSwap}
+        </div>
+      ` : ''}
+    `;
+    tipBox.style.display = 'block';
+  } else {
+    tipBox.style.display = 'none';
+    tipBox.innerHTML = '';
+  }
+
+  const searchInput = document.getElementById('foodSearchInput');
+  if (searchInput) {
+    searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function bindLocationAwareLoggerEvents() {
+  const searchInput = document.getElementById('foodSearchInput');
+  const resultsList = document.getElementById('foodSearchResults');
+  const gramsInput = document.getElementById('foodLogGrams');
+  const caloriesInput = document.getElementById('foodLogCalories');
+  const proteinInput = document.getElementById('foodLogProtein');
+  const nameInput = document.getElementById('foodLogName');
+  const logBtn = document.getElementById('btnLogCustomFood');
+  const refreshLocationBtn = document.getElementById('btnRefreshLocation');
+
+  if (refreshLocationBtn) {
+    refreshLocationBtn.addEventListener('click', () => {
+      detectUserLocation();
+    });
+  }
+
+  if (searchInput && resultsList) {
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase().trim();
+      if (!query) {
+        resultsList.style.display = 'none';
+        resultsList.innerHTML = '';
+        return;
+      }
+
+      const matches = [];
+      FOOD_DATABASE.forEach(item => {
+        if (item.name.toLowerCase().includes(query)) {
+          matches.push({ ...item, type: 'standard' });
+        }
+      });
+
+      Object.keys(REGIONAL_SPECIALTIES).forEach(region => {
+        REGIONAL_SPECIALTIES[region].forEach(item => {
+          if (item.name.toLowerCase().includes(query) && !matches.some(m => m.name === item.name)) {
+            matches.push({ ...item, type: 'regional', region });
+          }
+        });
+      });
+
+      const slicedMatches = matches.slice(0, 8);
+
+      if (slicedMatches.length === 0) {
+        resultsList.innerHTML = `<li class="food-search-item" style="color: var(--text-secondary); cursor: default;">No results found</li>`;
+      } else {
+        resultsList.innerHTML = slicedMatches.map((item, idx) => `
+          <li class="food-search-item" data-idx="${idx}">
+            <span>${item.name}</span>
+            <span class="food-search-item__nutrition text-mono">${item.calories} kcal | ${item.protein}g P</span>
+          </li>
+        `).join('');
+
+        resultsList.querySelectorAll('.food-search-item').forEach(li => {
+          li.addEventListener('click', (e) => {
+            const idx = parseInt(e.currentTarget.dataset.idx);
+            if (isNaN(idx)) return;
+            const selected = slicedMatches[idx];
+            fillFoodLogger(selected.name, selected.calories, selected.protein);
+            resultsList.style.display = 'none';
+            searchInput.value = '';
+          });
+        });
+      }
+      resultsList.style.display = 'block';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !resultsList.contains(e.target)) {
+        resultsList.style.display = 'none';
+      }
+    });
+  }
+
+  if (gramsInput) {
+    gramsInput.addEventListener('input', () => {
+      const currentVal = parseFloat(gramsInput.value);
+      const baseQty = parseFloat(gramsInput.dataset.baseQty || 100);
+      const baseCalories = parseFloat(gramsInput.dataset.baseCalories || 0);
+      const baseProtein = parseFloat(gramsInput.dataset.baseProtein || 0);
+
+      if (currentVal && baseQty && !isNaN(currentVal) && currentVal > 0) {
+        const factor = currentVal / baseQty;
+        if (caloriesInput) caloriesInput.value = Math.round(baseCalories * factor);
+        if (proteinInput) proteinInput.value = Math.round(baseProtein * factor);
+      }
+    });
+  }
+
+  if (logBtn) {
+    logBtn.addEventListener('click', () => {
+      const name = nameInput ? nameInput.value.trim() : '';
+      const caloriesVal = caloriesInput ? parseFloat(caloriesInput.value) : 0;
+      const proteinVal = proteinInput ? parseFloat(proteinInput.value) : 0;
+      const slotSelect = document.getElementById('foodLogMealSlot');
+      const timeSlotText = slotSelect ? slotSelect.options[slotSelect.selectedIndex].text : "First Meal";
+
+      if (!name) {
+        showToast("Please enter a food name! ⚠️");
+        return;
+      }
+      if (isNaN(caloriesVal) || caloriesVal < 0) {
+        showToast("Please enter valid calories! ⚠️");
+        return;
+      }
+      if (isNaN(proteinVal) || proteinVal < 0) {
+        showToast("Please enter valid protein! ⚠️");
+        return;
+      }
+
+      const newMeal = {
+        is_custom: true,
+        time: timeSlotText,
+        items: [name],
+        calories_estimated: Math.round(caloriesVal),
+        protein_estimated: Math.round(proteinVal),
+        completed: true
+      };
+
+      const meals = getOrCreateMealLogs(currentDate);
+      meals.push(newMeal);
+      saveAllMealLogs(currentDate, meals);
+
+      showToast(`Logged "${name}" to ${timeSlotText}! ✅`);
+      
+      if (nameInput) nameInput.value = '';
+      if (gramsInput) {
+        gramsInput.value = '';
+        gramsInput.removeAttribute('data-base-qty');
+        gramsInput.removeAttribute('data-base-calories');
+        gramsInput.removeAttribute('data-base-protein');
+      }
+      if (caloriesInput) caloriesInput.value = '';
+      if (proteinInput) proteinInput.value = '';
+      
+      const gramsLabel = document.getElementById('foodLogGramsLabel');
+      if (gramsLabel) gramsLabel.textContent = 'Grams/Qty';
+
+      const tipBox = document.getElementById('foodLogWarningTip');
+      if (tipBox) {
+        tipBox.style.display = 'none';
+        tipBox.innerHTML = '';
+      }
+
+      renderMealPlan();
+    });
+  }
+}
+
+function updateWaterWidget(dateStr) {
+  const log = getDailyLog(dateStr);
+  const currentVolume = log.water_litres || 0;
+  
+  const displayValEl = document.getElementById('waterDisplayVal');
+  if (displayValEl) {
+    displayValEl.textContent = `${currentVolume.toFixed(2)} L`;
+  }
+
+  const settings = getSettings();
+  const targetVolume = (settings.water_target_glasses || 8) * 0.25;
+
+  const goalValEl = document.getElementById('waterGoalVal');
+  if (goalValEl) {
+    goalValEl.textContent = `Target: ${targetVolume.toFixed(2)} Litres (${settings.water_target_glasses} glasses)`;
+  }
+
+  const percent = Math.min(100, (currentVolume / targetVolume) * 100);
+
+  const liquidBody = document.getElementById('liquidBody');
+  const liquidTop = document.getElementById('liquidTop');
+  const glass3d = document.getElementById('water3DGlass');
+
+  if (liquidBody) {
+    liquidBody.style.height = `${percent}%`;
+  }
+  if (liquidTop) {
+    liquidTop.style.bottom = `${percent}%`;
+    liquidTop.style.display = percent > 0 ? 'block' : 'none';
+  }
+
+  if (glass3d) {
+    if (percent >= 100) {
+      glass3d.classList.add('target-reached');
+    } else {
+      glass3d.classList.remove('target-reached');
+    }
+  }
+}
+
+function triggerWaterBubbles(count = 12) {
+  const glass = document.getElementById('water3DGlass');
+  if (!glass) return;
+
+  for (let i = 0; i < count; i++) {
+    const bubble = document.createElement('div');
+    bubble.className = 'water-bubble';
+    
+    const size = Math.random() * 6 + 4;
+    bubble.style.width = size + 'px';
+    bubble.style.height = size + 'px';
+    bubble.style.left = Math.random() * 80 + 10 + '%';
+    
+    const delay = Math.random() * 0.5;
+    const duration = Math.random() * 1.5 + 1.2;
+    bubble.style.animationDelay = delay + 's';
+    bubble.style.animationDuration = duration + 's';
+
+    glass.appendChild(bubble);
+
+    setTimeout(() => {
+      bubble.remove();
+    }, (delay + duration) * 1000);
+  }
+}
+
+function triggerWaterSlosh() {
+  const top = document.getElementById('liquidTop');
+  if (!top) return;
+
+  top.classList.remove('sloshing');
+  void top.offsetWidth;
+  top.classList.add('sloshing');
+
+  setTimeout(() => {
+    top.classList.remove('sloshing');
+  }, 800);
+}
+
+function bindWaterWidgetEvents() {
+  const btn250 = document.getElementById('btnWater250');
+  const btn500 = document.getElementById('btnWater500');
+  const btn750 = document.getElementById('btnWater750');
+  const btnReset = document.getElementById('btnWaterReset');
+
+  const addWater = (amountL) => {
+    const log = getDailyLog(currentDate);
+    const oldWater = log.water_litres || 0;
+    log.water_litres = Math.round((oldWater + amountL) * 100) / 100;
+    saveDailyLog(currentDate, log);
+
+    const checklist = getChecklist(currentDate);
+    if (!checklist.health) checklist.health = {};
+    checklist.health.water_started = true;
+    saveChecklist(currentDate, checklist);
+
+    showToast(`Added ${Math.round(amountL * 1000)}ml water! 💧`);
+    updateWaterWidget(currentDate);
+    triggerWaterSlosh();
+    triggerWaterBubbles(15);
+  };
+
+  if (btn250) btn250.addEventListener('click', () => addWater(0.25));
+  if (btn500) btn500.addEventListener('click', () => addWater(0.50));
+  if (btn750) btn750.addEventListener('click', () => addWater(0.75));
+
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      const log = getDailyLog(currentDate);
+      log.water_litres = 0;
+      saveDailyLog(currentDate, log);
+
+      const checklist = getChecklist(currentDate);
+      if (checklist.health) {
+        checklist.health.water_started = false;
+      }
+      saveChecklist(currentDate, checklist);
+
+      showToast("Reset water tracker for today.");
+      updateWaterWidget(currentDate);
+    });
+  }
 }
 
 
