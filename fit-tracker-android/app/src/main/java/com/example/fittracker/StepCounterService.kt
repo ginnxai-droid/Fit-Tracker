@@ -38,8 +38,8 @@ class StepCounterService : Service(), SensorEventListener {
     // Accelerometer variables for peak detection (Mode 3)
     private var lastStepTime: Long = 0
     private val STEP_DEBOUNCE_MS = 350L
-    private val STEP_THRESHOLD = 12.2f // m/s^2 peak threshold for step detection
-    private val RESET_THRESHOLD = 9.8f // return threshold to reset peak state
+    private val STEP_THRESHOLD = 2.0f // m/s^2 peak threshold for step detection (gravity subtracted)
+    private val RESET_THRESHOLD = 1.0f // return threshold to reset peak state (gravity subtracted)
     private var isPeakDetected = false
 
     // Exponential smoothing factor for raw accelerometer values

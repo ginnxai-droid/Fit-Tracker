@@ -1438,36 +1438,109 @@ function renderWorkout() {
     const exercises = getPersonalizedWorkout(baseExercises, profile);
     const workoutLog = getWorkoutLog(currentDate) || { exercises: {}, notes: '', completed: false, difficulty: null };
 
-    exerciseContainer.innerHTML = exercises.map((ex, i) => {
-      const isCompleted = !!workoutLog.exercises?.[i];
-      const thumbnailHtml = ex.thumbnail 
-        ? `<img src="${ex.thumbnail}" class="exercise-thumb" alt="${ex.name}">` 
-        : '';
-      const videoHtml = ex.video_url 
-        ? `<a href="${ex.video_url}" target="_blank" class="exercise-video-btn" title="Watch form video"><i data-lucide="play-circle"></i> Watch Demo</a>` 
-        : '';
+    const alertDiv = document.getElementById('workoutMedicalAlert');
+    const cardFooter = document.querySelector('#workoutCard .card-footer');
+
+    if (profile.has_heart_blockage) {
+      // Hide exercises and log actions, display Doctor Clearance consult warning
+      if (alertDiv) {
+        alertDiv.style.display = 'block';
+        alertDiv.style.background = 'rgba(239, 68, 68, 0.08)';
+        alertDiv.style.border = '1.5px solid var(--danger)';
+        alertDiv.style.color = 'var(--text)';
+        alertDiv.innerHTML = `
+          <h4 style="color: var(--danger); font-weight: 700; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+            <i data-lucide="shield-alert" style="width: 18px; height: 18px;"></i> Medical Clearance Required
+          </h4>
+          <p style="margin: 0; font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--text);">
+            You have indicated a history of **Heart Blockage / CAD** in your medical history. 
+            For your safety, exercise recommendations are disabled. **Please consult with your doctor before starting or taking any exercise.** 
+            Do not perform workouts without medical approval.
+          </p>
+        `;
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons({ attrs: { class: 'lucide' }, node: alertDiv });
+        }
+      }
+      if (exerciseContainer) exerciseContainer.style.display = 'none';
+      if (cardFooter) cardFooter.style.display = 'none';
+    } else {
+      // Normal exercises loading
+      if (exerciseContainer) exerciseContainer.style.display = 'block';
+      if (cardFooter) cardFooter.style.display = 'flex';
       
-      return `
-        <div class="workout-exercise ${isCompleted ? 'completed' : ''}">
-          <label class="workout-exercise__check">
-            <input type="checkbox" data-exercise-index="${i}"
-                   ${isCompleted ? 'checked' : ''}>
-            <span class="checkmark"></span>
-          </label>
-          ${thumbnailHtml}
-          <div class="workout-exercise__info" style="flex: 1;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <div>
-                <span class="workout-exercise__name" style="font-weight: 600;">${ex.name}</span>
-                <div class="workout-exercise__desc">${ex.desc || ''}</div>
-              </div>
-              <span class="workout-exercise__sets text-mono" style="font-size: 13px; font-weight: 700; color: var(--primary);">${ex.sets} × ${ex.reps_or_duration}</span>
+      // Check if other cardiovascular / high BP risks are present
+      const meds = (profile.medications || '').toLowerCase();
+      const isBetaBlocker = meds.includes('beta') || meds.includes('blocker') || meds.includes('atenolol') || meds.includes('metoprolol') || meds.includes('bisoprolol') || meds.includes('carvedilol') || meds.includes('propranolol') || meds.includes('labetalol');
+      const isAceOrArb = meds.includes('ace') || meds.includes('arb') || meds.includes('lisinopril') || meds.includes('ramipril') || meds.includes('enalapril') || meds.includes('telmisartan') || meds.includes('losartan') || meds.includes('valsartan');
+      const isCcb = meds.includes('calcium') || meds.includes('ccb') || meds.includes('amlodipine') || meds.includes('diltiazem') || meds.includes('verapamil') || meds.includes('nifedipine');
+      const isDiuretic = meds.includes('diuretic') || meds.includes('lasix') || meds.includes('furosemide') || meds.includes('hydrochlorothiazide') || meds.includes('spironolactone');
+      const isNitrate = meds.includes('nitrate') || meds.includes('nitroglycerin') || meds.includes('isosorbide');
+      const hasHypertension = profile.has_hypertension || meds.includes('bp') || meds.includes('hypertension') || meds.includes('pressure');
+      
+      if (hasHypertension || isBetaBlocker || isNitrate) {
+        if (alertDiv) {
+          alertDiv.style.display = 'block';
+          alertDiv.style.background = 'rgba(147, 51, 234, 0.05)';
+          alertDiv.style.border = '1px dashed rgba(147, 51, 234, 0.3)';
+          alertDiv.style.color = 'var(--text)';
+          alertDiv.innerHTML = `
+            <h4 style="color: var(--primary); font-weight: 700; margin: 0 0 6px 0; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+              <i data-lucide="heart" style="width: 16px; height: 16px; color: var(--primary);"></i> AI Medical Exercise Safety Coach
+            </h4>
+            <p style="margin: 0 0 6px 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+              Based on your clinical conditions and medication profile, exercises have been adapted to safe, low-impact variations (wall push-ups, chair squats, bird-dog, and breathing).
+            </p>
+            <ul style="margin: 0; padding-left: 18px; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+              ${isBetaBlocker ? '<li>Beta-blockers blunt heart rate. Rely on Borg RPE scale (keep it light-to-moderate, <= 11-13).</li>' : ''}
+              ${(isAceOrArb || isCcb) ? '<li>ACE inhibitors/CCBs can lower BP post-workout. Avoid rapid standing; rise slowly from the floor.</li>' : ''}
+              ${isDiuretic ? '<li>Diuretics increase dehydration risk. Sip water frequently between exercise sets.</li>' : ''}
+            </ul>
+            <div style="margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--danger); display: flex; align-items: center; gap: 4px;">
+              <i data-lucide="alert-octagon" style="width: 14px; height: 14px; color: var(--danger);"></i> If you feel uneasy, dizzy, experience chest tightness or pain: STOP immediately, rest, and consult your doctor.
             </div>
-            ${videoHtml}
-          </div>
-        </div>
-      `;
-    }).join('');
+          `;
+          if (typeof lucide !== 'undefined') {
+            lucide.createIcons({ attrs: { class: 'lucide' }, node: alertDiv });
+          }
+        }
+      } else {
+        if (alertDiv) alertDiv.style.display = 'none';
+      }
+
+      if (exerciseContainer) {
+        exerciseContainer.innerHTML = exercises.map((ex, i) => {
+          const isCompleted = !!workoutLog.exercises?.[i];
+          const thumbnailHtml = ex.thumbnail 
+            ? `<img src="${ex.thumbnail}" class="exercise-thumb" alt="${ex.name}">` 
+            : '';
+          const videoHtml = ex.video_url 
+            ? `<a href="${ex.video_url}" target="_blank" class="exercise-video-btn" title="Watch form video"><i data-lucide="play-circle"></i> Watch Demo</a>` 
+            : '';
+          
+          return `
+            <div class="workout-exercise ${isCompleted ? 'completed' : ''}">
+              <label class="workout-exercise__check">
+                <input type="checkbox" data-exercise-index="${i}"
+                       ${isCompleted ? 'checked' : ''}>
+                <span class="checkmark"></span>
+              </label>
+              ${thumbnailHtml}
+              <div class="workout-exercise__info" style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div>
+                    <span class="workout-exercise__name" style="font-weight: 600;">${ex.name}</span>
+                    <div class="workout-exercise__desc">${ex.desc || ''}</div>
+                  </div>
+                  <span class="workout-exercise__sets text-mono" style="font-size: 13px; font-weight: 700; color: var(--primary);">${ex.sets} × ${ex.reps_or_duration}</span>
+                </div>
+                ${videoHtml}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
 
     // Workout title
     setTextContent('workoutTitle', schedule.morning_plan);
@@ -2068,6 +2141,20 @@ function bindSettingsModal() {
 
     setInputValue('settingMeds', profile.medications || '');
     
+    const chkSettingTerms = document.getElementById('settingAcceptTerms');
+    if (chkSettingTerms) chkSettingTerms.checked = !!profile.agreed_to_terms;
+    const consentDateSpan = document.getElementById('settingTermsConsentDate');
+    if (consentDateSpan) {
+      if (profile.agreed_to_terms && profile.agreed_to_terms_timestamp) {
+        const d = new Date(profile.agreed_to_terms_timestamp);
+        consentDateSpan.textContent = `Consented on ${d.toLocaleDateString('en-IN')} ${d.toLocaleTimeString('en-IN')}`;
+        consentDateSpan.style.color = 'var(--success)';
+      } else {
+        consentDateSpan.textContent = 'Not consented yet';
+        consentDateSpan.style.color = 'var(--danger)';
+      }
+    }
+    
     // Load lifestyle options
     setInputValue('settingWorkActivity', profile.work_activity || 'sedentary');
     setInputValue('settingSleepCategory', profile.sleep_category || 'optimal');
@@ -2188,7 +2275,16 @@ function bindSettingsModal() {
 
   if (saveBtn) {
     saveBtn.addEventListener('click', () => {
+      const chkSettingTerms = document.getElementById('settingAcceptTerms');
+      if (chkSettingTerms && !chkSettingTerms.checked) {
+        showToast('⚠️ You must reaffirm agreement to the Terms & digital Liability Release to save settings.');
+        return;
+      }
       const profile = getProfile();
+      if (!profile.agreed_to_terms) {
+        profile.agreed_to_terms = true;
+        profile.agreed_to_terms_timestamp = new Date().toISOString();
+      }
       profile.name = document.getElementById('settingName')?.value || profile.name;
       profile.age = getInputNumber('settingAge') || profile.age;
       profile.sex = document.getElementById('settingGender')?.value || 'male';
@@ -2885,7 +2981,7 @@ function bindStepCalculatorModal() {
             const today = getDateStr(new Date());
             const log = getDailyLog(today);
             const currentSteps = log.steps || 0;
-            const increment = Math.floor(Math.random() * 5) + 8;
+            const increment = Math.random() < 0.8 ? 1 : 2; // Realistic walking cadence (1-2 steps per 500ms)
             const newSteps = currentSteps + increment;
             
             log.steps = newSteps;
@@ -3012,7 +3108,7 @@ function logWalkCompletion(walkType, isCompleted) {
 // Pedometer Motion Detection (Shake to Step fallback)
 function initMotionPedometer() {
   let lastX = null, lastY = null, lastZ = null;
-  let threshold = 15; // acceleration threshold for shake detection
+  let threshold = 4.0; // calibrated walking acceleration change threshold
   let lastShakeTime = 0;
 
   window.addEventListener('devicemotion', (event) => {
@@ -3257,7 +3353,14 @@ function bindOnboardingEvents() {
       updateStepView();
     } else {
       // Step 5 Finish: Save Profile
+      const chkTerms = document.getElementById('obAcceptTerms');
+      if (chkTerms && !chkTerms.checked) {
+        showToast('⚠️ You must agree to the Terms & Liability Release to finish onboarding.');
+        return;
+      }
       const profile = getProfile();
+      profile.agreed_to_terms = true;
+      profile.agreed_to_terms_timestamp = new Date().toISOString();
       profile.name = document.getElementById('obName')?.value || profile.name;
       profile.age = parseInt(document.getElementById('obAge')?.value) || profile.age;
       profile.sex = document.getElementById('obGender')?.value || 'male';

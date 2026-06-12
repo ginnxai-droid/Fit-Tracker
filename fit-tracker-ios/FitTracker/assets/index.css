@@ -742,6 +742,72 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 28px;
 }
 
+/* Progress Ring Color Personalization & Glowing / Fluorescent Contrast */
+#ringScore .progress-ring__fill {
+  stroke: var(--success);
+}
+#ringScore .progress-ring__bg {
+  fill: oklch(0.72 0.16 150 / 0.08);
+  stroke: oklch(0.72 0.16 150 / 0.2);
+}
+#ringScore .progress-ring__value {
+  color: oklch(0.75 0.16 150); /* Neon Fluorescent Green */
+  text-shadow: 0 0 12px oklch(0.75 0.16 150 / 0.4);
+}
+
+#ringCompliance .progress-ring__fill {
+  stroke: var(--info);
+}
+#ringCompliance .progress-ring__bg {
+  fill: oklch(0.62 0.18 250 / 0.08);
+  stroke: oklch(0.62 0.18 250 / 0.2);
+}
+#ringCompliance .progress-ring__value {
+  color: oklch(0.72 0.16 250); /* Neon Fluorescent Blue */
+  text-shadow: 0 0 12px oklch(0.72 0.16 250 / 0.4);
+}
+
+#ringProtein .progress-ring__fill {
+  stroke: var(--warning);
+}
+#ringProtein .progress-ring__bg {
+  fill: oklch(0.78 0.15 70 / 0.08);
+  stroke: oklch(0.78 0.15 70 / 0.2);
+}
+#ringProtein .progress-ring__value {
+  color: oklch(0.78 0.16 70); /* Neon Fluorescent Yellow-Orange */
+  text-shadow: 0 0 12px oklch(0.78 0.16 70 / 0.4);
+}
+
+/* Light theme overrides for high contrast and readability */
+[data-theme="light"] #ringScore .progress-ring__bg {
+  fill: oklch(0.95 0.02 150);
+  stroke: oklch(0.45 0.15 150 / 0.15);
+}
+[data-theme="light"] #ringScore .progress-ring__value {
+  color: oklch(0.45 0.15 150); /* High-contrast Darker Green */
+  text-shadow: none;
+}
+
+[data-theme="light"] #ringCompliance .progress-ring__bg {
+  fill: oklch(0.95 0.02 250);
+  stroke: oklch(0.45 0.16 250 / 0.15);
+}
+[data-theme="light"] #ringCompliance .progress-ring__value {
+  color: oklch(0.45 0.16 250); /* High-contrast Darker Blue */
+  text-shadow: none;
+}
+
+[data-theme="light"] #ringProtein .progress-ring__bg {
+  fill: oklch(0.95 0.02 70);
+  stroke: oklch(0.50 0.15 70 / 0.15);
+}
+[data-theme="light"] #ringProtein .progress-ring__value {
+  color: oklch(0.50 0.15 70); /* High-contrast Darker Amber/Orange */
+  text-shadow: none;
+}
+
+
 /* ═══════════════════════════════════════════════════════════════════════════
    8. CHECKLIST
    ═══════════════════════════════════════════════════════════════════════════ */

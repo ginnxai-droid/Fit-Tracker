@@ -48,6 +48,8 @@ export const DEFAULT_PROFILE = {
   triglycerides_value: null,
   medications: '',
   medical_conditions: '', // legacy string sync
+  agreed_to_terms: false,
+  agreed_to_terms_timestamp: '',
 
   // Musculoskeletal Joint Screening
   has_joint_pain: false,
@@ -590,6 +592,11 @@ export function getActiveSchedule() {
 // 9. Personalized Workout Engine (Joint Pathology & Heart Risk Adaptation)
 // ---------------------------------------------------------------------------
 export function getPersonalizedWorkout(baseExercises, profile) {
+  // Cardiac block: if they have heart blockage or CAD, return empty array to block exercise suggestions
+  if (profile.has_heart_blockage) {
+    return [];
+  }
+
   const level = profile.fitness_level || 'beginner';
   const age = profile.age || 30;
   const weight = profile.start_weight_kg || 75;
@@ -603,22 +610,31 @@ export function getPersonalizedWorkout(baseExercises, profile) {
   const hasShoulderPain = jointPainList.includes('shoulder') || (profile.medical_conditions || '').toLowerCase().includes('shoulder') || jointPainList.includes('wrist');
   const hasNeckPain = jointPainList.includes('neck') || (profile.medical_conditions || '').toLowerCase().includes('neck');
 
+  const meds = (profile.medications || '').toLowerCase();
+  const isBetaBlocker = meds.includes('beta') || meds.includes('blocker') || meds.includes('atenolol') || meds.includes('metoprolol') || meds.includes('bisoprolol') || meds.includes('carvedilol') || meds.includes('propranolol') || meds.includes('labetalol');
+  const isAceOrArb = meds.includes('ace') || meds.includes('arb') || meds.includes('lisinopril') || meds.includes('ramipril') || meds.includes('enalapril') || meds.includes('telmisartan') || meds.includes('losartan') || meds.includes('valsartan');
+  const isCcb = meds.includes('calcium') || meds.includes('ccb') || meds.includes('amlodipine') || meds.includes('diltiazem') || meds.includes('verapamil') || meds.includes('nifedipine');
+  const isDiuretic = meds.includes('diuretic') || meds.includes('lasix') || meds.includes('furosemide') || meds.includes('hydrochlorothiazide') || meds.includes('spironolactone');
+  const isNitrate = meds.includes('nitrate') || meds.includes('nitroglycerin') || meds.includes('isosorbide');
+
+  const hasHypertension = profile.has_hypertension || meds.includes('bp') || meds.includes('hypertension') || meds.includes('pressure');
+
   // Exercise substitution based on joint & cardiovascular screening
   const substitutedExercises = baseExercises.map(ex => {
     let newEx = { ...ex };
     
-    // Heart Blockage / CAD adaptions: Avoid high cardiovascular straining
-    if (profile.has_heart_blockage) {
+    // BP / Cardio / Medication Adaptations
+    if (hasHypertension || isBetaBlocker || isNitrate) {
       if (newEx.name === 'Bodyweight Squats') {
         newEx.name = 'Box Squats (Chair Squats)';
-        newEx.desc = '⭐ **Heart Safe:** Low-strain bodyweight squats sitting back onto a chair. Do not strain.';
+        newEx.desc = '⭐ **Cardio Safety:** Low-strain bodyweight squats sitting back onto a chair. Do not strain.';
         newEx.reps_or_duration = '10 slow reps';
         newEx.reps_num = 10;
         newEx._tailoredReason = 'cardio_safety';
       }
       else if (newEx.name === 'Push-ups') {
         newEx.name = 'Wall Push-ups';
-        newEx.desc = '⭐ **Heart Safe:** Push-ups standing against a wall. Keeps blood pressure stable.';
+        newEx.desc = '⭐ **Cardio Safety:** Push-ups standing against a wall. Keeps blood pressure stable.';
         newEx.reps_or_duration = '10 reps';
         newEx.reps_num = 10;
         newEx.thumbnail = 'exercise-images/pushup.png';
@@ -627,7 +643,7 @@ export function getPersonalizedWorkout(baseExercises, profile) {
       }
       else if (newEx.name === 'Crunches') {
         newEx.name = 'Tai Chi Breathing';
-        newEx.desc = '⭐ **Heart Safe:** Deep slow breathing flow. Avoids chest cavity pressure from crunches.';
+        newEx.desc = '⭐ **Cardio Safety:** Deep slow breathing flow. Avoids chest cavity pressure from crunches.';
         newEx.reps_or_duration = '5 slow cycles';
         newEx.reps_num = 0;
         newEx.thumbnail = 'exercise-images/tai_chi.png';
@@ -635,13 +651,13 @@ export function getPersonalizedWorkout(baseExercises, profile) {
       }
       else if (newEx.name === 'Plank Hold') {
         newEx.name = 'Tai Chi Breathing';
-        newEx.desc = '⭐ **Heart Safe:** Gentle breathing coordination standing. Avoids heavy isometric hold.';
+        newEx.desc = '⭐ **Cardio Safety:** Gentle breathing coordination standing. Avoids heavy isometric hold.';
         newEx.reps_or_duration = '1 min';
         newEx._tailoredReason = 'cardio_safety';
       }
       else if (newEx.name === 'Lying Leg Raises') {
         newEx.name = 'Glute Bridges';
-        newEx.desc = '⭐ **Heart Safe:** Gentle hip raises lying on back. Safer than leg raises.';
+        newEx.desc = '⭐ **Cardio Safety:** Gentle hip raises lying on back. Safer than leg raises.';
         newEx.reps_or_duration = '10 reps';
         newEx.reps_num = 10;
         newEx.thumbnail = 'exercise-images/glute_bridge.png';
@@ -649,12 +665,25 @@ export function getPersonalizedWorkout(baseExercises, profile) {
       }
       else if (newEx.name === 'Mountain Climbers') {
         newEx.name = 'Tai Chi Breathing';
-        newEx.desc = '⭐ **Heart Safe:** Replaces high intensity climbers with slow paced breathing.';
+        newEx.desc = '⭐ **Cardio Safety:** Replaces high intensity climbers with slow paced breathing.';
         newEx.reps_or_duration = '5 slow cycles';
         newEx._tailoredReason = 'cardio_safety';
       }
+      
+      // Append medication warnings to description
+      if (isBetaBlocker || isNitrate) {
+        newEx.desc += ' | ⚠️ **Cardio Alert:** Exertion must stay light/moderate (Borg RPE <= 11-13). Blunted heart rate.';
+      }
+      if (isAceOrArb || isCcb) {
+        newEx.desc += ' | ⚠️ **Posture Alert:** Rise slowly from floor to prevent dizziness (orthostatic risk).';
+      }
+      if (isDiuretic) {
+        newEx.desc += ' | 💧 **Hydration Alert:** Sip water between sets to prevent cramping/electrolyte drop.';
+      }
+      
       return newEx;
     }
+
 
     // Joint Pain Adaptations
     if (newEx.name === 'Bodyweight Squats') {
@@ -1200,35 +1229,39 @@ export function generateSampleData() {
 
 export const REGIONAL_SPECIALTIES = {
   "maharashtra": [
-    { name: "Punyeri Misal Pav (1 plate)", calories: 450, protein: 10, warning: "Pav adds simple carbs; spicy Kat/Rassa can trigger acidity and spike lipid markers.", swap: "Sprouts Salad (no pav) or Moong Dal Chilla" },
-    { name: "Vada Pav (1 piece)", calories: 300, protein: 5, warning: "High in simple carbs & deep-fried oil. Bad for triglycerides/LDL.", swap: "Grilled Paneer Sandwich or Roasted Chana Sprouts" },
-    { name: "Bhakarwadi (50g / 4 pieces)", calories: 280, protein: 4, warning: "Deep fried refined flour. Loaded with trans-fats and high sodium.", swap: "Roasted Makhana or Roasted Chana" },
-    { name: "Pithla Bhakri (1 serving + 1 Jowar Bhakri)", calories: 350, protein: 9, warning: "Healthy complex carbs/fiber. Besan (chickpea flour) can cause minor bloating in some.", swap: "Add 100g low-fat curd or a side of paneer for protein" },
-    { name: "Mango Mastani (1 glass)", calories: 400, protein: 6, warning: "Heavy milk fats, processed ice cream, and extremely high added sugars.", swap: "Fresh mango slices with low-fat Greek yogurt" },
-    { name: "Sabudana Vada (2 pieces)", calories: 350, protein: 3, warning: "Deep fried sago starch. Very high glycemic index with minimal protein.", swap: "Boiled egg whites or Moong Dal Chilla" }
+    { name: "Methi Zunka (1 serving)", calories: 150, protein: 7, warning: "Traditional chickpea flour paste with fenugreek. High fiber, healthy plant protein.", swap: "Jowar Bhakri instead of wheat chapatis" },
+    { name: "Jowar Bhakri (1 flatbread)", calories: 120, protein: 3, warning: "Gluten-free, fiber-rich traditional millet flatbread. Safe complex carbs.", swap: "Eat with low-fat curd or dal" },
+    { name: "Sprouts Usal (1 bowl / 150g)", calories: 180, protein: 12, warning: "Steamed mixed sprouts curry. Excellent plant-based protein & high fiber.", swap: "Keep oil minimal during tempering" },
+    { name: "Moong Dal Chilla (2 pieces)", calories: 250, protein: 12, warning: "Clean, high-protein moong dal pancake. Great light meal option.", swap: "Add grated paneer for extra protein" },
+    { name: "Roasted Chana Sprouts Chaat (1 bowl)", calories: 140, protein: 8, warning: "Unfried healthy snack. Rich in fiber, magnesium, and plant protein.", swap: "Avoid adding fried sev or oily chutneys" }
   ],
   "delhi_region": [
-    { name: "Chole Bhature (2 bhature + chole)", calories: 650, protein: 15, warning: "Deep fried bhatura, high saturated fats. Highly clinically discouraged.", swap: "Chole with 1 whole wheat Chapati or Chana Chat" },
-    { name: "Aloo Paratha with Butter (1 piece)", calories: 350, protein: 5, warning: "Refined carbs, high butter fat. Elevates cholesterol.", swap: "Paneer Paratha (dry) or Multigrain Roti with curd" },
-    { name: "Butter Chicken (1 serving / 150g)", calories: 420, protein: 22, warning: "Heavy butter & cream. Increases risk of CAD.", swap: "Tandoori Chicken or Chicken Tikka (Dry)" },
-    { name: "Paneer Tikka (Grilled, 4 pieces)", calories: 280, protein: 15, warning: "Excellent high protein option! Highly clinical approved.", swap: "None! This is an excellent high-protein meal" }
+    { name: "Paneer Tikka (Grilled, 4 pieces)", calories: 280, protein: 15, warning: "Grilled cottage cheese with bell peppers. High protein, excellent choice.", swap: "None! This is an excellent high-protein meal" },
+    { name: "Chicken Tikka (Grilled, 4 pieces)", calories: 240, protein: 28, warning: "Tandoori grilled skinless chicken breast. High-quality lean protein, low fat.", swap: "None! Perfect high lean protein option" },
+    { name: "Soya Chaap (Grilled, dry, 1 plate)", calories: 260, protein: 18, warning: "Soy protein chunks grilled dry without heavy cream or butter. Plant protein.", swap: "Ensure it is grilled dry, not cooked in rich gravy" },
+    { name: "Dal Tadka with 1 Missi Roti", calories: 310, protein: 13, warning: "Missi Roti (chickpea-wheat flour mix) provides low glycemic index carbs.", swap: "Order without butter/ghee on top" },
+    { name: "Mixed Vegetable Raita (1 bowl)", calories: 90, protein: 5, warning: "Low-fat yogurt with cucumber, tomatoes, and roasted cumin. Probiotic-rich.", swap: "Ensure low-fat curd is used" }
   ],
   "south_india": [
-    { name: "Masala Dosa (1 piece with sambar)", calories: 350, protein: 6, warning: "High in simple carbs (white rice batter) and potato filling.", swap: "Ragi Dosa or Moong Dal Pesarattu" },
-    { name: "Medu Vada (2 pieces with sambar)", calories: 320, protein: 8, warning: "Deep fried lentil batter. High trans-fats.", swap: "Steamed Idli (3) or Oats Idli" },
-    { name: "Idli (3 pieces with sambar)", calories: 210, protein: 6, warning: "Clean steamed food, but low in protein.", swap: "Add 1 cup of curd or a side of boiled egg whites" },
-    { name: "Ragi Mudde (1 ball)", calories: 300, protein: 7, warning: "High fiber, great for diabetes. Low fat.", swap: "Add Sambar with high vegetables and paneer chunks" },
-    { name: "Hyderabadi Chicken Biryani (1 plate)", calories: 600, protein: 24, warning: "High fat, simple carbs (polished rice), high oil/ghee.", swap: "Brown rice chicken biryani or Tandoori Chicken + salad" }
+    { name: "Moong Dal Pesarattu (1 dosa)", calories: 220, protein: 9, warning: "Whole green gram crepe. Rich in protein, complex carbs, and iron.", swap: "Use minimal oil on the tawa" },
+    { name: "Steamed Oats Idli with Sambar (2 pieces)", calories: 180, protein: 8, warning: "Steamed oats-based idli with vegetable-rich dal sambar. Safe and clean.", swap: "Add a side of curd for extra protein" },
+    { name: "Ragi Mudde with Sambar (1 ball)", calories: 280, protein: 7, warning: "Finger millet ball. High fiber, calcium, and complex carbs. Low fat.", swap: "Add paneer chunks or boiled egg whites to increase protein" },
+    { name: "Kala Chana Sundal (1 cup / 100g)", calories: 150, protein: 9, warning: "Boiled black chickpeas tempered with mustard seeds and fresh coconut. High fiber.", swap: "Keep oil minimal during tempering" },
+    { name: "Kerala Grilled Fish (150g)", calories: 180, protein: 24, warning: "Fish marinated in spices and shallow/baked. Rich in Omega-3 and lean protein.", swap: "Bake or grill instead of pan frying" }
   ],
   "east_india": [
-    { name: "Luchi Alur Dom (4 luchi + potato curry)", calories: 500, protein: 8, warning: "Deep fried maida (luchi), high oil. Clinically discouraged.", swap: "Whole wheat chapati with aloo-patal curry" },
-    { name: "Macher Jhol (Fish Curry, 1 serving)", calories: 250, protein: 20, warning: "Great lean protein, but watch out for excess mustard oil.", swap: "Grilled/Baked fish with minimal oil" },
-    { name: "Roshogolla (2 pieces)", calories: 250, protein: 4, warning: "Extremely high sugar syrup. Spike triglycerides.", swap: "Double toned curd with fresh berries or apple" }
+    { name: "Macher Jhol (Fish Curry, 1 serving)", calories: 240, protein: 20, warning: "Traditional light fish stew with cumin and ginger. Excellent lean protein.", swap: "Ensure minimal mustard oil is used during cooking" },
+    { name: "Steamed Bhetki Paturi (1 piece / 120g)", calories: 190, protein: 22, warning: "Fish marinated in mustard paste and steamed in banana leaves. Low fat, high protein.", swap: "None! The steaming process keeps it extremely healthy" },
+    { name: "Chana Kabli (1 bowl)", calories: 160, protein: 8, warning: "Boiled Bengal gram salad with chopped onions, tomatoes, and lemon. Fiber-rich.", swap: "Avoid any fried toppings or heavy oil dressings" },
+    { name: "Paneer Paturi (Steamed, 100g)", calories: 220, protein: 14, warning: "Cottage cheese marinated in mustard and steamed in banana leaves. High protein.", swap: "Use low-fat paneer to reduce saturated fats" },
+    { name: "Mixed Veg Dalma (1 bowl)", calories: 150, protein: 8, warning: "Traditional Odia lentil dish loaded with vegetables. High fiber and plant protein.", swap: "Prepare with very little ghee/oil tempering" }
   ],
   "west_india": [
-    { name: "Dal Baati Churma (1 plate)", calories: 550, protein: 11, warning: "Extremely high in calorie density and saturated fat (soaked in ghee). Highly discouraged.", swap: "Moong dal khichdi or whole wheat chapati with dal tadka" },
-    { name: "Dhokla (3 pieces)", calories: 220, protein: 6, warning: "Steamed chickpea batter, relatively clean but low protein.", swap: "Sprouted moong salad or Moong dal chilla" },
-    { name: "Poha Jalebi (1 plate)", calories: 380, protein: 5, warning: "Deep fried sugar-sweetened jalebi combined with simple carbs.", swap: "Sprouts Poha without jalebi" }
+    { name: "Steamed Khaman Dhokla (3 pieces)", calories: 180, protein: 6, warning: "Steamed fermented chickpea batter. Light, easily digestible, low fat.", swap: "Pair with double toned curd to boost protein" },
+    { name: "Khandvi (4 pieces)", calories: 120, protein: 4, warning: "Steamed chickpea flour rolls. Low calorie, low fat, and healthy.", swap: "Add roasted sesame seeds for healthy fats, avoid heavy oil tempering" },
+    { name: "Bajra Rotla (1 flatbread)", calories: 130, protein: 4, warning: "Traditional pearl millet flatbread. Rich in fiber, iron, and magnesium.", swap: "Serve with low-fat garlic chutney and skimmed curd" },
+    { name: "Sprouted Moong Salad (1 bowl)", calories: 110, protein: 8, warning: "Fresh sprouted moong beans with onion, cucumber, tomato, and lime. Highly nutritious.", swap: "Eat raw or lightly steamed" },
+    { name: "Paneer Lifafa (Grilled, 1 serving)", calories: 260, protein: 16, warning: "Whole wheat wrap folded with grilled paneer and chopped vegetables. Balanced meal.", swap: "Use non-stick pan to grill dry without butter" }
   ],
   "default_india": [
     { name: "Moong Dal Chilla (2 pieces)", calories: 260, protein: 12, warning: "Great clean option. Low-fat, plant protein.", swap: "None! This is an excellent high-protein meal" },
@@ -1237,6 +1270,7 @@ export const REGIONAL_SPECIALTIES = {
     { name: "Boiled Egg (Large, 2)", calories: 156, protein: 12, warning: "Clean option, yolks contain some cholesterol.", swap: "4 egg whites (whites contain zero fat)" }
   ]
 };
+
 
 export const FOOD_DATABASE = [
   { name: 'Double Toned Milk (1 glass / 250ml)', calories: 120, protein: 8 },

@@ -708,6 +708,7 @@
             <span class="badge" id="workoutTime">8:10–8:40 AM</span>
           </div>
           <div class="card-body">
+            <div id="workoutMedicalAlert" style="display: none; padding: var(--space-md); margin-bottom: var(--space-md); border-radius: var(--radius-md); font-size: 13px; line-height: 1.5;"></div>
             <div class="workout-exercises" id="exerciseList"></div>
           </div>
           <div class="card-footer" style="display: flex; flex-direction: column; gap: var(--space-md);">
@@ -1252,6 +1253,18 @@
               <input type="time" id="settingDinnerWalkAlarm" class="input" value="21:45">
             </div>
           </div>
+        </div>
+        <div class="settings-section" style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-md);">
+          <h3>Terms & Consent Compliance</h3>
+          <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); padding: var(--space-sm); border-radius: var(--radius-md); font-size: 11px; line-height: 1.4; color: var(--text-secondary); margin-bottom: var(--space-sm); max-height: 100px; overflow-y: auto;">
+            <p style="margin: 0 0 4px 0;"><strong>Medical Waiver:</strong> This app is a tracking checklist, not medical advice. The user bears all responsibility to obtain clinical clearance.</p>
+            <p style="margin: 0 0 4px 0;"><strong>Liability Release:</strong> The user fully indemnifies the app owner/operators from all injury, health complications, or medical claims.</p>
+            <p style="margin: 0;"><strong>Historical Consent:</strong> <span id="settingTermsConsentDate" style="font-weight: 600; color: var(--success);">Not consented yet</span></p>
+          </div>
+          <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; cursor: pointer; color: var(--text); user-select: none;">
+            <input type="checkbox" id="settingAcceptTerms" style="margin-top: 2px; accent-color: var(--primary);">
+            <span>I reaffirm agreement to the Terms & digital Liability Release. I assume all risks for exercise and dietary plans.</span>
+          </label>
         </div>
         <div class="settings-section">
           <h3>Data</h3>
@@ -1807,6 +1820,19 @@
             <option value="intermediate">Intermediate (Active / exercises 2-3x weekly)</option>
             <option value="advanced">Advanced (Experienced / strength trains 4x+ weekly)</option>
           </select>
+        </div>
+        <div class="input-group" style="margin-top: var(--space-md); border-top: 1px solid var(--border-subtle); padding-top: var(--space-md);">
+          <label class="input-label" style="color: var(--accent); font-weight: 700; font-size: 13px; text-transform: uppercase;">Liability Waiver & Digital Consent</label>
+          <div style="background: var(--bg); border: 1px solid var(--border); padding: var(--space-sm); border-radius: var(--radius-sm); font-size: 11px; line-height: 1.4; color: var(--text-secondary); max-height: 110px; overflow-y: auto; margin-bottom: 8px;">
+            <p style="margin: 0 0 6px 0;"><strong>1. Self-Tracking Utility:</strong> This application is a health tracker and educational checklist. It does not diagnose diseases, adjust clinical medications, or prescribe medical plans.</p>
+            <p style="margin: 0 0 6px 0;"><strong>2. User Responsibility:</strong> Physical exercise and dietary adjustments pose risks. The user assumes 100% of the responsibility to obtain professional medical clearance before starting or modifying any program.</p>
+            <p style="margin: 0 0 6px 0;"><strong>3. Liability Release:</strong> The user fully releases, indemnifies, and holds harmless the application owners, developers, and operators from any and all claims, injuries, health complications, or medical issues arising from use of the app.</p>
+            <p style="margin: 0;"><strong>4. Precautionary Duty:</strong> You must immediately stop exercising and consult a doctor if you feel chest pain, dizziness, breathlessness, or uneasiness.</p>
+          </div>
+          <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; cursor: pointer; color: var(--text); user-select: none;">
+            <input type="checkbox" id="obAcceptTerms" style="margin-top: 2px; accent-color: var(--primary);">
+            <span>I agree to the Terms of Service & digital Liability Release consent. I understand that all fitness obligations rest solely on me.</span>
+          </label>
         </div>
       </div>
       </div>

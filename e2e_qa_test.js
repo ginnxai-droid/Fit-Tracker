@@ -36,6 +36,37 @@ async function runTests() {
     });
     page = await browser.newPage();
 
+    // Mock geolocation API fetches to return Mumbai, Maharashtra
+    await page.evaluateOnNewDocument(() => {
+      const originalFetch = window.fetch;
+      window.fetch = async function(...args) {
+        const url = args[0];
+        if (typeof url === 'string') {
+          if (url.includes('nominatim.openstreetmap.org')) {
+            return {
+              ok: true,
+              json: async () => ({
+                address: {
+                  city: 'Mumbai',
+                  state: 'Maharashtra'
+                }
+              })
+            };
+          }
+          if (url.includes('ipapi.co')) {
+            return {
+              ok: true,
+              json: async () => ({
+                city: 'Mumbai',
+                region: 'Maharashtra'
+              })
+            };
+          }
+        }
+        return originalFetch.apply(this, args);
+      };
+    });
+
     // 1. Listen to Page Errors
     page.on('pageerror', err => {
       console.error(' [PAGE ERROR] uncaught exception:', err.toString());
@@ -114,6 +145,8 @@ async function runTests() {
       await page.evaluate(() => {
         document.getElementById('settingName').value = "Amit Kumar";
         document.getElementById('settingStartDate').value = "2026-06-01";
+        const chk = document.getElementById('settingAcceptTerms');
+        if (chk) chk.checked = true;
       });
       await page.click('#saveSettings');
       await new Promise(r => setTimeout(r, 500));
@@ -393,6 +426,217 @@ async function runTests() {
       logTestResult("Test 8b: Coach Recommendations Engine Calculated Recommendations", coachMessageRendered);
     } catch (e) {
       logTestResult("Test 8: Progress Charts & Recommendations", false, e.message);
+    }
+
+    // ── TEST 9: Terms & Conditions Checkbox Validation ──
+    try {
+      // Open settings programmatically
+      await page.evaluate(() => {
+        document.getElementById('settingsModal').showModal();
+      });
+      await new Promise(r => setTimeout(r, 400));
+
+      // Uncheck settings terms checkbox
+      await page.evaluate(() => {
+        const chk = document.getElementById('settingAcceptTerms');
+        if (chk) chk.checked = false;
+      });
+
+      // Try to save, check that it's blocked (modal stays open)
+      await page.click('#saveSettings');
+      await new Promise(r => setTimeout(r, 300));
+      const modalStillOpen = await page.evaluate(() => {
+        const modal = document.getElementById('settingsModal');
+        return modal && modal.open === true;
+      });
+      logTestResult("Test 9a: Saving Settings Blocked when Terms Unchecked", modalStillOpen);
+
+      // Check settings terms checkbox
+      await page.evaluate(() => {
+        const chk = document.getElementById('settingAcceptTerms');
+        if (chk) chk.checked = true;
+      });
+
+      // Save again, check that it succeeds (modal closes)
+      await page.click('#saveSettings');
+      await new Promise(r => setTimeout(r, 500));
+      const modalClosed = await page.evaluate(() => {
+        const modal = document.getElementById('settingsModal');
+        return modal && modal.open === false;
+      });
+      logTestResult("Test 9b: Saving Settings Succeeds when Terms Checked", modalClosed);
+    } catch (e) {
+      logTestResult("Test 9: Terms & Conditions Checkbox Validation", false, e.message);
+    }
+
+    // ── TEST 10: Cardiac Exercise Blocking & Doctor Consult Warning ──
+    try {
+      // Open settings programmatically
+      await page.evaluate(() => {
+        document.getElementById('settingsModal').showModal();
+      });
+      await new Promise(r => setTimeout(r, 400));
+
+      await page.evaluate(() => {
+        const chkHeart = document.getElementById('settingHasHeartBlockage');
+        if (chkHeart) chkHeart.checked = true;
+        const chkTerms = document.getElementById('settingAcceptTerms');
+        if (chkTerms) chkTerms.checked = true;
+      });
+
+      // Save settings
+      await page.click('#saveSettings');
+      await new Promise(r => setTimeout(r, 500));
+
+      // Navigate to Workout page
+      await page.click('.mobile-nav-item[data-screen="workout"]');
+      await new Promise(r => setTimeout(r, 600));
+
+      // Check that exercises are hidden and consult warning is shown
+      const cardiacBlockValid = await page.evaluate(() => {
+        const alertDiv = document.getElementById('workoutMedicalAlert');
+        const exercisesContainer = document.getElementById('exerciseList');
+        const cardFooter = document.querySelector('#workoutCard .card-footer');
+
+        const alertVisible = alertDiv && window.getComputedStyle(alertDiv).display !== 'none' && alertDiv.innerText.includes('Medical Clearance Required');
+        const listHidden = !exercisesContainer || window.getComputedStyle(exercisesContainer).display === 'none';
+        const footerHidden = !cardFooter || window.getComputedStyle(cardFooter).display === 'none';
+
+        return alertVisible && listHidden && footerHidden;
+      });
+
+      logTestResult("Test 10: Cardiac Heart Blockage / CAD Workout Block", cardiacBlockValid);
+    } catch (e) {
+      logTestResult("Test 10: Cardiac Heart Blockage / CAD Workout Block", false, e.message);
+    }
+
+    // ── TEST 11: Hypertension Adaptation & Medication Safety Warnings ──
+    try {
+      // Open settings programmatically
+      await page.evaluate(() => {
+        document.getElementById('settingsModal').showModal();
+      });
+      await new Promise(r => setTimeout(r, 400));
+
+      await page.evaluate(() => {
+        const chkHeart = document.getElementById('settingHasHeartBlockage');
+        if (chkHeart) chkHeart.checked = false;
+        
+        const chkBP = document.getElementById('settingHasHypertension');
+        if (chkBP) chkBP.checked = true;
+
+        const medsInput = document.getElementById('settingMeds');
+        if (medsInput) medsInput.value = "Atenolol, Amlodipine";
+
+        const chkTerms = document.getElementById('settingAcceptTerms');
+        if (chkTerms) chkTerms.checked = true;
+      });
+
+      // Save settings
+      await page.click('#saveSettings');
+      await new Promise(r => setTimeout(r, 500));
+
+      // Go to Workout screen
+      await page.click('.mobile-nav-item[data-screen="workout"]');
+      await new Promise(r => setTimeout(r, 600));
+
+      // Verify that exercises are shown, alert div is shown, and specific medication warnings are listed
+      const bpAdaptationValid = await page.evaluate(() => {
+        const alertDiv = document.getElementById('workoutMedicalAlert');
+        const exercisesContainer = document.getElementById('exerciseList');
+        
+        const alertText = alertDiv ? alertDiv.innerText : "";
+        const hasBetaBlockerWarn = alertText.includes('Beta-blockers');
+        const hasAceCcbWarn = alertText.includes('ACE inhibitors/CCBs');
+        const exercisesShown = exercisesContainer && window.getComputedStyle(exercisesContainer).display !== 'none';
+
+        // Check if there are adapted exercise names
+        const exerciseText = exercisesContainer ? exercisesContainer.innerText : "";
+        const hasAdaptedEx = exerciseText.includes('Wall Push-ups') || exerciseText.includes('Chair Squats') || exerciseText.includes('Bird-dog') || exerciseText.includes('Breathing') || exerciseText.includes('Active Recovery');
+
+        return exercisesShown && hasBetaBlockerWarn && hasAceCcbWarn && hasAdaptedEx;
+      });
+
+      logTestResult("Test 11: Hypertension Exercise Adaptation & Safety Warnings", bpAdaptationValid);
+    } catch (e) {
+      logTestResult("Test 11: Hypertension Exercise Adaptation & Safety Warnings", false, e.message);
+    }
+
+    // ── TEST 12: Healthy Regional Food Suggestions ──
+    try {
+      // Go to Meals screen
+      await page.click('.mobile-nav-item[data-screen="meals"]');
+      await new Promise(r => setTimeout(r, 600));
+
+      // Verify that the meal suggestions don't contain unhealthy regional specialties but do contain healthy ones
+      const regionalFoodsHealthy = await page.evaluate(() => {
+        // Look at the text inside the meals page
+        const mealsPage = document.getElementById('screen-meals');
+        if (!mealsPage) return false;
+        
+        const pageText = mealsPage.innerText;
+        
+        // Unhealthy indicators that shouldn't be present
+        const hasUnhealthy = pageText.includes('Vada Pav') || pageText.includes('Chole Bhature') || pageText.includes('Roshogolla') || pageText.includes('Mango Mastani');
+        
+        // Healthy indicators that we added
+        const hasHealthy = pageText.includes('Zunka') || pageText.includes('Idli') || pageText.includes('Tikka') || pageText.includes('Dhokla') || pageText.includes('Sundal') || pageText.includes('Bhakri') || pageText.includes('Pesarattu');
+
+        return !hasUnhealthy && hasHealthy;
+      });
+
+      logTestResult("Test 12: Healthy Regional Specialties Displayed", regionalFoodsHealthy);
+    } catch (e) {
+      logTestResult("Test 12: Healthy Regional Specialties Displayed", false, e.message);
+    }
+
+    // ── TEST 13: Step Simulator Cadence ──
+    try {
+      // Go to Today screen
+      await page.click('.mobile-nav-item[data-screen="today"]');
+      await new Promise(r => setTimeout(r, 600));
+
+      // Open Step Calculator modal programmatically
+      await page.evaluate(() => {
+        document.getElementById('stepsCard').click();
+      });
+      await new Promise(r => setTimeout(r, 600));
+
+      // Get initial steps count
+      const initialSteps = await page.evaluate(() => {
+        const stepsLogInput = document.getElementById('inputSteps');
+        return stepsLogInput ? parseInt(stepsLogInput.value) || 0 : 0;
+      });
+
+      // Click "Start Auto-Walk"
+      await page.click('#btnSimAutoWalk');
+      // Wait for 1.2 seconds (should trigger 2 ticks of the 500ms timer)
+      await new Promise(r => setTimeout(r, 1200));
+      // Click again to stop the auto-walk
+      await page.click('#btnSimAutoWalk');
+      await new Promise(r => setTimeout(r, 300));
+
+      // Close the modal programmatically
+      await page.evaluate(() => {
+        document.getElementById('stepCalculatorModal').close();
+      });
+      await new Promise(r => setTimeout(r, 300));
+
+      // Get updated steps count from local storage to verify realistic cadence
+      const finalSteps = await page.evaluate(() => {
+        const logs = JSON.parse(localStorage.getItem('ft_daily_logs') || '{}');
+        const keys = Object.keys(logs).sort();
+        const lastLog = logs[keys[keys.length - 1]] || {};
+        return lastLog.steps || 0;
+      });
+
+      const stepDifference = finalSteps - initialSteps;
+      // Step difference should be small (1-4 steps), not massive (like 16-24 steps in the old code)
+      const realisticCadence = stepDifference >= 0 && stepDifference <= 6;
+
+      logTestResult("Test 13: Pedometer Simulator Realisitic Cadence (~120-150 steps/min)", realisticCadence, `Steps increased by: ${stepDifference}`);
+    } catch (e) {
+      logTestResult("Test 13: Pedometer Simulator Realisitic Cadence", false, e.message);
     }
 
     // Close browser
