@@ -2357,7 +2357,7 @@ function bindSettingsModal() {
     saveBtn.addEventListener('click', () => {
       const chkSettingTerms = document.getElementById('settingAcceptTerms');
       if (chkSettingTerms && !chkSettingTerms.checked) {
-        showToast('⚠️ You must reaffirm agreement to the Terms & digital Liability Release to save settings.');
+        showToast('You must reaffirm agreement to the Terms & digital Liability Release to save settings.', 'warning');
         return;
       }
       const profile = getProfile();
@@ -2494,7 +2494,7 @@ function bindSettingsModal() {
       saveSettings(settings);
       
       modal?.close();
-      showToast('Settings saved! ⚙️');
+      showToast('Settings saved! ⚙️', 'success');
       updateProgramInfo();
       renderCurrentScreen();
     });
@@ -2827,20 +2827,43 @@ function calculateWeeklyCompliance() {
   return daysCount > 0 ? totalScore / daysCount : 0;
 }
 
-function showToast(message) {
+function showToast(message, type = 'info') {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
 
   const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.textContent = message;
-  document.body.appendChild(toast);
+  toast.className = `toast toast--${type}`;
+  
+  // Icon based on type
+  let iconHtml = '';
+  if (type === 'success') {
+    iconHtml = '<i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>';
+  } else if (type === 'warning') {
+    iconHtml = '<i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i>';
+  } else {
+    iconHtml = '<i data-lucide="info" style="width: 16px; height: 16px;"></i>';
+  }
+  toast.innerHTML = `${iconHtml}<span>${message}</span>`;
+
+  // Stacking context: append to open dialog if present so it renders in the browser's top layer
+  const openDialog = document.querySelector('dialog[open]');
+  if (openDialog) {
+    const targetContainer = openDialog.querySelector('.modal-content') || openDialog;
+    targetContainer.appendChild(toast);
+  } else {
+    document.body.appendChild(toast);
+  }
+
+  // Re-create icons for the toast
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons({ attrs: { class: 'lucide' }, node: toast });
+  }
 
   requestAnimationFrame(() => toast.classList.add('show'));
   setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 300);
-  }, 2500);
+  }, 3000);
 }
 
 // ── Step Calculator Modal Event Binding ────────────────────
@@ -3493,10 +3516,9 @@ function bindOnboardingEvents() {
       currentStep++;
       updateStepView();
     } else {
-      // Step 5 Finish: Save Profile
       const chkTerms = document.getElementById('obAcceptTerms');
       if (chkTerms && !chkTerms.checked) {
-        showToast('⚠️ You must agree to the Terms & Liability Release to finish onboarding.');
+        showToast('You must agree to the Terms & Liability Release to finish onboarding.', 'warning');
         return;
       }
       try {
