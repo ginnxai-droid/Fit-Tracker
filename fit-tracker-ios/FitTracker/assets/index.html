@@ -368,7 +368,7 @@
           <div class="score-display__ring">
             <svg viewBox="0 0 120 120">
               <circle class="score-display__bg" cx="60" cy="60" r="52"/>
-              <circle class="score-display__fill" cx="60" cy="60" r="52" id="todayScoreFill"/>
+              <circle class="score-display__ring-fill" cx="60" cy="60" r="52" id="todayScoreFill" fill="none"/>
             </svg>
             <span class="score-display__value text-mono" id="todayScoreValue">0</span>
           </div>
@@ -896,7 +896,7 @@
                 <span class="review-stat__value text-mono" id="reviewAvgScore">--</span>
               </div>
               <div class="review-stat">
-                <span class="review-stat__label">Office Walks</span>
+                <span class="review-stat__label">Walks Completed</span>
                 <span class="review-stat__value text-mono" id="reviewOfficeWalks">--</span>
               </div>
             </div>
@@ -1057,6 +1057,15 @@
                 <span class="text-mono" id="settingBmiValue" style="font-size: 18px; font-weight: 800; color: var(--primary);">--</span>
                 <span id="settingBmiStatus" style="font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-full);">--</span>
               </div>
+            </div>
+            <!-- Live Validation Alert Box in Settings -->
+            <div id="settingGoalAlert" style="display: none; grid-column: span 2; background: oklch(0.62 0.25 29 / 0.12); border: 1px solid var(--danger); padding: var(--space-md); border-radius: var(--radius-md); margin-top: 4px;">
+              <div style="font-weight: 700; color: var(--danger); font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i> Non-Realistic Target Rate!
+              </div>
+              <p id="settingGoalAlertText" style="font-size: 12px; color: var(--text-secondary); margin: 6px 0 0 0; line-height: 1.4;">
+                Losing weight too fast is clinical high-risk. We suggest a safer timeline.
+              </p>
             </div>
           </div>
         </div>
@@ -1242,15 +1251,63 @@
         </div>
 
         <div class="settings-section">
-          <h3>Walk Alarms</h3>
+          <h3>Daily Routine & Timings</h3>
           <div class="input-grid">
             <div class="input-group">
-              <label for="settingLunchWalkAlarm">Post-Lunch Walk Alarm</label>
-              <input type="time" id="settingLunchWalkAlarm" class="input" value="13:15">
+              <label for="settingWakeTime">Wake Up Time</label>
+              <input type="time" id="settingWakeTime" class="input">
             </div>
             <div class="input-group">
-              <label for="settingDinnerWalkAlarm">Post-Dinner Walk Alarm</label>
-              <input type="time" id="settingDinnerWalkAlarm" class="input" value="21:45">
+              <label for="settingSleepTime">Sleep Time</label>
+              <input type="time" id="settingSleepTime" class="input">
+            </div>
+            <div class="input-group">
+              <label for="settingExerciseTime">Exercise Time</label>
+              <input type="time" id="settingExerciseTime" class="input">
+            </div>
+            <div class="input-group">
+              <label for="settingExerciseAction">Exercise Action</label>
+              <input type="text" id="settingExerciseAction" class="input" placeholder="Exercise routine details">
+            </div>
+            <div class="input-group">
+              <label for="settingBreakfastTime">Breakfast Time</label>
+              <input type="time" id="settingBreakfastTime" class="input">
+            </div>
+            <div class="input-group">
+              <label for="settingBreakfastAction">Breakfast Action</label>
+              <input type="text" id="settingBreakfastAction" class="input" placeholder="Breakfast details">
+            </div>
+            <div class="input-group">
+              <label for="settingLunchTime">Lunch Time</label>
+              <input type="time" id="settingLunchTime" class="input">
+            </div>
+            <div class="input-group">
+              <label for="settingLunchAction">Lunch Action</label>
+              <input type="text" id="settingLunchAction" class="input" placeholder="Lunch details">
+            </div>
+            <div class="input-group">
+              <label for="settingLunchWalkTime">Post-Lunch Walk Time</label>
+              <input type="time" id="settingLunchWalkTime" class="input">
+            </div>
+            <div class="input-group">
+              <label for="settingSnackTime">Evening Snack Time</label>
+              <input type="time" id="settingSnackTime" class="input">
+            </div>
+            <div class="input-group">
+              <label for="settingSnackAction">Evening Snack Action (blank to skip)</label>
+              <input type="text" id="settingSnackAction" class="input" placeholder="Snack details (blank to skip)">
+            </div>
+            <div class="input-group">
+              <label for="settingDinnerTime">Dinner Time</label>
+              <input type="time" id="settingDinnerTime" class="input">
+            </div>
+            <div class="input-group">
+              <label for="settingDinnerAction">Dinner Action</label>
+              <input type="text" id="settingDinnerAction" class="input" placeholder="Dinner details">
+            </div>
+            <div class="input-group">
+              <label for="settingDinnerWalkTime">Post-Dinner Walk Time</label>
+              <input type="time" id="settingDinnerWalkTime" class="input">
             </div>
           </div>
         </div>
@@ -1393,26 +1450,7 @@
           </p>
         </div>
 
-        <!-- Live Walk Simulator & Testing Tool -->
-        <div style="background: var(--surface); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-sm); margin-top: 4px;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--warning); display: flex; align-items: center; gap: 6px;">
-              <i data-lucide="play" style="width: 14px; height: 14px;"></i> Pedometer Simulator
-            </span>
-            <span class="text-mono" id="simStatusText" style="font-size: 11px; font-weight: 600; color: var(--text-tertiary);">Idle</span>
-          </div>
-          <p style="font-size: 11px; color: var(--text-secondary); margin: 0; line-height: 1.4;">
-            Use this tool to simulate physical steps in real-time, verifying calories, dynamic rollover targets, and notifications.
-          </p>
-          <div style="display: flex; gap: var(--space-sm); margin-top: 4px;">
-            <button class="btn btn--outline" id="btnSimStep" style="flex: 1; padding: 8px 12px; font-size: 12px; font-weight: 700;">
-              Take +100 Steps
-            </button>
-            <button class="btn btn--primary" id="btnSimAutoWalk" style="flex: 1; padding: 8px 12px; font-size: 12px; font-weight: 700; background: var(--warning); border-color: var(--warning); color: var(--bg);">
-              Start Auto-Walk
-            </button>
-          </div>
-        </div>
+
       </div>
       <div class="modal-footer">
 

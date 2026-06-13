@@ -36,7 +36,7 @@ async function runTests() {
     });
     page = await browser.newPage();
 
-    // Mock geolocation API fetches to return Mumbai, Maharashtra
+    // Mock geolocation API fetches and Date to return Monday, June 8th, 2026
     await page.evaluateOnNewDocument(() => {
       const originalFetch = window.fetch;
       window.fetch = async function(...args) {
@@ -65,6 +65,21 @@ async function runTests() {
         }
         return originalFetch.apply(this, args);
       };
+
+      // Mock Date to be Monday, June 8th, 2026
+      const mockDate = new Date('2026-06-08T10:00:00');
+      const OriginalDate = Date;
+      class MockDate extends OriginalDate {
+        constructor(...args) {
+          if (args.length === 0) {
+            super(mockDate.getTime());
+          } else {
+            super(...args);
+          }
+        }
+      }
+      MockDate.now = () => mockDate.getTime();
+      window.Date = MockDate;
     });
 
     // 1. Listen to Page Errors
@@ -374,25 +389,23 @@ async function runTests() {
       });
       logTestResult("Test 7a: Rated Workout Difficulty (Star Feedback)", ratingSuccess);
 
-      // Verify Walking Timeline slots (Commute & Dinner timings alignment)
+      // Verify Walking Timeline slots (Post-Lunch & Post-Dinner timings alignment)
       const walkTimesCorrect = await page.evaluate(() => {
         const checklistItems = document.querySelectorAll('#walkingChecklist .checklist-item');
-        if (checklistItems.length < 3) return `Length was ${checklistItems.length}`;
+        if (checklistItems.length !== 2) return `Length was ${checklistItems.length}`;
         
         const t1El = checklistItems[0].querySelector('.checklist-item__time');
         const t2El = checklistItems[1].querySelector('.checklist-item__time');
-        const t3El = checklistItems[2].querySelector('.checklist-item__time');
         
-        if (!t1El || !t2El || !t3El) return `One of the elements was null: t1El=${!!t1El}, t2El=${!!t2El}, t3El=${!!t3El}`;
+        if (!t1El || !t2El) return `One of the elements was null: t1El=${!!t1El}, t2El=${!!t2El}`;
         
         const t1 = t1El.textContent.trim();
         const t2 = t2El.textContent.trim();
-        const t3 = t3El.textContent.trim();
         
-        if (t1 === "1:15 PM" && t2 === "5:30–6:15 PM" && t3 === "9:45 PM") {
+        if (t1 === "1:15 PM" && t2 === "9:45 PM") {
           return true;
         }
-        return `t1='${t1}', t2='${t2}', t3='${t3}'`;
+        return `t1='${t1}', t2='${t2}'`;
       });
       logTestResult("Test 7b: walking Timeline Slots Aligned (Post-Dinner 9:45 PM)", walkTimesCorrect === true, typeof walkTimesCorrect === 'string' ? walkTimesCorrect : '');
     } catch (e) {
@@ -590,54 +603,7 @@ async function runTests() {
       logTestResult("Test 12: Healthy Regional Specialties Displayed", false, e.message);
     }
 
-    // ── TEST 13: Step Simulator Cadence ──
-    try {
-      // Go to Today screen
-      await page.click('.mobile-nav-item[data-screen="today"]');
-      await new Promise(r => setTimeout(r, 600));
 
-      // Open Step Calculator modal programmatically
-      await page.evaluate(() => {
-        document.getElementById('stepsCard').click();
-      });
-      await new Promise(r => setTimeout(r, 600));
-
-      // Get initial steps count
-      const initialSteps = await page.evaluate(() => {
-        const stepsLogInput = document.getElementById('inputSteps');
-        return stepsLogInput ? parseInt(stepsLogInput.value) || 0 : 0;
-      });
-
-      // Click "Start Auto-Walk"
-      await page.click('#btnSimAutoWalk');
-      // Wait for 1.2 seconds (should trigger 2 ticks of the 500ms timer)
-      await new Promise(r => setTimeout(r, 1200));
-      // Click again to stop the auto-walk
-      await page.click('#btnSimAutoWalk');
-      await new Promise(r => setTimeout(r, 300));
-
-      // Close the modal programmatically
-      await page.evaluate(() => {
-        document.getElementById('stepCalculatorModal').close();
-      });
-      await new Promise(r => setTimeout(r, 300));
-
-      // Get updated steps count from local storage to verify realistic cadence
-      const finalSteps = await page.evaluate(() => {
-        const logs = JSON.parse(localStorage.getItem('ft_daily_logs') || '{}');
-        const keys = Object.keys(logs).sort();
-        const lastLog = logs[keys[keys.length - 1]] || {};
-        return lastLog.steps || 0;
-      });
-
-      const stepDifference = finalSteps - initialSteps;
-      // Step difference should be small (1-4 steps), not massive (like 16-24 steps in the old code)
-      const realisticCadence = stepDifference >= 0 && stepDifference <= 6;
-
-      logTestResult("Test 13: Pedometer Simulator Realisitic Cadence (~120-150 steps/min)", realisticCadence, `Steps increased by: ${stepDifference}`);
-    } catch (e) {
-      logTestResult("Test 13: Pedometer Simulator Realisitic Cadence", false, e.message);
-    }
 
     // Close browser
     console.log("---------------------------------------------------------");

@@ -83,7 +83,10 @@ export function calculateWeeklyReview(weekStartDate) {
     if (log.sleep_hours) { totalSleep += log.sleep_hours; sleepCount++; }
 
     if (checklist.movement && checklist.movement.morning_workout) workoutsCompleted++;
-    if (checklist.movement && checklist.movement.office_walk) officeWalksCompleted++;
+    if (checklist.movement) {
+      if (checklist.movement.post_lunch_walk) officeWalksCompleted++;
+      if (checklist.movement.post_dinner_walk) officeWalksCompleted++;
+    }
 
     // Protein compliance — sum protein from meal logs
     const meals = getMealLogs(dateStr);

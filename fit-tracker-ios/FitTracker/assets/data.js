@@ -64,6 +64,22 @@ export const DEFAULT_PROFILE = {
   smoking_status: 'non_smoker',
   drinking_status: 'non_drinking',
   
+  // Customizable Daily Routine Timings & Actions
+  wake_time: '08:00',
+  exercise_time: '08:10',
+  exercise_action: 'Morning strength workout or bodyweight routine (30 min)',
+  breakfast_time: '10:30',
+  breakfast_action: 'First meal — fruit + protein breakfast',
+  lunch_time: '13:00',
+  lunch_action: 'Lunch — healthy protein-focused meal + curd (or tofu if dairy sensitive)',
+  lunch_walk_time: '13:15',
+  snack_time: '16:30',
+  snack_action: 'Evening snack — roasted chana / almonds / green tea',
+  dinner_time: '21:00',
+  dinner_action: 'Light dinner following dinner rule (protein + salad)',
+  dinner_walk_time: '21:45',
+  sleep_time: '00:15',
+  
   onboarding_completed: false
 };
 
@@ -122,6 +138,22 @@ export const MOCK_PROFILE = {
   commute_details: 'Cab, around 1 hour',
   smoking_status: 'non_smoker',
   drinking_status: 'occasional',
+  
+  // Customizable Daily Routine Timings & Actions
+  wake_time: '08:00',
+  exercise_time: '08:10',
+  exercise_action: 'Morning strength workout or bodyweight routine (30 min)',
+  breakfast_time: '10:30',
+  breakfast_action: 'First meal — fruit + protein breakfast',
+  lunch_time: '13:00',
+  lunch_action: 'Lunch — healthy protein-focused meal + curd (or tofu if dairy sensitive)',
+  lunch_walk_time: '13:15',
+  snack_time: '16:30',
+  snack_action: 'Evening snack — roasted chana / almonds / green tea',
+  dinner_time: '21:00',
+  dinner_action: 'Light dinner following dinner rule (protein + salad)',
+  dinner_walk_time: '21:45',
+  sleep_time: '00:15',
   
   onboarding_completed: true
 };
@@ -326,35 +358,22 @@ const STORAGE_KEYS = {
 };
 
 // --- Profile ---
-export function rebuildDynamicData(profile) {
-  const weight = profile.start_weight_kg || 90;
-  const height = profile.height_cm || 178;
-  const bmi = weight / ((height / 100) * (height / 100));
-  const isObeseOrOlder = bmi >= 30 || (profile.age && profile.age >= 45);
-
-  // 1. Build DAILY_SCHEDULE
-  const schedule = [];
-  schedule.push({ time: '8:00 AM', action: 'Wake up', checklist_key: 'wake_logged', category: 'health' });
+export function formatTime12Hour(timeStr) {
+  if (!timeStr) return '';
+  if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
   
-  // Medication Checklist Mapping
-  if (profile.has_thyroid) {
-    schedule.push({ time: '8:00 AM', action: `${profile.thyroid_medicine || 'Levothyroxine'} (${profile.thyroid_dose || '62.5 mcg'}) (empty stomach) + 2 glasses warm water. Wait 45 mins before breakfast.`, checklist_key: 'thyroid_taken', category: 'health' });
-  } else if (profile.has_medical_conditions && profile.medications) {
-    schedule.push({ time: '8:00 AM', action: `Take morning medication: ${profile.medications.split(',')[0]}`, checklist_key: 'meds_taken', category: 'health' });
-  }
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${hours}:${minutes} ${ampm}`;
+}
 
-  // Workouts tailored to joint pathologies, heart blockages, age & BMI
-  if (profile.has_heart_blockage) {
-    schedule.push({ time: '8:10 AM', action: 'Gentle mobility flow & slow breathing (20-30 min) — strictly avoid heavy strain', checklist_key: 'morning_workout', category: 'movement' });
-  } else if (isObeseOrOlder || (profile.has_joint_pain && profile.joint_pain_locations.length > 0)) {
-    schedule.push({ time: '8:10 AM', action: 'Gentle low-impact mobility workout or recovery yoga (30 min)', checklist_key: 'morning_workout', category: 'movement' });
-  } else {
-    schedule.push({ time: '8:10 AM', action: 'Morning strength workout or bodyweight routine (30 min)', checklist_key: 'morning_workout', category: 'movement' });
-  }
-
-  schedule.push({ time: '9:00 AM', action: 'Leave for office (Commute)', checklist_key: null, category: 'health' });
-
-  // First meal based on diet details
+function getBreakfastDefaultAction(profile) {
   let breakfastAction = 'First meal — fruit + protein breakfast';
   if (profile.diet_type === 'veg') {
     breakfastAction += ' (Moong dal chilla / Greek yogurt / Sprouts)';
@@ -365,59 +384,121 @@ export function rebuildDynamicData(profile) {
   } else {
     breakfastAction += ' (Lean chicken salad / Egg whites)';
   }
-  schedule.push({ time: '10:30 AM', action: breakfastAction, checklist_key: 'protein_breakfast', category: 'food' });
+  return breakfastAction;
+}
 
-  schedule.push({ time: '1:00 PM', action: 'Lunch — healthy protein-focused meal + curd (or tofu if dairy sensitive)', checklist_key: 'lunch_completed', category: 'food' });
+export function rebuildDynamicData(profile) {
+  const weight = profile.start_weight_kg || 90;
+  const height = profile.height_cm || 178;
+  const bmi = weight / ((height / 100) * (height / 100));
+  const isObeseOrOlder = bmi >= 30 || (profile.age && profile.age >= 45);
+
+  const wakeTime = profile.wake_time || '08:00';
+  const exerciseTime = profile.exercise_time || '08:10';
+  const exerciseAction = profile.exercise_action || (
+    profile.has_heart_blockage
+      ? 'Gentle mobility flow & slow breathing (20-30 min) — strictly avoid heavy strain'
+      : (isObeseOrOlder || (profile.has_joint_pain && profile.joint_pain_locations.length > 0))
+        ? 'Gentle low-impact mobility workout or recovery yoga (30 min)'
+        : 'Morning strength workout or bodyweight routine (30 min)'
+  );
+  const breakfastTime = profile.breakfast_time || '10:30';
+  const breakfastAction = profile.breakfast_action || getBreakfastDefaultAction(profile);
+  const lunchTime = profile.lunch_time || '13:00';
+  const lunchAction = profile.lunch_action || 'Lunch — healthy protein-focused meal + curd (or tofu if dairy sensitive)';
+  const lunchWalkTime = profile.lunch_walk_time || '13:15';
+  const snackTime = profile.snack_time || '16:30';
+  const snackAction = profile.snack_action !== undefined ? profile.snack_action : 'Evening snack — roasted chana / almonds / green tea';
+  const dinnerTime = profile.dinner_time || '21:00';
+  const dinnerAction = profile.dinner_action || 'Light dinner following dinner rule (protein + salad)';
+  const dinnerWalkTime = profile.dinner_walk_time || '21:45';
+  const sleepTime = profile.sleep_time || '00:15';
+
+  // 1. Build DAILY_SCHEDULE
+  const schedule = [];
+  schedule.push({ time: formatTime12Hour(wakeTime), action: 'Wake up', checklist_key: 'wake_logged', category: 'health' });
+  
+  // Medication Checklist Mapping
+  if (profile.has_thyroid) {
+    schedule.push({ 
+      time: formatTime12Hour(wakeTime), 
+      action: `${profile.thyroid_medicine || 'Levothyroxine'} (${profile.thyroid_dose || '62.5 mcg'}) (empty stomach) + 2 glasses warm water. Wait 45 mins before breakfast.`, 
+      checklist_key: 'thyroid_taken', 
+      category: 'health' 
+    });
+  } else if (profile.has_medical_conditions && profile.medications) {
+    schedule.push({ 
+      time: formatTime12Hour(wakeTime), 
+      action: `Take morning medication: ${profile.medications.split(',')[0]}`, 
+      checklist_key: 'meds_taken', 
+      category: 'health' 
+    });
+  }
+
+  // Workout
+  schedule.push({ time: formatTime12Hour(exerciseTime), action: exerciseAction, checklist_key: 'morning_workout', category: 'movement' });
+
+  // Breakfast
+  schedule.push({ time: formatTime12Hour(breakfastTime), action: breakfastAction, checklist_key: 'protein_breakfast', category: 'food' });
+
+  // Lunch
+  schedule.push({ time: formatTime12Hour(lunchTime), action: lunchAction, checklist_key: 'lunch_completed', category: 'food' });
 
   // Post-meal walk warnings for Lipids or Glycemic Control
   let postLunchMsg = 'Post-lunch walk (10 min)';
   if (profile.has_triglycerides || profile.has_ldl || profile.has_diabetes || profile.has_heart_blockage) {
     postLunchMsg = 'Post-lunch walk (10 min) — critical to clear blood lipids & glucose';
   }
-  schedule.push({ time: '1:15 PM', action: postLunchMsg, checklist_key: 'post_lunch_walk', category: 'movement' });
+  schedule.push({ time: formatTime12Hour(lunchWalkTime), action: postLunchMsg, checklist_key: 'post_lunch_walk', category: 'movement' });
 
-  schedule.push({ time: '4:30 PM', action: 'Evening snack — roasted chana / almonds / green tea', checklist_key: 'snack_completed', category: 'food' });
-  schedule.push({ time: '5:30 PM', action: 'Office walk or activity (45 min)', checklist_key: 'office_walk', category: 'movement' });
-  schedule.push({ time: '7:30 PM', action: 'Leave office (Commute)', checklist_key: null, category: 'health' });
-  schedule.push({ time: '8:30 PM', action: 'Reach home', checklist_key: null, category: 'health' });
+  // Optional Evening Snack
+  const hasSnack = snackAction && snackAction.trim() !== '';
+  if (hasSnack) {
+    schedule.push({ time: formatTime12Hour(snackTime), action: snackAction, checklist_key: 'snack_completed', category: 'food' });
+  }
 
-  // Light dinner rule warning
-  schedule.push({ time: '9:00 PM', action: 'Light dinner following dinner rule (protein + salad)', checklist_key: 'dinner_rule', category: 'food' });
+  // Dinner
+  schedule.push({ time: formatTime12Hour(dinnerTime), action: dinnerAction, checklist_key: 'dinner_rule', category: 'food' });
 
   let postDinnerMsg = 'Post-dinner walk (10 min)';
   if (profile.has_triglycerides || profile.has_ldl || profile.has_diabetes || profile.has_heart_blockage) {
     postDinnerMsg = 'Post-dinner walk (10 min) — critical to clear blood lipids & glucose';
   }
-  schedule.push({ time: '9:45 PM', action: postDinnerMsg, checklist_key: 'post_dinner_walk', category: 'movement' });
+  schedule.push({ time: formatTime12Hour(dinnerWalkTime), action: postDinnerMsg, checklist_key: 'post_dinner_walk', category: 'movement' });
 
-  schedule.push({ time: '12:15 AM', action: 'Sleep — target 7+ hours', checklist_key: 'sleep_logged', category: 'health' });
+  schedule.push({ time: formatTime12Hour(sleepTime), action: 'Sleep — target 7+ hours', checklist_key: 'sleep_logged', category: 'health' });
 
   DAILY_SCHEDULE.length = 0;
   DAILY_SCHEDULE.push(...schedule);
 
   // 2. Build CHECKLIST_TEMPLATE
+  const foodChecklist = [
+    { key: 'protein_breakfast', label: 'First meal protein completed', points: hasSnack ? 10 : 15 },
+    { key: 'lunch_completed', label: 'Lunch completed', points: hasSnack ? 10 : 15 }
+  ];
+  if (hasSnack) {
+    foodChecklist.push({ key: 'snack_completed', label: 'Evening snack completed', points: 10 });
+  }
+  foodChecklist.push(
+    { key: 'no_biscuits', label: 'No biscuits', points: 5 },
+    { key: 'no_sweets', label: 'No sweets', points: 5 },
+    { key: 'no_namkeen', label: 'No namkeen', points: 5 },
+    { key: 'no_sugar_drink', label: 'No sugar drink', points: 0 },
+    { key: 'dinner_rule', label: 'Dinner followed rule', points: 15 },
+    { key: 'protein_target', label: 'Protein target met', points: 0 }
+  );
+
   const checklistTemplate = {
     health: [
       { key: 'wake_logged', label: 'Wake up logged', points: 0 },
       { key: 'water_started', label: 'Water intake started', points: 2.5 },
       { key: 'sleep_logged', label: 'Sleep hours logged', points: 2.5 }
     ],
-    food: [
-      { key: 'protein_breakfast', label: 'First meal protein completed', points: 10 },
-      { key: 'lunch_completed', label: 'Lunch completed', points: 10 },
-      { key: 'snack_completed', label: 'Evening snack completed', points: 10 },
-      { key: 'no_biscuits', label: 'No biscuits', points: 5 },
-      { key: 'no_sweets', label: 'No sweets', points: 5 },
-      { key: 'no_namkeen', label: 'No namkeen', points: 5 },
-      { key: 'no_sugar_drink', label: 'No sugar drink', points: 0 },
-      { key: 'dinner_rule', label: 'Dinner followed rule', points: 15 },
-      { key: 'protein_target', label: 'Protein target met', points: 0 }
-    ],
+    food: foodChecklist,
     movement: [
       { key: 'morning_workout', label: (isObeseOrOlder || profile.has_heart_blockage) ? 'Gentle workout/mobility completed' : 'Morning strength workout completed', points: 10 },
-      { key: 'post_lunch_walk', label: 'Post-lunch walk completed', points: 3.33 },
-      { key: 'office_walk', label: 'Office walk completed', points: 3.33 },
-      { key: 'post_dinner_walk', label: 'Post-dinner walk completed', points: 3.34 },
+      { key: 'post_lunch_walk', label: 'Post-lunch walk completed', points: 5 },
+      { key: 'post_dinner_walk', label: 'Post-dinner walk completed', points: 5 },
       { key: 'step_target', label: 'Step target completed', points: 10 }
     ],
     tracking: [
@@ -1192,7 +1273,6 @@ export function generateSampleData() {
 
     checklist.movement.morning_workout  = dayIndex !== 4 && dayIndex !== 6;
     checklist.movement.post_lunch_walk  = dayIndex !== 2;
-    checklist.movement.office_walk      = dayIndex < 5;
     checklist.movement.post_dinner_walk = dayIndex !== 4;
     checklist.movement.step_target      = sampleSteps[dayIndex] >= 8000;
 

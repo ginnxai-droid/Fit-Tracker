@@ -1570,9 +1570,6 @@ function renderWorkout() {
     walkingChecklist.innerHTML = movementItems.map(item => {
       const isChecked = !!movement[item.checklist_key];
       let displayTime = item.time;
-      if (item.checklist_key === 'office_walk' && displayTime === '5:30 PM') {
-        displayTime = '5:30–6:15 PM';
-      }
       return `
         <label class="checklist-item ${isChecked ? 'checked' : ''}">
           <input type="checkbox" class="walk-checkbox" data-key="${item.checklist_key}"
@@ -1993,7 +1990,7 @@ function renderReview() {
   setTextContent('reviewProtein', review.protein_compliance_percent != null ? Math.round(review.protein_compliance_percent) + '%' : '--');
   setTextContent('reviewCleanFood', review.clean_food_compliance_percent != null ? Math.round(review.clean_food_compliance_percent) + '%' : '--');
   setTextContent('reviewAvgScore', review.avg_daily_score != null ? Math.round(review.avg_daily_score) : '--');
-  setTextContent('reviewOfficeWalks', review.office_walks_completed ?? '--');
+  setTextContent('reviewOfficeWalks', review.office_walks_completed != null ? `${review.office_walks_completed} / 14` : '--');
 
   // Wins
   const winsEl = document.getElementById('reviewWins');
@@ -2080,7 +2077,68 @@ function bindSettingsModal() {
   const loadSampleBtn = document.getElementById('loadSampleData');
   const clearBtn = document.getElementById('clearDataBtn');
 
-    const openSettings = () => {
+  const checkSettingsGoalValidity = () => {
+    const settingCurrentWeight = document.getElementById('settingCurrentWeight');
+    const settingTargetWeight = document.getElementById('settingTargetWeight');
+    const settingTimelineVal = document.getElementById('settingTimelineVal');
+    const settingTimelineUnit = document.getElementById('settingTimelineUnit');
+    const settingGoalAlert = document.getElementById('settingGoalAlert');
+    const settingGoalAlertText = document.getElementById('settingGoalAlertText');
+    const saveSettingsBtn = document.getElementById('saveSettings');
+
+    if (!settingCurrentWeight || !settingTargetWeight || !settingTimelineVal || !settingTimelineUnit || !settingGoalAlert || !settingGoalAlertText || !saveSettingsBtn) return false;
+    
+    const currentW = parseFloat(settingCurrentWeight.value) || 0;
+    const targetW = parseFloat(settingTargetWeight.value) || 0;
+    const timeVal = parseFloat(settingTimelineVal.value) || 0;
+    const unit = settingTimelineUnit.value;
+
+    const targetLoss = currentW - targetW;
+    
+    if (targetLoss <= 0) {
+      settingGoalAlert.style.display = 'none';
+      saveSettingsBtn.disabled = false;
+      saveSettingsBtn.style.opacity = '1';
+      return true;
+    }
+
+    let weeks = timeVal;
+    if (unit === 'months') {
+      weeks = timeVal * 4.33;
+    } else if (unit === 'days') {
+      weeks = timeVal / 7.0;
+    }
+
+    const lossRatePerWeek = targetLoss / weeks;
+    const lossRatePerMonth = lossRatePerWeek * 4.33;
+
+    if (lossRatePerWeek > 1.0) {
+      const recommendedWeeks = Math.ceil(targetLoss);
+      let recommendedMsg = `${recommendedWeeks} weeks`;
+      if (recommendedWeeks >= 8) {
+        recommendedMsg = `${(recommendedWeeks / 4.33).toFixed(1)} months`;
+      }
+      
+      settingGoalAlertText.innerHTML = `
+        Healthcare professionals and nutritionists recommend a safe, sustainable weight loss rate of 
+        <strong>0.5 - 1 kg per week</strong> (approximately <strong>2 - 4 kg per month</strong>).<br><br>
+        Losing <strong>${targetLoss.toFixed(1)} kg</strong> in that timeframe requires losing 
+        <strong>${lossRatePerWeek.toFixed(1)} kg/week</strong> (<strong>${lossRatePerMonth.toFixed(1)} kg/month</strong>). 
+        To avoid muscle wasting, metabolic slowing, or gallstones, we suggest a target duration of at least <strong>${recommendedMsg}</strong>.
+      `;
+      settingGoalAlert.style.display = 'block';
+      saveSettingsBtn.disabled = true;
+      saveSettingsBtn.style.opacity = '0.5';
+      return false;
+    } else {
+      settingGoalAlert.style.display = 'none';
+      saveSettingsBtn.disabled = false;
+      saveSettingsBtn.style.opacity = '1';
+      return true;
+    }
+  };
+
+  const openSettings = () => {
     const profile = getProfile();
     setInputValue('settingName', profile.name);
     setInputValue('settingAge', profile.age || '');
@@ -2161,6 +2219,22 @@ function bindSettingsModal() {
     setInputValue('settingStressLevel', profile.stress_level || 'moderate');
     setInputValue('settingCommuteDetails', profile.commute_details || '');
 
+    // Customizable Daily Routine Timings & Actions
+    setInputValue('settingWakeTime', profile.wake_time || '08:00');
+    setInputValue('settingSleepTime', profile.sleep_time || '00:15');
+    setInputValue('settingExerciseTime', profile.exercise_time || '08:10');
+    setInputValue('settingExerciseAction', profile.exercise_action || '');
+    setInputValue('settingBreakfastTime', profile.breakfast_time || '10:30');
+    setInputValue('settingBreakfastAction', profile.breakfast_action || '');
+    setInputValue('settingLunchTime', profile.lunch_time || '13:00');
+    setInputValue('settingLunchAction', profile.lunch_action || '');
+    setInputValue('settingLunchWalkTime', profile.lunch_walk_time || '13:15');
+    setInputValue('settingSnackTime', profile.snack_time || '16:30');
+    setInputValue('settingSnackAction', profile.snack_action || '');
+    setInputValue('settingDinnerTime', profile.dinner_time || '21:00');
+    setInputValue('settingDinnerAction', profile.dinner_action || '');
+    setInputValue('settingDinnerWalkTime', profile.dinner_walk_time || '21:45');
+
     const toggleDietOpts = () => {
       const diet = document.getElementById('settingDiet')?.value;
       const nonVegOpts = document.getElementById('settingNonVegOpts');
@@ -2225,10 +2299,7 @@ function bindSettingsModal() {
       hasJointCheck.dataset.listenerBound = 'true';
     }
 
-    const settings = getSettings();
-    setInputValue('settingLunchWalkAlarm', settings.lunch_walk_alarm || '13:15');
-    setInputValue('settingDinnerWalkAlarm', settings.dinner_walk_alarm || '21:45');
-    
+    checkSettingsGoalValidity();
     modal.showModal();
   };
 
@@ -2261,6 +2332,15 @@ function bindSettingsModal() {
     if (settingWeightInput) {
       settingWeightInput.addEventListener('input', updateSettingsBmiDisplay);
     }
+
+    // Live validation for safe weight target rate in settings
+    const settingTargetWeight = document.getElementById('settingTargetWeight');
+    const settingTimelineVal = document.getElementById('settingTimelineVal');
+    const settingTimelineUnit = document.getElementById('settingTimelineUnit');
+    if (settingWeightInput) settingWeightInput.addEventListener('input', checkSettingsGoalValidity);
+    if (settingTargetWeight) settingTargetWeight.addEventListener('input', checkSettingsGoalValidity);
+    if (settingTimelineVal) settingTimelineVal.addEventListener('input', checkSettingsGoalValidity);
+    if (settingTimelineUnit) settingTimelineUnit.addEventListener('change', checkSettingsGoalValidity);
   }
 
   if (closeBtn && modal) {
@@ -2357,6 +2437,21 @@ function bindSettingsModal() {
       profile.stress_level = document.getElementById('settingStressLevel')?.value || 'moderate';
       profile.commute_details = document.getElementById('settingCommuteDetails')?.value || '';
 
+      profile.wake_time = document.getElementById('settingWakeTime')?.value || profile.wake_time;
+      profile.sleep_time = document.getElementById('settingSleepTime')?.value || profile.sleep_time;
+      profile.exercise_time = document.getElementById('settingExerciseTime')?.value || profile.exercise_time;
+      profile.exercise_action = document.getElementById('settingExerciseAction')?.value !== undefined ? document.getElementById('settingExerciseAction').value : profile.exercise_action;
+      profile.breakfast_time = document.getElementById('settingBreakfastTime')?.value || profile.breakfast_time;
+      profile.breakfast_action = document.getElementById('settingBreakfastAction')?.value !== undefined ? document.getElementById('settingBreakfastAction').value : profile.breakfast_action;
+      profile.lunch_time = document.getElementById('settingLunchTime')?.value || profile.lunch_time;
+      profile.lunch_action = document.getElementById('settingLunchAction')?.value !== undefined ? document.getElementById('settingLunchAction').value : profile.lunch_action;
+      profile.lunch_walk_time = document.getElementById('settingLunchWalkTime')?.value || profile.lunch_walk_time;
+      profile.snack_time = document.getElementById('settingSnackTime')?.value || profile.snack_time;
+      profile.snack_action = document.getElementById('settingSnackAction')?.value !== undefined ? document.getElementById('settingSnackAction').value : profile.snack_action;
+      profile.dinner_time = document.getElementById('settingDinnerTime')?.value || profile.dinner_time;
+      profile.dinner_action = document.getElementById('settingDinnerAction')?.value !== undefined ? document.getElementById('settingDinnerAction').value : profile.dinner_action;
+      profile.dinner_walk_time = document.getElementById('settingDinnerWalkTime')?.value || profile.dinner_walk_time;
+
       // Save weight & height
       const oldWeight = profile.start_weight_kg;
       const oldHeight = profile.height_cm;
@@ -2394,8 +2489,8 @@ function bindSettingsModal() {
       }
       
       const settings = getSettings();
-      settings.lunch_walk_alarm = document.getElementById('settingLunchWalkAlarm')?.value || '13:15';
-      settings.dinner_walk_alarm = document.getElementById('settingDinnerWalkAlarm')?.value || '21:45';
+      settings.lunch_walk_alarm = profile.lunch_walk_time;
+      settings.dinner_walk_alarm = profile.dinner_walk_time;
       saveSettings(settings);
       
       modal?.close();
@@ -2619,7 +2714,6 @@ function getStepsMetrics(steps, weight, height, sex) {
   }
 
   // Calculate sex-specific stride length multiplier
-  // Standard stride length ratio is height * 0.413 for females and height * 0.415 for males/default
   const s = sex || 'male';
   const strideMultiplier = (s.toLowerCase() === 'female') ? 0.00413 : 0.00415;
   const strideMeters = h * strideMultiplier;
@@ -2628,28 +2722,37 @@ function getStepsMetrics(steps, weight, height, sex) {
   const distanceKm = (steps * strideMeters) / 1000;
 
   // Personalized Metabolic Equivalent of Task (MET) adjustment
-  // Standard moderate walking (3 mph) is 3.5 MET.
-  // Clinically, beginners burn ~10% more energy due to lower movement efficiency, 
-  // while advanced trainees adapt, saving ~5% energy.
   let metAdjustment = 1.0;
+  let age = 30; // default fallback
   try {
     const profile = getProfile();
-    if (profile && profile.fitness_level) {
+    if (profile) {
       if (profile.fitness_level === 'beginner') {
         metAdjustment = 1.10;
       } else if (profile.fitness_level === 'advanced') {
         metAdjustment = 0.95;
       }
+      if (profile.age) {
+        age = parseFloat(profile.age) || 30;
+      }
     }
   } catch (e) {
-    console.warn("Failed to read profile for fitness MET adjustment, using baseline", e);
+    console.warn("Failed to read profile for fitness MET adjustment & age, using baseline", e);
   }
 
-  // Calories = MET * 3.5 * weight * (steps / 120) / 200 * metAdjustment
-  const calories = Math.round(0.0005104 * w * steps * metAdjustment);
+  // BMR Calculation (Harris-Benedict equation)
+  let bmr = 0;
+  if (s.toLowerCase() === 'female') {
+    bmr = 447.593 + (9.247 * w) + (3.098 * h) - (4.330 * age);
+  } else {
+    bmr = 88.362 + (13.397 * w) + (4.799 * h) - (5.677 * age);
+  }
+
+  // Net Active Calories = Net MET (2.5) * (BMR / 1440) * duration (steps / 100 cadence) * metAdjustment
+  const calories = Math.round((2.5 * bmr / 1440) * (steps / 100) * metAdjustment);
 
   return {
-    calories,
+    calories: Math.max(0, calories),
     distance: distanceKm.toFixed(2),
     requiresProfile: false
   };
@@ -2746,7 +2849,6 @@ function bindStepCalculatorModal() {
   const modal = document.getElementById('stepCalculatorModal');
   if (stepsCard && modal) {
     let updateTimer = null;
-    let autoWalkInterval = null;
 
     const updateModalData = () => {
       const today = getDateStr(new Date());
@@ -2867,7 +2969,7 @@ function bindStepCalculatorModal() {
       const statusIcon = document.getElementById('calcConnectionStatus');
       if (statusIcon) {
         const lastSteps = parseInt(statusIcon.dataset.lastSteps || "0");
-        const isCurrentlyWalking = autoWalkInterval !== null || (steps > lastSteps && lastSteps > 0);
+        const isCurrentlyWalking = (steps > lastSteps && lastSteps > 0);
         
         if (isCurrentlyWalking) {
           statusIcon.innerHTML = `<span class="live-pulse live-pulse--active"></span>Walking detected (Live)`;
@@ -2876,11 +2978,9 @@ function bindStepCalculatorModal() {
           
           clearTimeout(window.walkActiveTimeout);
           window.walkActiveTimeout = setTimeout(() => {
-            if (!autoWalkInterval) {
-              statusIcon.innerHTML = `<span class="live-pulse"></span>Pedometer Active (Standing Still)`;
-              statusIcon.style.color = 'var(--text-secondary)';
-              statusIcon.classList.remove('bouncing');
-            }
+            statusIcon.innerHTML = `<span class="live-pulse"></span>Pedometer Active (Standing Still)`;
+            statusIcon.style.color = 'var(--text-secondary)';
+            statusIcon.classList.remove('bouncing');
           }, 3000);
         } else {
           if (!window.walkActiveTimeout) {
@@ -2908,94 +3008,9 @@ function bindStepCalculatorModal() {
         updateTimer = null;
       }
       
-      // Stop simulator walking if active
-      if (autoWalkInterval) {
-        clearInterval(autoWalkInterval);
-        autoWalkInterval = null;
-        const btnSimAutoWalk = document.getElementById('btnSimAutoWalk');
-        if (btnSimAutoWalk) {
-          btnSimAutoWalk.textContent = 'Start Auto-Walk';
-          btnSimAutoWalk.style.background = 'var(--warning)';
-          btnSimAutoWalk.style.borderColor = 'var(--warning)';
-          btnSimAutoWalk.style.color = 'var(--bg)';
-        }
-        const simStatusText = document.getElementById('simStatusText');
-        if (simStatusText) {
-          simStatusText.textContent = 'Idle';
-          simStatusText.style.color = 'var(--text-tertiary)';
-        }
-      }
-      
       // Refresh dashboard to show latest metrics
       renderDashboard();
     });
-
-    // Wire up simulator controls
-    const btnSimStep = document.getElementById('btnSimStep');
-    const btnSimAutoWalk = document.getElementById('btnSimAutoWalk');
-    const simStatusText = document.getElementById('simStatusText');
-
-    if (btnSimStep) {
-      btnSimStep.addEventListener('click', () => {
-        const today = getDateStr(new Date());
-        const log = getDailyLog(today);
-        const newSteps = (log.steps || 0) + 100;
-        
-        log.steps = newSteps;
-        saveDailyLog(today, log);
-        
-        if (typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid()) {
-          window.AndroidInterface.saveStepsToday(newSteps);
-        }
-        
-        updateModalData();
-      });
-    }
-
-    if (btnSimAutoWalk) {
-      btnSimAutoWalk.addEventListener('click', () => {
-        if (autoWalkInterval) {
-          // Stop auto-walk
-          clearInterval(autoWalkInterval);
-          autoWalkInterval = null;
-          btnSimAutoWalk.textContent = 'Start Auto-Walk';
-          btnSimAutoWalk.style.background = 'var(--warning)';
-          btnSimAutoWalk.style.borderColor = 'var(--warning)';
-          btnSimAutoWalk.style.color = 'var(--bg)';
-          if (simStatusText) {
-            simStatusText.textContent = 'Idle';
-            simStatusText.style.color = 'var(--text-tertiary)';
-          }
-        } else {
-          // Start auto-walk: add 8-12 steps every 500ms
-          btnSimAutoWalk.textContent = 'Stop Walk';
-          btnSimAutoWalk.style.background = 'var(--danger)';
-          btnSimAutoWalk.style.borderColor = 'var(--danger)';
-          btnSimAutoWalk.style.color = 'white';
-          if (simStatusText) {
-            simStatusText.textContent = 'Walking...';
-            simStatusText.style.color = 'var(--success)';
-          }
-          
-          autoWalkInterval = setInterval(() => {
-            const today = getDateStr(new Date());
-            const log = getDailyLog(today);
-            const currentSteps = log.steps || 0;
-            const increment = Math.random() < 0.8 ? 1 : 2; // Realistic walking cadence (1-2 steps per 500ms)
-            const newSteps = currentSteps + increment;
-            
-            log.steps = newSteps;
-            saveDailyLog(today, log);
-            
-            if (typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid()) {
-              window.AndroidInterface.saveStepsToday(newSteps);
-            }
-            
-            updateModalData();
-          }, 500);
-        }
-      });
-    }
   }
 }
 
@@ -3274,7 +3289,6 @@ function bindOnboardingEvents() {
 
     const targetLoss = currentW - targetW;
     
-    // If they want to gain weight or stay the same, it is always realistic
     if (targetLoss <= 0) {
       obGoalAlert.style.display = 'none';
       btnNext.disabled = false;
@@ -3282,7 +3296,6 @@ function bindOnboardingEvents() {
       return true;
     }
 
-    // Convert timeline to weeks
     let weeks = timeVal;
     if (unit === 'months') {
       weeks = timeVal * 4.33;
@@ -3291,6 +3304,7 @@ function bindOnboardingEvents() {
     }
 
     const lossRatePerWeek = targetLoss / weeks;
+    const lossRatePerMonth = lossRatePerWeek * 4.33;
 
     if (lossRatePerWeek > 1.0) {
       const recommendedWeeks = Math.ceil(targetLoss);
@@ -3299,7 +3313,13 @@ function bindOnboardingEvents() {
         recommendedMsg = `${(recommendedWeeks / 4.33).toFixed(1)} months`;
       }
       
-      obGoalAlertText.innerHTML = `Losing <strong>${targetLoss.toFixed(1)} kg</strong> in that timeframe requires losing <strong>${lossRatePerWeek.toFixed(1)} kg/week</strong>. A safe rate is 0.5 - 1 kg/week. We recommend setting a target of at least <strong>${recommendedMsg}</strong>.`;
+      obGoalAlertText.innerHTML = `
+        Healthcare professionals and nutritionists recommend a safe, sustainable weight loss rate of 
+        <strong>0.5 - 1 kg per week</strong> (approximately <strong>2 - 4 kg per month</strong>).<br><br>
+        Losing <strong>${targetLoss.toFixed(1)} kg</strong> in that timeframe requires losing 
+        <strong>${lossRatePerWeek.toFixed(1)} kg/week</strong> (<strong>${lossRatePerMonth.toFixed(1)} kg/month</strong>). 
+        To avoid muscle wasting, metabolic slowing, or gallstones, we suggest a target duration of at least <strong>${recommendedMsg}</strong>.
+      `;
       obGoalAlert.style.display = 'block';
       btnNext.disabled = true;
       btnNext.style.opacity = '0.5';
@@ -3315,6 +3335,129 @@ function bindOnboardingEvents() {
   if (obTargetWeight) obTargetWeight.addEventListener('input', checkGoalValidity);
   if (obTimelineVal) obTimelineVal.addEventListener('input', checkGoalValidity);
   if (obTimelineUnit) obTimelineUnit.addEventListener('change', checkGoalValidity);
+
+  const populateOnboardingInputs = () => {
+    const profile = getProfile();
+    const obName = document.getElementById('obName');
+    if (obName) obName.value = profile.name || '';
+    const obAge = document.getElementById('obAge');
+    if (obAge) obAge.value = profile.age || '';
+    const obGender = document.getElementById('obGender');
+    if (obGender) obGender.value = profile.sex || 'male';
+    const obFitnessLevel = document.getElementById('obFitnessLevel');
+    if (obFitnessLevel) obFitnessLevel.value = profile.fitness_level || 'beginner';
+
+    const obGoalRadio = document.querySelector(`input[name="obGoal"][value="${profile.primary_goal || 'weight_loss'}"]`);
+    if (obGoalRadio) obGoalRadio.checked = true;
+
+    if (obWeight) obWeight.value = profile.start_weight_kg || '';
+    if (obHeight) obHeight.value = profile.height_cm || '';
+    const obWaist = document.getElementById('obWaist');
+    if (obWaist) obWaist.value = profile.start_waist_in || '';
+    const obTargetWeight = document.getElementById('obTargetWeight');
+    if (obTargetWeight) obTargetWeight.value = profile.target_weight_kg || '';
+    const obTimelineVal = document.getElementById('obTimelineVal');
+    if (obTimelineVal) obTimelineVal.value = profile.target_timeline_value || '3';
+    const obTimelineUnit = document.getElementById('obTimelineUnit');
+    if (obTimelineUnit) obTimelineUnit.value = profile.target_timeline_unit || 'months';
+
+    const obMeals = document.getElementById('obMeals');
+    if (obMeals) obMeals.value = profile.meals_per_day || 4;
+    if (obDiet) obDiet.value = profile.diet_type || 'non_veg';
+    const obNonVegFreq = document.getElementById('obNonVegFreq');
+    if (obNonVegFreq) obNonVegFreq.value = profile.non_veg_frequency || '3_4_weekly';
+
+    const restrictedDays = profile.restricted_non_veg_days || [];
+    document.querySelectorAll('.ob-day-chk').forEach(chk => {
+      chk.checked = restrictedDays.includes(chk.value);
+    });
+
+    const obSmoking = document.getElementById('obSmoking');
+    if (obSmoking) obSmoking.value = profile.smoking_status || 'non_smoker';
+    const obDrinking = document.getElementById('obDrinking');
+    if (obDrinking) obDrinking.value = profile.drinking_status || 'non_drinking';
+    const obDietRegion = document.getElementById('obDietRegion');
+    if (obDietRegion) obDietRegion.value = profile.diet_region || 'standard';
+
+    const obGlutenFree = document.getElementById('obGlutenFree');
+    if (obGlutenFree) obGlutenFree.checked = !!profile.gluten_free;
+    const obLactoseFree = document.getElementById('obLactoseFree');
+    if (obLactoseFree) obLactoseFree.checked = !!profile.lactose_free;
+
+    const obHasTriglycerides = document.getElementById('obHasTriglycerides');
+    if (obHasTriglycerides) obHasTriglycerides.checked = !!profile.has_triglycerides;
+    const obHasLdl = document.getElementById('obHasLdl');
+    if (obHasLdl) obHasLdl.checked = !!profile.has_ldl;
+    const obHasHeartBlockage = document.getElementById('obHasHeartBlockage');
+    if (obHasHeartBlockage) obHasHeartBlockage.checked = !!profile.has_heart_blockage;
+    const obHasHypertension = document.getElementById('obHasHypertension');
+    if (obHasHypertension) obHasHypertension.checked = !!profile.has_hypertension;
+    const obHasDiabetes = document.getElementById('obHasDiabetes');
+    if (obHasDiabetes) obHasDiabetes.checked = !!profile.has_diabetes;
+
+    const obHasThyroid = document.getElementById('obHasThyroid');
+    if (obHasThyroid) obHasThyroid.checked = !!profile.has_thyroid;
+    const obThyroidType = document.getElementById('obThyroidType');
+    if (obThyroidType) obThyroidType.value = profile.thyroid_type || 'hypothyroidism';
+    const obThyroidMed = document.getElementById('obThyroidMed');
+    if (obThyroidMed) obThyroidMed.value = profile.thyroid_medicine || '';
+
+    const obHasJointPain = document.getElementById('obHasJointPain');
+    if (obHasJointPain) obHasJointPain.checked = !!profile.has_joint_pain;
+    const jointLocs = profile.joint_pain_locations || [];
+    document.querySelectorAll('.ob-joint-chk').forEach(chk => {
+      chk.checked = jointLocs.includes(chk.value);
+    });
+
+    const obMeds = document.getElementById('obMeds');
+    if (obMeds) obMeds.value = profile.medications || '';
+    const obWorkActivity = document.getElementById('obWorkActivity');
+    if (obWorkActivity) obWorkActivity.value = profile.work_activity || 'sedentary';
+    const obSleepCategory = document.getElementById('obSleepCategory');
+    if (obSleepCategory) obSleepCategory.value = profile.sleep_category || 'optimal';
+    const obStressLevel = document.getElementById('obStressLevel');
+    if (obStressLevel) obStressLevel.value = profile.stress_level || 'moderate';
+    const obCommuteDetails = document.getElementById('obCommuteDetails');
+    if (obCommuteDetails) obCommuteDetails.value = profile.commute_details || '';
+
+    const obAcceptTerms = document.getElementById('obAcceptTerms');
+    if (obAcceptTerms) obAcceptTerms.checked = !!profile.agreed_to_terms;
+
+    // Trigger display toggles
+    if (obNonVegOpts && obVegOpts && obDiet) {
+      if (obDiet.value === 'veg') {
+        obNonVegOpts.style.display = 'none';
+        obVegOpts.style.display = 'flex';
+      } else {
+        obNonVegOpts.style.display = 'flex';
+        obVegOpts.style.display = 'none';
+      }
+    }
+    const obHasMedical = document.getElementById('obHasMedical');
+    const obMedicalOpts = document.getElementById('obMedicalOpts');
+    if (obHasMedical && obMedicalOpts) {
+      obHasMedical.checked = !!profile.has_medical_conditions;
+      obMedicalOpts.style.display = obHasMedical.checked ? 'flex' : 'none';
+    }
+    const obThyroidOpts = document.getElementById('obThyroidDetailsWrap');
+    if (obHasThyroid && obThyroidOpts) {
+      obThyroidOpts.style.display = obHasThyroid.checked ? 'flex' : 'none';
+    }
+    const obJointOpts = document.getElementById('obJointPainDetailsWrap');
+    if (obHasJointPain && obJointOpts) {
+      obJointOpts.style.display = obHasJointPain.checked ? 'grid' : 'none';
+    }
+    
+    // Update live BMI on load
+    updateBmiDisplay();
+  };
+
+  // Populate onboarding fields initially
+  populateOnboardingInputs();
+
+  // Expose populate function to modal open trigger if necessary
+  modal.addEventListener('beforeshow', populateOnboardingInputs);
+  window.populateOnboardingInputs = populateOnboardingInputs;
 
   const updateStepView = () => {
     steps.forEach((step, idx) => {
@@ -3337,14 +3480,12 @@ function bindOnboardingEvents() {
 
     if (currentStep === 2) {
       updateBmiDisplay();
-    }
-    if (currentStep === 3) {
       checkGoalValidity();
     }
   };
 
   btnNext.addEventListener('click', () => {
-    if (currentStep === 3) {
+    if (currentStep === 2) {
       if (!checkGoalValidity()) return;
     }
 

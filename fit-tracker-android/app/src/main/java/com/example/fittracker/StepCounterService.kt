@@ -26,6 +26,7 @@ class StepCounterService : Service(), SensorEventListener {
     private val TAG = "StepCounterService"
     private val CHANNEL_ID = "StepCounterChannel"
     private val NOTIFICATION_ID = 101
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
 
     // Selected sensor mode: "counter", "detector", "accelerometer", or "none"
     private var activeTrackingMode = "none"
@@ -37,18 +38,28 @@ class StepCounterService : Service(), SensorEventListener {
 
     // Accelerometer variables for peak detection (Mode 3)
     private var lastStepTime: Long = 0
-    private val STEP_DEBOUNCE_MS = 350L
-    private val STEP_THRESHOLD = 2.0f // m/s^2 peak threshold for step detection (gravity subtracted)
-    private val RESET_THRESHOLD = 1.0f // return threshold to reset peak state (gravity subtracted)
+    private val STEP_DEBOUNCE_MS = 300L
+    private val STEP_THRESHOLD = 1.4f // m/s^2 peak threshold for step detection (gravity subtracted)
+    private val RESET_THRESHOLD = 0.7f // return threshold to reset peak state (gravity subtracted)
     private var isPeakDetected = false
 
     // Exponential smoothing factor for raw accelerometer values
-    private val alpha = 0.8f
+    private val alpha = 0.98f
     private var gravity = floatArrayOf(0f, 9.8f, 0f)
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service onCreate")
+        
+        // Acquire partial WakeLock to ensure service keeps running when screen is off
+        try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            wakeLock = powerManager.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "FitTracker::StepCounterWakeLock")
+            wakeLock?.acquire()
+            Log.d(TAG, "WakeLock acquired successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to acquire WakeLock", e)
+        }
         
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         setupOptimalSensor()
@@ -248,6 +259,16 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "Service onDestroy")
+        
+        try {
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
+                Log.d(TAG, "WakeLock released")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to release WakeLock", e)
+        }
+        
         sensorManager.unregisterListener(this)
     }
 }
