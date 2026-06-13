@@ -3499,116 +3499,129 @@ function bindOnboardingEvents() {
         showToast('⚠️ You must agree to the Terms & Liability Release to finish onboarding.');
         return;
       }
-      const profile = getProfile();
-      profile.agreed_to_terms = true;
-      profile.agreed_to_terms_timestamp = new Date().toISOString();
-      profile.name = document.getElementById('obName')?.value || profile.name;
-      profile.age = parseInt(document.getElementById('obAge')?.value) || profile.age;
-      profile.sex = document.getElementById('obGender')?.value || 'male';
-      profile.fitness_level = document.getElementById('obFitnessLevel')?.value || 'beginner';
-      profile.primary_goal = document.querySelector('input[name="obGoal"]:checked')?.value || 'weight_loss';
-      profile.start_weight_kg = parseFloat(obWeight.value) || profile.start_weight_kg;
-      profile.height_cm = parseFloat(obHeight.value) || profile.height_cm;
-      profile.start_waist_in = parseFloat(document.getElementById('obWaist')?.value) || profile.start_waist_in;
-      profile.target_weight_kg = parseFloat(obTargetWeight.value) || profile.target_weight_kg;
-      profile.target_timeline_value = parseFloat(obTimelineVal.value) || 3;
-      profile.target_timeline_unit = obTimelineUnit.value;
-      profile.meals_per_day = parseInt(document.getElementById('obMeals')?.value) || 4;
-      profile.diet_type = obDiet.value;
-      profile.non_veg_frequency = document.getElementById('obNonVegFreq')?.value || '3_4_weekly';
-      
-      const restrictedDays = [];
-      document.querySelectorAll('.ob-day-chk:checked').forEach(c => restrictedDays.push(c.value));
-      profile.restricted_non_veg_days = restrictedDays;
+      try {
+        const profile = getProfile();
+        profile.agreed_to_terms = true;
+        profile.agreed_to_terms_timestamp = new Date().toISOString();
+        profile.name = document.getElementById('obName')?.value || profile.name;
+        profile.age = parseInt(document.getElementById('obAge')?.value) || profile.age;
+        profile.sex = document.getElementById('obGender')?.value || 'male';
+        profile.fitness_level = document.getElementById('obFitnessLevel')?.value || 'beginner';
+        profile.primary_goal = document.querySelector('input[name="obGoal"]:checked')?.value || 'weight_loss';
+        profile.start_weight_kg = parseFloat(obWeight.value) || profile.start_weight_kg;
+        profile.height_cm = parseFloat(obHeight.value) || profile.height_cm;
+        profile.start_waist_in = parseFloat(document.getElementById('obWaist')?.value) || profile.start_waist_in;
+        profile.target_weight_kg = parseFloat(obTargetWeight.value) || profile.target_weight_kg;
+        profile.target_timeline_value = parseFloat(obTimelineVal.value) || 3;
+        profile.target_timeline_unit = obTimelineUnit.value;
+        profile.meals_per_day = parseInt(document.getElementById('obMeals')?.value) || 4;
+        profile.diet_type = obDiet.value;
+        profile.non_veg_frequency = document.getElementById('obNonVegFreq')?.value || '3_4_weekly';
+        
+        const restrictedDays = [];
+        document.querySelectorAll('.ob-day-chk:checked').forEach(c => restrictedDays.push(c.value));
+        profile.restricted_non_veg_days = restrictedDays;
 
-      profile.eat_egg = (profile.diet_type === 'non_veg' || profile.diet_type === 'eggitarian');
-      profile.smoking_status = document.getElementById('obSmoking')?.value || 'non_smoker';
-      profile.drinking_status = document.getElementById('obDrinking')?.value || 'non_drinking';
-      profile.diet_region = document.getElementById('obDietRegion')?.value || 'standard';
-      profile.gluten_free = document.getElementById('obGlutenFree')?.checked || false;
-      profile.lactose_free = document.getElementById('obLactoseFree')?.checked || false;
+        profile.eat_egg = (profile.diet_type === 'non_veg' || profile.diet_type === 'eggitarian');
+        profile.smoking_status = document.getElementById('obSmoking')?.value || 'non_smoker';
+        profile.drinking_status = document.getElementById('obDrinking')?.value || 'non_drinking';
+        profile.diet_region = document.getElementById('obDietRegion')?.value || 'standard';
+        profile.gluten_free = document.getElementById('obGlutenFree')?.checked || false;
+        profile.lactose_free = document.getElementById('obLactoseFree')?.checked || false;
 
-      profile.has_triglycerides = document.getElementById('obHasTriglycerides')?.checked || false;
-      profile.has_ldl = document.getElementById('obHasLdl')?.checked || false;
-      profile.has_heart_blockage = document.getElementById('obHasHeartBlockage')?.checked || false;
-      profile.has_hypertension = document.getElementById('obHasHypertension')?.checked || false;
-      profile.has_diabetes = document.getElementById('obHasDiabetes')?.checked || false;
-      profile.has_thyroid = document.getElementById('obHasThyroid')?.checked || false;
-      if (profile.has_thyroid) {
-        profile.thyroid_type = document.getElementById('obThyroidType')?.value || 'hypothyroidism';
-        profile.thyroid_medicine = document.getElementById('obThyroidMed')?.value || '';
+        profile.has_triglycerides = document.getElementById('obHasTriglycerides')?.checked || false;
+        profile.has_ldl = document.getElementById('obHasLdl')?.checked || false;
+        profile.has_heart_blockage = document.getElementById('obHasHeartBlockage')?.checked || false;
+        profile.has_hypertension = document.getElementById('obHasHypertension')?.checked || false;
+        profile.has_diabetes = document.getElementById('obHasDiabetes')?.checked || false;
+        profile.has_thyroid = document.getElementById('obHasThyroid')?.checked || false;
+        if (profile.has_thyroid) {
+          profile.thyroid_type = document.getElementById('obThyroidType')?.value || 'hypothyroidism';
+          profile.thyroid_medicine = document.getElementById('obThyroidMed')?.value || '';
+        }
+
+        profile.has_joint_pain = document.getElementById('obHasJointPain')?.checked || false;
+        if (profile.has_joint_pain) {
+          const jointLocs = [];
+          document.querySelectorAll('.ob-joint-chk:checked').forEach(c => jointLocs.push(c.value));
+          profile.joint_pain_locations = jointLocs;
+        } else {
+          profile.joint_pain_locations = [];
+        }
+        
+        profile.has_medical_conditions = !!(
+          profile.has_triglycerides ||
+          profile.has_ldl ||
+          profile.has_heart_blockage ||
+          profile.has_hypertension ||
+          profile.has_diabetes ||
+          profile.has_thyroid
+        );
+        
+        const conditions = [];
+        if (profile.has_triglycerides) conditions.push('High Triglycerides');
+        if (profile.has_ldl) conditions.push('High LDL Cholesterol');
+        if (profile.has_heart_blockage) conditions.push('Heart Blockage / CAD');
+        if (profile.has_hypertension) conditions.push('High BP (Hypertension)');
+        if (profile.has_diabetes) conditions.push('Diabetes / Pre-diabetes');
+        if (profile.has_thyroid) conditions.push('Thyroid Condition');
+        profile.medical_conditions = conditions.join(', ');
+        profile.medications = document.getElementById('obMeds')?.value || '';
+
+        profile.work_activity = document.getElementById('obWorkActivity')?.value || 'sedentary';
+        profile.sleep_category = document.getElementById('obSleepCategory')?.value || 'optimal';
+        profile.stress_level = document.getElementById('obStressLevel')?.value || 'moderate';
+        profile.commute_details = document.getElementById('obCommuteDetails')?.value || '';
+
+        // Calculate target waist safely
+        if (profile.start_weight_kg && profile.target_weight_kg && profile.start_waist_in) {
+          const weightDiffRatio = (profile.start_weight_kg - profile.target_weight_kg) / profile.start_weight_kg;
+          profile.target_waist_in = +(profile.start_waist_in * (1 - (weightDiffRatio * 0.8))).toFixed(1);
+        } else {
+          profile.target_waist_in = profile.target_waist_in || null;
+        }
+
+        profile.onboarding_completed = true;
+        saveProfile(profile);
+
+        // Re-configure targets dynamically
+        const settings = getSettings();
+        const w = profile.start_weight_kg;
+        const h = profile.height_cm;
+        let bmi = 0;
+        if (w && h) {
+          bmi = w / ((h / 100) * (h / 100));
+        }
+        if (bmi >= 30 || profile.age >= 45) {
+          settings.step_target = 6000;
+        } else if (profile.primary_goal === 'muscle_gain') {
+          settings.step_target = 10000;
+        } else {
+          settings.step_target = 8000;
+        }
+        
+        const startW = profile.start_weight_kg || 70;
+        if (profile.primary_goal === 'muscle_gain') {
+          settings.protein_target_g = Math.round(startW * 1.5);
+        } else {
+          settings.protein_target_g = Math.round(startW * 1.2);
+        }
+        saveSettings(settings);
+
+        modal.close();
+        showToast("Personalized plan generated successfully! 🎉");
+        
+        const today = getDateStr(new Date());
+        const log = getDailyLog(today);
+        log.weight_kg = profile.start_weight_kg;
+        log.waist_in = profile.start_waist_in;
+        saveDailyLog(today, log);
+
+        renderCurrentScreen();
+      } catch (err) {
+        console.error("Error saving onboarding details:", err);
+        alert("Unable to finish setup: " + err.message);
       }
-
-      profile.has_joint_pain = document.getElementById('obHasJointPain')?.checked || false;
-      if (profile.has_joint_pain) {
-        const jointLocs = [];
-        document.querySelectorAll('.ob-joint-chk:checked').forEach(c => jointLocs.push(c.value));
-        profile.joint_pain_locations = jointLocs;
-      } else {
-        profile.joint_pain_locations = [];
-      }
-      
-      profile.has_medical_conditions = !!(
-        profile.has_triglycerides ||
-        profile.has_ldl ||
-        profile.has_heart_blockage ||
-        profile.has_hypertension ||
-        profile.has_diabetes ||
-        profile.has_thyroid
-      );
-      
-      const conditions = [];
-      if (profile.has_triglycerides) conditions.push('High Triglycerides');
-      if (profile.has_ldl) conditions.push('High LDL Cholesterol');
-      if (profile.has_heart_blockage) conditions.push('Heart Blockage / CAD');
-      if (profile.has_hypertension) conditions.push('High BP (Hypertension)');
-      if (profile.has_diabetes) conditions.push('Diabetes / Pre-diabetes');
-      if (profile.has_thyroid) conditions.push('Thyroid Condition');
-      profile.medical_conditions = conditions.join(', ');
-      profile.medications = document.getElementById('obMeds')?.value || '';
-
-      profile.work_activity = document.getElementById('obWorkActivity')?.value || 'sedentary';
-      profile.sleep_category = document.getElementById('obSleepCategory')?.value || 'optimal';
-      profile.stress_level = document.getElementById('obStressLevel')?.value || 'moderate';
-      profile.commute_details = document.getElementById('obCommuteDetails')?.value || '';
-
-      // Calculate target waist
-      const weightDiffRatio = (profile.start_weight_kg - profile.target_weight_kg) / profile.start_weight_kg;
-      profile.target_waist_in = +(profile.start_waist_in * (1 - (weightDiffRatio * 0.8))).toFixed(1);
-
-      profile.onboarding_completed = true;
-      saveProfile(profile);
-
-      // Re-configure targets dynamically
-      const settings = getSettings();
-      const w = profile.start_weight_kg;
-      const h = profile.height_cm;
-      const bmi = w / ((h / 100) * (h / 100));
-      if (bmi >= 30 || profile.age >= 45) {
-        settings.step_target = 6000;
-      } else if (profile.primary_goal === 'muscle_gain') {
-        settings.step_target = 10000;
-      } else {
-        settings.step_target = 8000;
-      }
-      
-      if (profile.primary_goal === 'muscle_gain') {
-        settings.protein_target_g = Math.round(profile.start_weight_kg * 1.5);
-      } else {
-        settings.protein_target_g = Math.round(profile.start_weight_kg * 1.2);
-      }
-      saveSettings(settings);
-
-      modal.close();
-      showToast("Personalized plan generated successfully! 🎉");
-      
-      const today = getDateStr(new Date());
-      const log = getDailyLog(today);
-      log.weight_kg = profile.start_weight_kg;
-      log.waist_in = profile.start_waist_in;
-      saveDailyLog(today, log);
-
-      renderCurrentScreen();
     }
   });
 

@@ -360,10 +360,11 @@ const STORAGE_KEYS = {
 // --- Profile ---
 export function formatTime12Hour(timeStr) {
   if (!timeStr) return '';
-  if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
+  const str = String(timeStr);
+  if (str.includes('AM') || str.includes('PM')) return str;
   
-  const parts = timeStr.split(':');
-  if (parts.length < 2) return timeStr;
+  const parts = str.split(':');
+  if (parts.length < 2) return str;
   
   let hours = parseInt(parts[0], 10);
   const minutes = parts[1];
@@ -398,7 +399,7 @@ export function rebuildDynamicData(profile) {
   const exerciseAction = profile.exercise_action || (
     profile.has_heart_blockage
       ? 'Gentle mobility flow & slow breathing (20-30 min) — strictly avoid heavy strain'
-      : (isObeseOrOlder || (profile.has_joint_pain && profile.joint_pain_locations.length > 0))
+      : (isObeseOrOlder || (profile.has_joint_pain && profile.joint_pain_locations && profile.joint_pain_locations.length > 0))
         ? 'Gentle low-impact mobility workout or recovery yoga (30 min)'
         : 'Morning strength workout or bodyweight routine (30 min)'
   );
@@ -513,7 +514,7 @@ export function rebuildDynamicData(profile) {
   if (profile.has_thyroid) {
     checklistTemplate.health.push({ key: 'thyroid_taken', label: 'Thyroid tablet taken', points: 5 });
   } else if (profile.has_medical_conditions && profile.medications) {
-    checklistTemplate.health.push({ key: 'meds_taken', label: `Meds taken (${profile.medications.split(',')[0]})`, points: 5 });
+    checklistTemplate.health.push({ key: 'meds_taken', label: `Meds taken (${(profile.medications || '').split(',')[0]})`, points: 5 });
   } else {
     // Reallocate points to water and sleep
     checklistTemplate.health.forEach(item => {
