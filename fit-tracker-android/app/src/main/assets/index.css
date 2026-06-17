@@ -3411,3 +3411,444 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--primary);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREMIUM REDESIGN ADDITIONS — FIGMA MOCKUPS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Body override for dotted grid background */
+body {
+  background-color: #0b0f19 !important;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0f19;
+  --bg-elevated: #111622;
+  --glass-bg: rgba(17, 22, 34, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 16px;
+  --border-subtle: rgba(255, 255, 255, 0.05);
+}
+
+/* Screen Header Redesign */
+.screen-header-redesign {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-xs);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--primary);
+  object-fit: cover;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.screen-title-redesign {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.weather-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.weather-pill i {
+  width: 14px;
+  height: 14px;
+  color: var(--primary);
+}
+
+/* Health Score Gauge (Figma style) */
+.health-score-gauge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg) 0;
+  width: 100%;
+}
+
+.health-score-gauge {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.health-score-gauge svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gauge-center-content {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.gauge-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-tertiary);
+}
+
+.gauge-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 38px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  margin: 2px 0;
+  letter-spacing: -1px;
+}
+
+.gauge-status {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--success);
+  letter-spacing: 0.5px;
+}
+
+.gauge-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-top: var(--space-md);
+  text-align: center;
+}
+
+/* Metrics Grid (Mockup Cards) */
+.dashboard-metrics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  margin-top: var(--space-md);
+}
+
+.metric-card-horizontal {
+  display: flex;
+  gap: var(--space-md);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.metric-card-horizontal:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.metric-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metric-icon-box i {
+  width: 20px;
+  height: 20px;
+}
+
+.metric-details {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.metric-value-row {
+  display: flex;
+  align-items: baseline;
+  margin-top: 2px;
+}
+
+.metric-value-large {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.metric-slash {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-left: 4px;
+}
+
+.metric-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 9999px;
+  margin-top: var(--space-xs);
+  overflow: hidden;
+}
+
+.metric-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 1s ease-in-out;
+}
+
+/* Walking Safety Card */
+.metric-card-safety {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.safety-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.safety-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.safety-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+}
+
+/* Water Widget Today Redesign */
+.water-3d-glass--today {
+  width: 60px !important;
+  height: 100px !important;
+}
+
+.water-buttons-today {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.water-btn-circle {
+  border: none;
+  background: transparent;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.water-btn-circle:hover {
+  transform: scale(1.05);
+}
+
+.water-btn-circle:active {
+  transform: scale(0.95);
+}
+
+/* Switches (iOS style) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider-switch {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border);
+  transition: .3s;
+  border-radius: 24px;
+}
+
+.slider-switch:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked + .slider-switch {
+  background-color: var(--primary);
+}
+
+input:focus + .slider-switch {
+  box-shadow: 0 0 1px var(--primary);
+}
+
+input:checked + .slider-switch:before {
+  transform: translateX(20px);
+}
+
+/* Metabolic Calculator Pace Selector */
+.pace-tabs {
+  display: flex;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.pace-btn {
+  flex: 1;
+  text-align: center;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pace-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+/* Play button overlay hover animation */
+.form-technique-card:hover .play-button-overlay {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Collapsible biometrics secondary details panel styles */
+.secondary-biometrics-panel summary,
+.secondary-charts-details summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.secondary-biometrics-panel summary::-webkit-details-marker,
+.secondary-charts-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.card--substat {
+  padding: var(--space-md);
+  border-color: var(--border-subtle);
+}
+
+.substat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  letter-spacing: 0.5px;
+}
+
+.substat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.substat-unit {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: 2px;
+}
+
+/* Trend Change Indicators */
+.trend-change {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.trend-change--down {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.trend-change--up {
+  background: rgba(244, 63, 94, 0.1);
+  color: var(--danger);
+}
+
+/* Restaurant recommendation card details */
+.restaurant-tag {
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.daily-intake-card-new {
+  box-shadow: var(--shadow-sm);
+}
+
+

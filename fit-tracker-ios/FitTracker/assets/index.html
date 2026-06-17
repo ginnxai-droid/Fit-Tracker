@@ -145,169 +145,142 @@
 
       <!-- ===== SCREEN 1: DASHBOARD ===== -->
       <section class="screen active" id="screen-dashboard" aria-label="Dashboard">
-        <div class="screen-header">
-          <div>
-            <h1 class="screen-title">Dashboard</h1>
-            <p class="screen-subtitle" id="dashboardDate">Loading...</p>
-          </div>
-          <div style="display: flex; gap: var(--space-sm); align-items: center;">
-            <span class="sex-badge" id="dashSexBadge" style="font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-full); background: var(--primary-subtle, oklch(0.65 0.15 250 / 0.12)); color: var(--primary);"></span>
-            <button class="btn btn--outline" id="dashEditProfileBtn">
-              <i data-lucide="user-cog"></i>
-              <span>Edit Profile</span>
-            </button>
-            <button class="btn btn--primary" id="logTodayBtn">
-              <i data-lucide="plus-circle"></i>
-              <span>Log Today</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Hero Stats -->
-        <div class="stat-grid stat-grid--hero">
-          <div class="card card--stat card--gradient" id="statWeight" style="position: relative; cursor: pointer;">
-            <div class="card-body">
-              <i data-lucide="edit-2" style="position: absolute; top: 12px; right: 12px; width: 14px; height: 14px; opacity: 0.6;"></i>
-              <div class="stat-icon"><i data-lucide="scale"></i></div>
-              <div class="stat-content">
-                <span class="stat-label">Current Weight</span>
-                <span class="stat-value text-mono" id="currentWeight">90.0</span>
-                <span class="stat-unit">kg</span>
-              </div>
-              <div class="stat-change" id="weightChange">
-                <span class="stat-change__value">0 kg</span>
-                <span class="stat-change__label">from start</span>
-              </div>
-              <div class="stat-target">Target: <span class="text-mono" id="weightTarget">81 kg</span></div>
+        <!-- New Mockup Header -->
+        <div class="screen-header-redesign">
+          <div class="header-left">
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" class="user-avatar" alt="Avatar">
+            <div>
+              <h1 class="screen-title-redesign">Health Pulse</h1>
             </div>
           </div>
-          <div class="card card--stat" id="statWaist" style="position: relative; cursor: pointer;">
-            <div class="card-body">
-              <i data-lucide="edit-2" style="position: absolute; top: 12px; right: 12px; width: 14px; height: 14px; opacity: 0.6;"></i>
-              <div class="stat-icon"><i data-lucide="circle-dot"></i></div>
-              <div class="stat-content">
-                <span class="stat-label">Waist</span>
-                <span class="stat-value text-mono" id="currentWaist">38.0</span>
-                <span class="stat-unit">in</span>
-              </div>
-              <div class="stat-target">Target: <span class="text-mono" id="waistTarget">34.5 in</span></div>
-            </div>
-          </div>
-          <div class="card card--stat" id="statDays">
-            <div class="card-body">
-              <div class="stat-icon"><i data-lucide="calendar-days"></i></div>
-              <div class="stat-content">
-                <span class="stat-label">Days Completed</span>
-                <span class="stat-value text-mono" id="daysCompleted">0</span>
-                <span class="stat-unit">/ <span id="totalProgramDays">84</span></span>
-              </div>
-              <div class="stat-target">Week <span class="text-mono" id="currentWeek">1</span> of <span id="totalProgramWeeks">12</span></div>
-            </div>
-          </div>
-          <div class="card card--stat" id="statBmi" style="position: relative; cursor: pointer;">
-            <div class="card-body">
-              <i data-lucide="edit-2" style="position: absolute; top: 12px; right: 12px; width: 14px; height: 14px; opacity: 0.6;"></i>
-              <div class="stat-icon"><i data-lucide="activity"></i></div>
-              <div class="stat-content">
-                <span class="stat-label">Height & BMI</span>
-                <span class="stat-value text-mono" id="currentBmi">--</span>
-                <span class="stat-unit" id="currentBmiStatus" style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-full); margin-left: 8px;">--</span>
-              </div>
-              <div class="stat-target">Height: <span class="text-mono" id="currentHeight">-- cm</span></div>
+          <div class="header-right">
+            <div class="weather-pill">
+              <i data-lucide="cloud"></i>
+              <span>London 18°C</span>
             </div>
           </div>
         </div>
 
-        <!-- Progress Rings -->
-        <div class="stat-grid stat-grid--rings">
-          <div class="card">
-            <div class="card-body card-body--centered">
-              <div class="progress-ring progress-ring--lg" id="ringScore">
-                <svg viewBox="0 0 140 140">
-                  <circle class="progress-ring__bg" cx="70" cy="70" r="60"/>
-                  <circle class="progress-ring__fill" cx="70" cy="70" r="60" id="ringScoreFill"/>
-                </svg>
-                <div class="progress-ring__content">
-                  <span class="progress-ring__value text-mono" id="ringScoreValue">0</span>
-                  <span class="progress-ring__label">Today</span>
-                </div>
-              </div>
-              <span class="stat-label">Daily Score</span>
+        <div style="display: flex; gap: var(--space-sm); align-items: center; margin-top: var(--space-sm); margin-bottom: var(--space-md); justify-content: flex-end;">
+          <span class="sex-badge" id="dashSexBadge" style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: var(--radius-full); background: var(--primary-subtle, rgba(59, 130, 246, 0.12)); color: var(--primary);"></span>
+          <button class="btn btn--outline btn--sm" id="dashEditProfileBtn">
+            <i data-lucide="user-cog" style="width: 14px; height: 14px;"></i>
+            <span>Edit Profile</span>
+          </button>
+          <button class="btn btn--primary btn--sm" id="logTodayBtn">
+            <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i>
+            <span>Log Today</span>
+          </button>
+        </div>
+
+        <!-- Radial Health Score Gauge -->
+        <div class="health-score-gauge-container">
+          <div class="health-score-gauge" id="ringScore">
+            <svg viewBox="0 0 140 140">
+              <defs>
+                <linearGradient id="gaugeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#fbbf24" />  <!-- Yellow -->
+                  <stop offset="100%" stop-color="#10b981" /> <!-- Cyan-Green -->
+                </linearGradient>
+              </defs>
+              <circle class="progress-ring__bg" cx="70" cy="70" r="60" stroke-width="8"/>
+              <circle class="progress-ring__fill" cx="70" cy="70" r="60" id="ringScoreFill" stroke="url(#gaugeGrad)" stroke-width="8" stroke-linecap="round"/>
+            </svg>
+            <div class="gauge-center-content">
+              <span class="gauge-label">HEALTH SCORE</span>
+              <span class="gauge-value" id="ringScoreValue">75</span>
+              <span class="gauge-status" id="ringScoreStatus">OPTIMAL</span>
             </div>
           </div>
-          <div class="card">
-            <div class="card-body card-body--centered">
-              <div class="progress-ring progress-ring--lg" id="ringCompliance">
-                <svg viewBox="0 0 140 140">
-                  <circle class="progress-ring__bg" cx="70" cy="70" r="60"/>
-                  <circle class="progress-ring__fill" cx="70" cy="70" r="60" id="ringComplianceFill"/>
-                </svg>
-                <div class="progress-ring__content">
-                  <span class="progress-ring__value text-mono" id="ringComplianceValue">0</span>
-                  <span class="progress-ring__label">Week</span>
-                </div>
+          <div class="gauge-title">Triglyceride Health Score</div>
+        </div>
+
+        <!-- Metrics Grid (Mockup Style) -->
+        <div class="dashboard-metrics-grid">
+          <!-- Daily Steps Card -->
+          <div class="metric-card-horizontal" id="stepsCard">
+            <div class="metric-icon-box" style="background: rgba(59, 130, 246, 0.15); color: var(--primary);">
+              <i data-lucide="footprints"></i>
+            </div>
+            <div class="metric-details">
+              <div class="metric-name-row">
+                <span class="metric-name">Daily Steps</span>
               </div>
-              <span class="stat-label">Weekly Compliance</span>
+              <div class="metric-value-row">
+                <span class="metric-value-large text-mono" id="todaySteps">0</span>
+                <span class="metric-slash">/ 10k</span>
+              </div>
+              <div class="metric-progress-bar">
+                <div class="metric-progress-fill" id="stepsBarFill" style="width: 0%; background: var(--primary);"></div>
+              </div>
+              <div class="metric-footer-info" style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 4px;">
+                <span id="todayStepsStatus" style="font-weight: 600; color: var(--text-secondary);">Benchmark: 8,000 steps</span>
+                <span id="todayStepsCalories" style="color: var(--warning); display: flex; align-items: center; gap: 2px;">
+                  <i data-lucide="flame" style="width: 12px; height: 12px;"></i>
+                  <span id="todayStepsCaloriesValue">0 kcal</span>
+                </span>
+              </div>
             </div>
           </div>
-          <div class="card">
-            <div class="card-body card-body--centered">
-              <div class="progress-ring progress-ring--lg" id="ringProtein">
-                <svg viewBox="0 0 140 140">
-                  <circle class="progress-ring__bg" cx="70" cy="70" r="60"/>
-                  <circle class="progress-ring__fill" cx="70" cy="70" r="60" id="ringProteinFill"/>
-                </svg>
-                <div class="progress-ring__content">
-                  <span class="progress-ring__value text-mono" id="ringProteinValue">0</span>
-                  <span class="progress-ring__label">g</span>
-                </div>
-              </div>
-              <span class="stat-label">Protein Today</span>
+
+          <!-- Sleep Quality Card -->
+          <div class="metric-card-horizontal">
+            <div class="metric-icon-box" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">
+              <i data-lucide="moon"></i>
             </div>
+            <div class="metric-details">
+              <div class="metric-name-row">
+                <span class="metric-name">Sleep Quality</span>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value-large text-mono" id="todaySleep">0</span>
+                <span class="metric-slash">h</span>
+              </div>
+              <div class="metric-progress-bar">
+                <div class="metric-progress-fill" id="sleepBarFill" style="width: 75%; background: var(--success);"></div>
+              </div>
+              <div class="metric-change-text" style="color: var(--success); font-size: 11px; font-weight: 600; margin-top: 4px;">
+                +12% from avg
+              </div>
+            </div>
+          </div>
+
+          <!-- Energy Burned Card -->
+          <div class="metric-card-horizontal">
+            <div class="metric-icon-box" style="background: rgba(244, 63, 94, 0.15); color: var(--danger);">
+              <i data-lucide="utensils"></i>
+            </div>
+            <div class="metric-details">
+              <div class="metric-name-row">
+                <span class="metric-name">Energy Burned</span>
+              </div>
+              <div class="metric-value-row">
+                <span class="metric-value-large text-mono" id="dashboardActiveCalories">1,200</span>
+                <span class="metric-slash">NET KCAL</span>
+              </div>
+              <div class="metric-progress-bar">
+                <div class="metric-progress-fill" style="width: 60%; background: var(--danger);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Walking Safety Card -->
+          <div class="metric-card-safety">
+            <div class="safety-left">
+              <i data-lucide="wind" style="color: var(--success); width: 18px; height: 18px;"></i>
+              <span class="safety-text">Walking Safety: <strong style="color: var(--success);">Optimal Air Quality</strong></span>
+            </div>
+            <i data-lucide="chevron-right" class="safety-arrow"></i>
           </div>
         </div>
 
-        <!-- Streaks & Steps -->
-        <div class="stat-grid stat-grid--4col">
-          <div class="card">
-            <div class="card-body card-body--centered">
-              <div class="streak-badge streak-badge--fire">
-                <i data-lucide="flame"></i>
-                <span class="text-mono" id="cleanStreak">0</span>
-              </div>
-              <span class="stat-label">Clean Food Streak</span>
-            </div>
+        <!-- Biometric Trend Section -->
+        <div class="card" style="margin-top: var(--space-md);">
+          <div class="card-header">
+            <h2><i data-lucide="bar-chart-3" style="color: var(--primary);"></i> Biometric Trend</h2>
           </div>
-          <div class="card">
-            <div class="card-body card-body--centered">
-              <div class="streak-badge streak-badge--workout">
-                <i data-lucide="trophy"></i>
-                <span class="text-mono" id="workoutStreak">0</span>
-              </div>
-              <span class="stat-label">Workout Streak</span>
-            </div>
-          </div>
-          <div class="card" id="stepsCard" style="cursor: pointer;">
-            <div class="card-body card-body--centered">
-              <div class="stat-icon--inline"><i data-lucide="footprints"></i></div>
-              <span class="stat-value text-mono text-md" id="todaySteps">0</span>
-              <span class="stat-label">Steps Today</span>
-              <div class="protein-bar protein-bar--mini">
-                <div class="protein-bar__fill" id="stepsBarFill" style="width: 0%"></div>
-              </div>
-              <div class="stat-label" id="todayStepsStatus" style="font-size: 11px; margin-top: 6px; font-weight: 600; color: var(--text-secondary);">Benchmark: 8,000 steps</div>
-              <div class="stat-label" id="todayStepsCalories" style="font-size: 11px; margin-top: 2px; color: var(--warning); display: flex; align-items: center; justify-content: center; gap: 4px;">
-                <i data-lucide="flame" style="width: 12px; height: 12px;"></i>
-                <span id="todayStepsCaloriesValue">0 kcal</span>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-body card-body--centered">
-              <div class="stat-icon--inline"><i data-lucide="moon"></i></div>
-              <span class="stat-value text-mono text-md" id="todaySleep">0</span>
-              <span class="stat-label">Sleep Hours</span>
-            </div>
+          <div class="card-body">
+            <div class="chart-container" style="height: 180px;"><canvas id="dashboardTrendChart"></canvas></div>
           </div>
         </div>
 
@@ -341,45 +314,182 @@
                   <i data-lucide="cup-soda" style="width: 16px; height: 16px;"></i> +750ml
                 </button>
                 <button class="water-btn water-btn--reset" id="btnWaterReset" title="Reset Today's Water">
-                  <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Reset Water
+                  <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Reset
                 </button>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- COLLAPSIBLE PROGRAM & BIOMETRICS PANEL (Preserves all existing elements for E2E) -->
+        <details class="secondary-biometrics-panel" style="margin-top: var(--space-md); margin-bottom: var(--space-md);" open>
+          <summary style="cursor: pointer; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">📊 Program Overview & Biometric Details</summary>
+          <div class="secondary-biometrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-sm);">
+            
+            <!-- Weight Card -->
+            <div class="card card--substat" style="padding: var(--space-md); position: relative;">
+              <span class="substat-label">Weight</span>
+              <div style="display: flex; align-items: baseline; gap: 4px; margin-top: 4px;">
+                <span class="substat-value text-mono" id="currentWeight">90.0</span><span class="substat-unit">kg</span>
+              </div>
+              <div class="stat-change" id="weightChange" style="margin-top: 2px; font-size: 11px;">0 kg</div>
+              <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">Target: <span id="weightTarget">81 kg</span></div>
+            </div>
+
+            <!-- Waist Card -->
+            <div class="card card--substat" style="padding: var(--space-md);">
+              <span class="substat-label">Waist</span>
+              <div style="display: flex; align-items: baseline; gap: 4px; margin-top: 4px;">
+                <span class="substat-value text-mono" id="currentWaist">38.0</span><span class="substat-unit">in</span>
+              </div>
+              <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">Target: <span id="waistTarget">34.5 in</span></div>
+            </div>
+
+            <!-- Program Days Card -->
+            <div class="card card--substat" style="padding: var(--space-md);">
+              <span class="substat-label">Program Days</span>
+              <div style="display: flex; align-items: baseline; gap: 4px; margin-top: 4px;">
+                <span class="substat-value text-mono" id="daysCompleted">0</span>
+                <span class="substat-unit">/ <span id="totalProgramDays">84</span></span>
+              </div>
+              <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">Week <span id="currentWeek">1</span> of <span id="totalProgramWeeks">12</span></div>
+            </div>
+
+            <!-- BMI Card -->
+            <div class="card card--substat" style="padding: var(--space-md);">
+              <span class="substat-label">Height & BMI</span>
+              <div style="display: flex; align-items: baseline; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
+                <span class="substat-value text-mono" id="currentBmi">--</span>
+                <span class="badge text-mono" id="currentBmiStatus" style="font-size: 9px; padding: 2px 6px;">--</span>
+              </div>
+              <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">Height: <span id="currentHeight">-- cm</span></div>
+            </div>
+
+            <!-- Weekly Compliance Card -->
+            <div class="card card--substat" style="padding: var(--space-md); text-align: center;">
+              <span class="substat-label">Weekly Compliance</span>
+              <div style="display: flex; justify-content: center; margin-top: 6px; position: relative;">
+                <svg width="60" height="60" viewBox="0 0 60 60" style="transform: rotate(-90deg);">
+                  <circle cx="30" cy="30" r="26" fill="none" stroke="var(--border-subtle)" stroke-width="4"/>
+                  <circle cx="30" cy="30" r="26" fill="none" stroke="var(--primary)" stroke-width="4" id="ringComplianceFill" stroke-dasharray="163" stroke-dashoffset="163"/>
+                </svg>
+                <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;" id="ringComplianceValue">0%</div>
+              </div>
+            </div>
+
+            <!-- Protein Card -->
+            <div class="card card--substat" style="padding: var(--space-md); text-align: center;">
+              <span class="substat-label">Protein Today</span>
+              <div style="display: flex; justify-content: center; margin-top: 6px; position: relative;">
+                <svg width="60" height="60" viewBox="0 0 60 60" style="transform: rotate(-90deg);">
+                  <circle cx="30" cy="30" r="26" fill="none" stroke="var(--border-subtle)" stroke-width="4"/>
+                  <circle cx="30" cy="30" r="26" fill="none" stroke="var(--success)" stroke-width="4" id="ringProteinFill" stroke-dasharray="163" stroke-dashoffset="163"/>
+                </svg>
+                <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;" id="ringProteinValue">0g</div>
+              </div>
+            </div>
+
+            <!-- Clean Streak Card -->
+            <div class="card card--substat" style="padding: var(--space-md); text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <div class="streak-badge streak-badge--fire" style="font-size: 14px; padding: 4px 10px;">
+                <i data-lucide="flame" style="width: 14px; height: 14px;"></i>
+                <span class="text-mono" id="cleanStreak">0</span>
+              </div>
+              <span class="substat-label" style="margin-top: 6px;">Clean Food Streak</span>
+            </div>
+
+            <!-- Workout Streak Card -->
+            <div class="card card--substat" style="padding: var(--space-md); text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <div class="streak-badge streak-badge--workout" style="font-size: 14px; padding: 4px 10px;">
+                <i data-lucide="trophy" style="width: 14px; height: 14px;"></i>
+                <span class="text-mono" id="workoutStreak">0</span>
+              </div>
+              <span class="substat-label" style="margin-top: 6px;">Workout Streak</span>
+            </div>
+
+          </div>
+        </details>
       </section>
 
       <!-- ===== SCREEN 2: TODAY ===== -->
       <section class="screen" id="screen-today" aria-label="Today">
-        <div class="screen-header">
-          <div>
-            <h1 class="screen-title">Today's Plan</h1>
-            <p class="screen-subtitle" id="todayDate">Loading...</p>
+        <!-- New Mockup Header -->
+        <div class="screen-header-redesign">
+          <div class="header-left">
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" class="user-avatar" alt="Avatar">
+            <div>
+              <h1 class="screen-title-redesign">Today's Focus</h1>
+            </div>
           </div>
-          <div class="date-nav">
-            <button class="btn-icon" id="prevDay" aria-label="Previous day"><i data-lucide="chevron-left"></i></button>
-            <button class="btn btn--ghost" id="todayBtn">Today</button>
-            <button class="btn-icon" id="nextDay" aria-label="Next day"><i data-lucide="chevron-right"></i></button>
+          <div class="header-right">
+            <div class="weather-pill">
+              <i data-lucide="cloud"></i>
+              <span>London 18°C</span>
+            </div>
           </div>
         </div>
 
-        <!-- Daily Score -->
-        <div class="score-display" id="todayScoreDisplay">
-          <div class="score-display__ring">
-            <svg viewBox="0 0 120 120">
-              <circle class="score-display__bg" cx="60" cy="60" r="52"/>
-              <circle class="score-display__ring-fill" cx="60" cy="60" r="52" id="todayScoreFill" fill="none"/>
-            </svg>
-            <span class="score-display__value text-mono" id="todayScoreValue">0</span>
-          </div>
-          <div class="score-display__info">
-            <span class="score-display__label" id="todayScoreLabel">Start logging!</span>
-            <div class="score-display__breakdown" id="todayScoreBreakdown"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-sm); margin-bottom: var(--space-md);">
+          <p class="screen-subtitle" id="todayDate" style="margin: 0; color: var(--text-secondary); font-size: 13px; font-weight: 500;">Loading...</p>
+          <div class="date-nav">
+            <button class="btn-icon btn-icon--sm" id="prevDay" aria-label="Previous day"><i data-lucide="chevron-left"></i></button>
+            <button class="btn btn--ghost btn--sm" id="todayBtn">Today</button>
+            <button class="btn-icon btn-icon--sm" id="nextDay" aria-label="Next day"><i data-lucide="chevron-right"></i></button>
           </div>
         </div>
+
+        <!-- Hydration Glass Widget -->
+        <div class="card water-card-today" style="margin-bottom: var(--space-md); border-color: rgba(37, 99, 235, 0.25);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+            <div>
+              <span class="water-card-label" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 1px;">HYDRATION</span>
+              <h2 style="font-size: 22px; font-weight: 800; color: var(--text); margin-top: 2px;" id="waterGlassesToday">0 / 8 Glasses</h2>
+            </div>
+            <div id="waterDisplayValToday" style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--primary); background: rgba(59, 130, 246, 0.1); padding: 4px 8px; border-radius: 6px;">0.0 L</div>
+          </div>
+          
+          <div class="water-widget-container-today" style="display: flex; flex-direction: column; align-items: center; margin-top: var(--space-md); width: 100%;">
+            <div class="water-3d-glass water-3d-glass--today">
+              <div class="glass-rim"></div>
+              <div class="glass-cylinder" id="water3DGlassToday">
+                <div class="glass-sheen"></div>
+                <div class="liquid-top" id="liquidTopToday"></div>
+                <div class="liquid-body" id="liquidBodyToday"></div>
+              </div>
+            </div>
+            
+            <div class="water-buttons-today" style="display: flex; gap: var(--space-lg); margin-top: var(--space-md); align-items: center; justify-content: center; width: 100%;">
+              <button class="water-btn-circle" id="btnWaterSubToday" title="Remove 1 glass" style="width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); transition: all var(--transition-fast);">
+                <i data-lucide="minus" style="width: 16px; height: 16px;"></i>
+              </button>
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);" id="waterGoalValToday">Goal: 2.0L</span>
+              <button class="water-btn-circle" id="btnWaterAddToday" title="Add 1 glass" style="width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--primary); background: var(--primary); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #ffffff; transition: all var(--transition-fast); box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);">
+                <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Score (Collapsible Details for E2E validation) -->
+        <details class="card score-display-details" style="margin-bottom: var(--space-md); padding: var(--space-sm) var(--space-md);">
+          <summary style="cursor: pointer; font-weight: 600; color: var(--text-secondary); font-size: 13px;">📈 View Daily Compliance Score Breakdown</summary>
+          <div class="score-display" id="todayScoreDisplay" style="margin-top: var(--space-sm); border-top: 1px solid var(--border-subtle); padding-top: var(--space-md);">
+            <div class="score-display__ring">
+              <svg viewBox="0 0 120 120">
+                <circle class="score-display__bg" cx="60" cy="60" r="52"/>
+                <circle class="score-display__ring-fill" cx="60" cy="60" r="52" id="todayScoreFill" fill="none"/>
+              </svg>
+              <span class="score-display__value text-mono" id="todayScoreValue">0</span>
+            </div>
+            <div class="score-display__info">
+              <span class="score-display__label" id="todayScoreLabel">Start logging!</span>
+              <div class="score-display__breakdown" id="todayScoreBreakdown"></div>
+            </div>
+          </div>
+        </details>
 
         <!-- Timeline -->
-        <div class="card">
+        <div class="card" style="margin-bottom: var(--space-md);">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2><i data-lucide="clock"></i> Daily Timeline</h2>
             <button class="btn btn--ghost btn--sm" id="editScheduleBtn" style="font-size: 12px; gap: 4px;">
@@ -391,42 +501,45 @@
           </div>
         </div>
 
-        <!-- Checklists -->
+        <!-- Checklists Grouped by Mockup Categories -->
         <div class="checklist-grid">
-          <!-- Health -->
-          <div class="card">
-            <div class="card-header card-header--health">
-              <h2><i data-lucide="heart-pulse"></i> Health</h2>
-              <span class="badge badge--health" id="healthCount">0/4</span>
-            </div>
-            <div class="card-body">
-              <div class="checklist" id="checklist-health"></div>
-            </div>
-          </div>
-          <!-- Food -->
-          <div class="card">
-            <div class="card-header card-header--food">
-              <h2><i data-lucide="apple"></i> Food</h2>
-              <span class="badge badge--food" id="foodCount">0/9</span>
-            </div>
-            <div class="card-body">
-              <div class="checklist" id="checklist-food"></div>
-            </div>
-          </div>
-          <!-- Movement -->
+          <!-- Movement Checklist -->
           <div class="card">
             <div class="card-header card-header--movement">
-              <h2><i data-lucide="activity"></i> Movement</h2>
+              <h2><i data-lucide="activity" style="color: var(--primary);"></i> Movement</h2>
               <span class="badge badge--movement" id="movementCount">0/5</span>
             </div>
             <div class="card-body">
               <div class="checklist" id="checklist-movement"></div>
             </div>
           </div>
-          <!-- Tracking -->
+
+          <!-- Diet Checklist (corresponds to food category) -->
+          <div class="card">
+            <div class="card-header card-header--food">
+              <h2><i data-lucide="utensils" style="color: var(--success);"></i> Diet</h2>
+              <span class="badge badge--food" id="foodCount">0/9</span>
+            </div>
+            <div class="card-body">
+              <div class="checklist" id="checklist-food"></div>
+            </div>
+          </div>
+
+          <!-- Clinical Checklist (corresponds to health category) -->
+          <div class="card">
+            <div class="card-header card-header--health">
+              <h2><i data-lucide="heart-pulse" style="color: var(--danger);"></i> Clinical</h2>
+              <span class="badge badge--health" id="healthCount">0/4</span>
+            </div>
+            <div class="card-body">
+              <div class="checklist" id="checklist-health"></div>
+            </div>
+          </div>
+
+          <!-- Tracking Checklist -->
           <div class="card">
             <div class="card-header card-header--tracking">
-              <h2><i data-lucide="bar-chart-3"></i> Tracking</h2>
+              <h2><i data-lucide="bar-chart-3" style="color: var(--warning);"></i> Tracking</h2>
               <span class="badge badge--tracking" id="trackingCount">0/4</span>
             </div>
             <div class="card-body">
@@ -435,10 +548,10 @@
           </div>
         </div>
 
-        <!-- Quick Inputs -->
-        <div class="card">
+        <!-- Quick Log Inputs -->
+        <div class="card" style="margin-top: var(--space-md);">
           <div class="card-header">
-            <h2><i data-lucide="edit-3"></i> Quick Log</h2>
+            <h2><i data-lucide="edit-3" style="color: var(--accent);"></i> Quick Log</h2>
           </div>
           <div class="card-body">
             <div class="input-grid">
@@ -492,7 +605,7 @@
                 </div>
               </div>
             </div>
-            <div class="input-group input-group--full">
+            <div class="input-group input-group--full" style="margin-top: var(--space-md);">
               <label for="inputNotes">Notes</label>
               <textarea id="inputNotes" class="input input--textarea" rows="2" placeholder="How did today go?"></textarea>
             </div>
@@ -505,20 +618,33 @@
 
       <!-- ===== SCREEN 3: MEAL PLAN ===== -->
       <section class="screen" id="screen-meals" aria-label="Meal Plan">
-        <div class="screen-header">
-          <div>
-            <h1 class="screen-title">Meal Plan</h1>
-            <p class="screen-subtitle" id="mealsDate">Loading...</p>
+        <!-- New Mockup Header -->
+        <div class="screen-header-redesign">
+          <div class="header-left">
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" class="user-avatar" alt="Avatar">
+            <div>
+              <h1 class="screen-title-redesign">Meal Planning</h1>
+            </div>
           </div>
+          <div class="header-right">
+            <div class="weather-pill">
+              <i data-lucide="cloud"></i>
+              <span>London 18°C</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-sm); margin-bottom: var(--space-md);">
+          <p class="screen-subtitle" id="mealsDate" style="margin: 0; color: var(--text-secondary); font-size: 13px; font-weight: 500;">Loading...</p>
           <div class="date-nav">
-            <button class="btn-icon" id="prevMealsDay" aria-label="Previous day"><i data-lucide="chevron-left"></i></button>
-            <button class="btn btn--ghost" id="mealsTodayBtn">Today</button>
-            <button class="btn-icon" id="nextMealsDay" aria-label="Next day"><i data-lucide="chevron-right"></i></button>
+            <button class="btn-icon btn-icon--sm" id="prevMealsDay" aria-label="Previous day"><i data-lucide="chevron-left"></i></button>
+            <button class="btn btn--ghost btn--sm" id="mealsTodayBtn">Today</button>
+            <button class="btn-icon btn-icon--sm" id="nextMealsDay" aria-label="Next day"><i data-lucide="chevron-right"></i></button>
           </div>
         </div>
 
         <!-- Active Location Bar -->
-        <div class="location-bar" style="margin-top: var(--space-md);">
+        <div class="location-bar" style="margin-bottom: var(--space-md);">
           <div class="location-status-container" style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: var(--space-sm); flex-wrap: wrap;">
             <div class="location-badge" style="display: flex; align-items: center; gap: 6px; color: var(--text);">
               <div class="location-dot" id="locationDot"></div>
@@ -533,7 +659,7 @@
         </div>
 
         <!-- Day Selector -->
-        <div class="day-selector" id="mealDaySelector" style="margin-top: var(--space-sm);">
+        <div class="day-selector" id="mealDaySelector" style="margin-bottom: var(--space-md);">
           <button class="day-pill active" data-day="monday">Mon</button>
           <button class="day-pill" data-day="tuesday">Tue</button>
           <button class="day-pill" data-day="wednesday">Wed</button>
@@ -543,42 +669,66 @@
           <button class="day-pill" data-day="sunday">Sun</button>
         </div>
 
-        <!-- Day Theme & Targets -->
-        <div class="card card--accent" id="dayThemeCard">
-          <div class="card-body" style="display: flex; flex-direction: column; gap: var(--space-md);">
-            <h3 id="dayThemeName">Monday — Vegetarian, No Non-Veg</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); flex-wrap: wrap;">
-              
-              <!-- Protein Progress -->
-              <div class="protein-bar" id="mealProteinBar">
-                <div class="protein-bar__track">
-                  <div class="protein-bar__fill" id="mealProteinFill" style="width: 0%"></div>
-                  <div class="protein-bar__marker" id="mealProteinMarker" style="left: 95%"></div>
+        <!-- Redesigned Daily Intake Card -->
+        <div class="card daily-intake-card-new" style="margin-bottom: var(--space-md); border-color: rgba(245, 158, 11, 0.2);">
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 1px;">
+            <span>DAILY INTAKE</span>
+            <span style="color: var(--success); font-weight: 700;" id="mealRemainingContainer">REMAINING <span id="mealRemainingKcal" class="text-mono">600</span></span>
+          </div>
+          <div style="margin-top: var(--space-xs); display: flex; align-items: baseline; gap: 4px;">
+            <span class="text-mono" id="mealCalorieTotal" style="font-size: 24px; font-weight: 800; color: var(--text);">0 kcal</span>
+            <span style="font-size: 13px; color: var(--text-secondary);">/ <span id="mealCalorieTargetVal" class="text-mono">2,000</span> kcal</span>
+          </div>
+          <div class="protein-bar" style="margin-top: var(--space-sm); height: 8px; border-radius: 9999px;">
+            <div class="protein-bar__track" style="background: rgba(245, 158, 11, 0.15); height: 8px; border-radius: 9999px; overflow: hidden; width: 100%;">
+              <div class="protein-bar__fill" id="mealCalorieFill" style="width: 0%; background: var(--warning); height: 8px; border-radius: 9999px;"></div>
+            </div>
+          </div>
+          
+          <!-- Protein Progress (Neatly integrated) -->
+          <div style="margin-top: var(--space-md); border-top: 1px solid var(--border-subtle); padding-top: var(--space-sm); display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+            <span>Protein Intake: <strong id="mealProteinTotal" class="text-mono">0g</strong></span>
+            <span style="color: var(--text-secondary);">Target: <strong id="mealProteinTargetRange" class="text-mono">95–110g</strong></span>
+          </div>
+          <div class="protein-bar" style="margin-top: var(--space-xs); height: 6px; border-radius: 9999px;">
+            <div class="protein-bar__track" style="height: 6px; border-radius: 9999px; overflow: hidden; width: 100%;">
+              <div class="protein-bar__fill" id="mealProteinFill" style="width: 0%; background: var(--primary); height: 6px; border-radius: 9999px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Day Theme name display (Hidden but present for script mapping) -->
+        <span id="dayThemeName" style="display: none;"></span>
+
+        <!-- Heart-Healthy Near You Card -->
+        <div class="card restaurant-recommendation-card" style="margin-bottom: var(--space-md); overflow: hidden; padding: 0; border-color: rgba(16, 185, 129, 0.2);">
+          <div class="restaurant-image-container" style="height: 140px; width: 100%; position: relative; overflow: hidden; background: url('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80') center center; background-size: cover;">
+            <span class="restaurant-tag" style="position: absolute; top: 12px; left: 12px; font-size: 9px; font-weight: 700; color: #ffffff; background: var(--success); padding: 4px 8px; border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.5px;">LOW SODIUM</span>
+          </div>
+          <div style="padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm);">
+            <div>
+              <span style="font-size: 10px; font-weight: 700; color: var(--success); letter-spacing: 0.5px; text-transform: uppercase;">HEART-HEALTHY NEAR YOU</span>
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--text); margin-top: 2px;">Quinoa Mediterranean Bowl</h3>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Veda Organic Cafe • 0.4 miles</p>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-xs);">
+              <div style="display: flex; gap: var(--space-md);">
+                <div style="display: flex; flex-direction: column;">
+                  <span style="font-size: 10px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase;">KCAL</span>
+                  <span style="font-size: 14px; font-weight: 700; color: var(--warning); margin-top: 2px;">420</span>
                 </div>
-                <div class="protein-bar__labels" style="margin-top: 4px;">
-                  <span>Protein: <span class="text-mono" id="mealProteinTotal">0g</span></span>
-                  <span>Target: <span class="text-mono" id="mealProteinTargetRange">95–110g</span></span>
+                <div style="display: flex; flex-direction: column;">
+                  <span style="font-size: 10px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase;">PROTEIN</span>
+                  <span style="font-size: 14px; font-weight: 700; color: var(--primary); margin-top: 2px;">18g</span>
                 </div>
               </div>
-
-              <!-- Calorie Progress -->
-              <div class="protein-bar" id="mealCalorieBar">
-                <div class="protein-bar__track" style="background: rgba(245, 158, 11, 0.15);">
-                  <div class="protein-bar__fill" id="mealCalorieFill" style="width: 0%; background: var(--warning);"></div>
-                  <div class="protein-bar__marker" id="mealCalorieMarker" style="left: 90%; background: var(--warning);"></div>
-                </div>
-                <div class="protein-bar__labels" style="margin-top: 4px;">
-                  <span>Calories: <span class="text-mono" id="mealCalorieTotal" style="color: var(--warning);">0 kcal</span></span>
-                  <span>Goal: <span class="text-mono" id="mealCalorieTargetVal">2,000 kcal</span></span>
-                </div>
-              </div>
-
+              <button class="btn btn--primary btn--sm" style="font-size: 11px; padding: 6px 12px;" onclick="showToast('Ordering Quinoa Mediterranean Bowl from Veda Organic Cafe... 🥗')">ORDER NOW</button>
             </div>
           </div>
         </div>
 
         <!-- Regional Specialties & Clinical Swaps -->
-        <div class="card" id="regionalSpecialtiesCard" style="display: none; border-color: rgba(147, 51, 234, 0.3); margin-top: var(--space-md);">
+        <div class="card" id="regionalSpecialtiesCard" style="display: none; border-color: rgba(147, 51, 234, 0.3); margin-bottom: var(--space-md);">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0;">
             <h2><i data-lucide="compass" style="color: var(--accent);"></i> Regional Specialties & Healthy Swaps</h2>
             <span style="font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase;" id="localRegionLabel">Local Specials</span>
@@ -587,15 +737,36 @@
             <p style="font-size: 12px; color: var(--text-secondary); margin: 0; line-height: 1.4;">
               Famous local dishes detected in your city. Click any dish to log it, or check the recommended swap to fit it into your plan!
             </p>
-            <div class="regional-grid" id="regionalSpecialtiesGrid"></div>
+            <div class="regional-grid" id="regionalSpecialtiesGrid" style="margin-top: var(--space-sm);"></div>
           </div>
         </div>
 
+        <!-- Today's Schedule Header -->
+        <div style="margin-top: var(--space-md); margin-bottom: var(--space-sm);">
+          <h2 style="font-size: 14px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Today's Schedule</h2>
+        </div>
+
         <!-- Meal Cards -->
-        <div class="meal-cards" id="mealCards" style="margin-top: var(--space-md);"></div>
+        <div class="meal-cards" id="mealCards" style="margin-bottom: var(--space-md);"></div>
+
+        <!-- Hydration Status Card (Mockup Style) -->
+        <div class="card hydration-status-card-mockup" style="margin-bottom: var(--space-md); padding: var(--space-sm) var(--space-md); display: flex; align-items: center; justify-content: space-between; border-color: rgba(59, 130, 246, 0.2);">
+          <div style="display: flex; align-items: center; gap: var(--space-sm);">
+            <div class="hydration-icon-box" style="background: rgba(59, 130, 246, 0.15); color: var(--primary); width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+              <i data-lucide="droplet"></i>
+            </div>
+            <div>
+              <h4 style="font-size: 14px; font-weight: 700; color: var(--text);">Hydration</h4>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-top: 1px;"><span id="waterLitersMockup">0.0L</span> / <span id="waterGoalLitersMockup">2.5L</span></p>
+            </div>
+          </div>
+          <button class="btn-icon" style="background: var(--primary-glow); color: var(--primary); border: none; width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer;" id="btnQuickWaterMockup" title="Log 1 glass water">
+            <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+          </button>
+        </div>
 
         <!-- Custom Food Logger & Search -->
-        <div class="card" style="border-color: rgba(0, 229, 153, 0.2); margin-top: var(--space-md);">
+        <div class="card" style="border-color: rgba(0, 229, 153, 0.2); margin-bottom: var(--space-md);">
           <div class="card-header">
             <h2><i data-lucide="plus-circle" style="color: var(--success);"></i> Local Custom Food Logger</h2>
           </div>
@@ -686,35 +857,76 @@
 
       <!-- ===== SCREEN 4: WORKOUT ===== -->
       <section class="screen" id="screen-workout" aria-label="Workout">
-        <div class="screen-header">
-          <div>
-            <h1 class="screen-title">Workout</h1>
-            <p class="screen-subtitle" id="workoutSubtitle">Today's training</p>
+        <!-- New Mockup Header -->
+        <div class="screen-header-redesign">
+          <div class="header-left">
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" class="user-avatar" alt="Avatar">
+            <div>
+              <h1 class="screen-title-redesign">Active Pulse</h1>
+            </div>
           </div>
-          <div class="tag" id="workoutTypeTag">Workout A</div>
+          <div class="header-right" style="display: flex; align-items: center; gap: var(--space-sm);">
+            <div class="tag" id="workoutTypeTag" style="font-weight: 700; font-size: 11px; background: rgba(59, 130, 246, 0.15); color: var(--primary); border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 10px; border-radius: var(--radius-full);">Workout A</div>
+            <div class="weather-pill">
+              <i data-lucide="cloud"></i>
+              <span>London 18°C</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Workout Schedule -->
-        <div class="card card--accent" id="workoutScheduleCard">
-          <div class="card-body">
+        <p class="screen-subtitle" id="workoutSubtitle" style="margin-top: var(--space-xs); margin-bottom: var(--space-md); color: var(--text-secondary); font-size: 13px; font-weight: 500;">Today's training</p>
+
+        <!-- Metabolic Calculator Card -->
+        <div class="card metabolic-calculator-card" style="margin-bottom: var(--space-md); border-color: rgba(59, 130, 246, 0.25);">
+          <div class="card-header" style="padding-bottom: 0;">
+            <h2 style="font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 6px;"><i data-lucide="activity" style="width: 14px; height: 14px;"></i> METABOLIC CALCULATOR</h2>
+          </div>
+          <div class="card-body" style="padding-top: var(--space-sm); display: flex; flex-direction: column; gap: var(--space-md);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-xs);">
+              <div>
+                <span style="font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px;">TARGET STEPS</span>
+                <div style="font-size: 22px; font-weight: 800; color: var(--text); margin-top: 1px;"><span id="calcTargetStepsVal">8,500</span> <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">steps</span></div>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px;">EST. BURN</span>
+                <div style="font-size: 22px; font-weight: 800; color: var(--success); margin-top: 1px;" id="calcEstBurnVal">425 kcal</div>
+              </div>
+            </div>
+            
+            <div style="width: 100%;">
+              <input type="range" id="calcStepSlider" min="2000" max="15000" step="500" value="8500" class="slider" style="width: 100%; height: 6px; background: var(--border); border-radius: 9999px; outline: none; margin: var(--space-xs) 0;">
+            </div>
+
+            <div class="pace-tabs" style="display: flex; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg-elevated); padding: 2px;">
+              <button class="pace-btn" data-pace="slow" style="flex: 1; border: none; padding: var(--space-xs) var(--space-sm); font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all var(--transition-fast); background: transparent; color: var(--text-secondary);">Slow</button>
+              <button class="pace-btn active" data-pace="brisk" style="flex: 1; border: none; padding: var(--space-xs) var(--space-sm); font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all var(--transition-fast); background: var(--primary); color: #ffffff; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);">Brisk</button>
+              <button class="pace-btn" data-pace="run" style="flex: 1; border: none; padding: var(--space-xs) var(--space-sm); font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all var(--transition-fast); background: transparent; color: var(--text-secondary);">Run</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Workout Schedule (Hidden collapsible overview) -->
+        <details style="margin-bottom: var(--space-md); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md);">
+          <summary style="cursor: pointer; font-weight: 600; color: var(--text-secondary); font-size: 13px;">📅 View Weekly Workout Program</summary>
+          <div id="workoutScheduleCard" style="margin-top: var(--space-sm); border-top: 1px solid var(--border-subtle); padding-top: var(--space-sm);">
             <div class="workout-schedule" id="weeklyScheduleDisplay"></div>
           </div>
-        </div>
+        </details>
 
-        <!-- Today's Workout -->
-        <div class="card" id="workoutCard">
+        <!-- Today's Workout Exercises & Log -->
+        <div class="card" id="workoutCard" style="margin-bottom: var(--space-md);">
           <div class="card-header">
-            <h2><i data-lucide="zap"></i> <span id="workoutTitle">Morning Workout</span></h2>
-            <span class="badge" id="workoutTime">8:10–8:40 AM</span>
+            <h2><i data-lucide="zap" style="color: var(--warning);"></i> <span id="workoutTitle">Morning Workout</span></h2>
+            <span class="badge badge--warning text-mono" id="workoutTime">8:10–8:40 AM</span>
           </div>
           <div class="card-body">
-            <div id="workoutMedicalAlert" style="display: none; padding: var(--space-md); margin-bottom: var(--space-md); border-radius: var(--radius-md); font-size: 13px; line-height: 1.5;"></div>
+            <div id="workoutMedicalAlert" style="display: none; padding: var(--space-md); margin-bottom: var(--space-md); border-radius: var(--radius-md); font-size: 13px; line-height: 1.5; border: 1px solid var(--danger); background: rgba(244, 63, 94, 0.08); color: var(--danger);"></div>
             <div class="workout-exercises" id="exerciseList"></div>
           </div>
-          <div class="card-footer" style="display: flex; flex-direction: column; gap: var(--space-md);">
+          <div class="card-footer" style="display: flex; flex-direction: column; gap: var(--space-md); border-top: 1px solid var(--border-subtle); padding-top: var(--space-md);">
             <div class="input-group" style="width: 100%;">
-              <label style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Difficulty</label>
-              <div class="difficulty-stars" id="difficultyStars">
+              <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px;">Rate Workout Difficulty</label>
+              <div class="difficulty-stars" id="difficultyStars" style="display: flex; gap: 8px; margin-top: var(--space-xs);">
                 <button class="star" data-val="1">★</button>
                 <button class="star" data-val="2">★</button>
                 <button class="star" data-val="3">★</button>
@@ -723,8 +935,8 @@
               </div>
             </div>
             <div class="input-group input-group--full" style="width: 100%;">
-              <label for="workoutNotes" style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Workout Notes / Feedback</label>
-              <textarea id="workoutNotes" class="input input--textarea" rows="2" placeholder="What did you do right? Any exercises skipped/modified?"></textarea>
+              <label for="workoutNotes" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px;">Workout Notes & Feedback</label>
+              <textarea id="workoutNotes" class="input input--textarea" rows="2" style="font-size: 13px; margin-top: 4px;" placeholder="What did you do right? Any exercises skipped/modified?"></textarea>
             </div>
             <div class="btn-group" style="display: flex; gap: var(--space-sm); width: 100%;">
               <button class="btn btn--primary" id="saveWorkout" style="flex: 1;">
@@ -737,8 +949,67 @@
           </div>
         </div>
 
-        <!-- Walking -->
-        <div class="card">
+        <!-- Reminders & Intervals (Mockup Style) -->
+        <div class="card reminders-intervals-card" style="margin-bottom: var(--space-md); border-color: rgba(59, 130, 246, 0.2);">
+          <div class="card-header" style="padding-bottom: 0;">
+            <h2 style="font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 6px;"><i data-lucide="bell" style="width: 14px; height: 14px;"></i> REMINDERS & INTERVALS</h2>
+          </div>
+          <div class="card-body" style="padding-top: var(--space-sm); display: flex; flex-direction: column; gap: var(--space-md);">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <div>
+                <h4 style="font-size: 14px; font-weight: 600; color: var(--text);">Sedentary Alert</h4>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-top: 1px;">Every 45 minutes</p>
+              </div>
+              <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
+                <input type="checkbox" id="chkSedentaryAlert" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="slider-switch" style="position: absolute; inset: 0; background-color: var(--border); border-radius: 34px; transition: .3s; display: block;"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <div>
+                <h4 style="font-size: 14px; font-weight: 600; color: var(--text);">Morning Fasted Walk</h4>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-top: 1px;">Daily at 07:30 AM</p>
+              </div>
+              <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
+                <input type="checkbox" id="chkMorningFastedWalk" style="opacity: 0; width: 0; height: 0;">
+                <span class="slider-switch" style="position: absolute; inset: 0; background-color: var(--border); border-radius: 34px; transition: .3s; display: block;"></span>
+              </label>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <div>
+                <h4 style="font-size: 14px; font-weight: 600; color: var(--text);">Post-Meal Glucose Burn</h4>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-top: 1px;">15m after lunch</p>
+              </div>
+              <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
+                <input type="checkbox" id="chkGlucoseBurn" checked style="opacity: 0; width: 0; height: 0;">
+                <span class="slider-switch" style="position: absolute; inset: 0; background-color: var(--border); border-radius: 34px; transition: .3s; display: block;"></span>
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Form & Technique (Mockup Style) -->
+        <div class="card form-technique-card" style="margin-bottom: var(--space-md); overflow: hidden; padding: 0; border-color: rgba(99, 135, 255, 0.2); cursor: pointer;" onclick="document.getElementById('exerciseDetailModal').showModal()">
+          <div style="height: 150px; width: 100%; position: relative; overflow: hidden; background: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.65)), url('https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=80') center center; background-size: cover; display: flex; align-items: center; justify-content: center;">
+            <div class="play-button-overlay" style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; border: 1.5px solid #ffffff;">
+              <i data-lucide="play" style="color: #ffffff; fill: #ffffff; width: 16px; height: 16px; margin-left: 2px;"></i>
+            </div>
+            <div style="position: absolute; bottom: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
+              <div>
+                <span style="font-size: 9px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">FORM & TECHNIQUE</span>
+                <h3 style="font-size: 15px; font-weight: 700; color: #ffffff; margin-top: 1px;">Brisk Walk Posture Guide</h3>
+              </div>
+              <span class="badge" style="font-size: 9px; font-weight: 700; padding: 2px 6px; background: rgba(0,0,0,0.6); color: #ffffff; border: none;">04:20 MIN • PRO LEVEL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Walking Checklist (Hidden/Integrates in DOM for E2E) -->
+        <div class="card" style="margin-bottom: var(--space-md);">
           <div class="card-header">
             <h2><i data-lucide="footprints"></i> Walking Tracker</h2>
           </div>
@@ -750,8 +1021,8 @@
         </div>
 
         <!-- Safety Warning -->
-        <div class="disclaimer disclaimer--exercise">
-          <i data-lucide="alert-octagon"></i>
+        <div class="disclaimer disclaimer--exercise" style="margin-bottom: var(--space-md);">
+          <i data-lucide="alert-octagon" style="color: var(--danger);"></i>
           <div>
             <strong>Stop immediately if you experience:</strong>
             <span>chest pain, dizziness, fainting, unusual breathlessness, or palpitations.</span>
@@ -761,85 +1032,144 @@
 
       <!-- ===== SCREEN 5: PROGRESS ===== -->
       <section class="screen" id="screen-progress" aria-label="Progress">
-        <div class="screen-header">
-          <div>
-            <h1 class="screen-title">Progress</h1>
-            <p class="screen-subtitle">Track your transformation</p>
+        <!-- New Mockup Header -->
+        <div class="screen-header-redesign">
+          <div class="header-left">
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" class="user-avatar" alt="Avatar">
+            <div>
+              <h1 class="screen-title-redesign">Trends</h1>
+            </div>
           </div>
+          <div class="header-right">
+            <div class="weather-pill">
+              <i data-lucide="cloud"></i>
+              <span>London 18°C</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-sm); margin-bottom: var(--space-md);">
+          <p class="screen-subtitle" style="margin: 0; color: var(--text-secondary); font-size: 13px; font-weight: 500;">Track your transformation</p>
           <div class="range-selector" id="chartRange">
-            <button class="range-pill" data-range="7d">7D</button>
-            <button class="range-pill active" data-range="30d">30D</button>
-            <button class="range-pill" data-range="12w">12W</button>
+            <button class="range-pill active" data-range="7d">7D</button>
+            <button class="range-pill" data-range="30d">30D</button>
             <button class="range-pill" data-range="all">All</button>
           </div>
         </div>
 
-        <div class="charts-grid">
-          <div class="card card--chart">
-            <div class="card-header">
-              <h2><i data-lucide="scale"></i> Weight Trend</h2>
-            </div>
-            <div class="card-body">
-              <div class="chart-container"><canvas id="weightChart"></canvas></div>
-            </div>
-          </div>
-          <div class="card card--chart">
-            <div class="card-header">
-              <h2><i data-lucide="circle-dot"></i> Waist Trend</h2>
-            </div>
-            <div class="card-body">
-              <div class="chart-container"><canvas id="waistChart"></canvas></div>
+        <!-- Metric Cards Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-md);">
+          <!-- Triglycerides Card -->
+          <div class="card" style="border-color: rgba(59, 130, 246, 0.2);">
+            <div class="card-body" style="display: flex; flex-direction: column; gap: var(--space-xs);">
+              <span style="font-size: 10px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px;">TRIGLYCERIDES</span>
+              <div style="font-size: 22px; font-weight: 800; color: var(--text); display: flex; align-items: baseline; gap: 4px; margin-top: 2px;">
+                <span id="trendsTrigVal" class="text-mono">142</span>
+                <span style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">mg/dL</span>
+              </div>
+              <div style="margin-top: 4px;">
+                <span id="trendsTrigChange" class="trend-change trend-change--down" style="font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-full); background: rgba(16, 185, 129, 0.1); color: var(--success); display: inline-block;">-12% vs last month</span>
+              </div>
             </div>
           </div>
-          <div class="card card--chart">
-            <div class="card-header">
-              <h2><i data-lucide="footprints"></i> Steps</h2>
-            </div>
-            <div class="card-body">
-              <div class="chart-container"><canvas id="stepsChart"></canvas></div>
-            </div>
-          </div>
-          <div class="card card--chart">
-            <div class="card-header">
-              <h2><i data-lucide="beef"></i> Protein Intake</h2>
-            </div>
-            <div class="card-body">
-              <div class="chart-container"><canvas id="proteinChart"></canvas></div>
-            </div>
-          </div>
-          <div class="card card--chart card--chart-wide">
-            <div class="card-header">
-              <h2><i data-lucide="target"></i> Goal Trajectory</h2>
-            </div>
-            <div class="card-body">
-              <div class="chart-container chart-container--wide"><canvas id="trajectoryChart"></canvas></div>
-            </div>
-          </div>
-          <div class="card card--chart">
-            <div class="card-header">
-              <h2><i data-lucide="award"></i> Daily Scores</h2>
-            </div>
-            <div class="card-body">
-              <div class="chart-container"><canvas id="complianceChart"></canvas></div>
-            </div>
-          </div>
-          <div class="card card--chart">
-            <div class="card-header">
-              <h2><i data-lucide="dumbbell"></i> Workouts</h2>
-            </div>
-            <div class="card-body">
-              <div class="chart-container"><canvas id="workoutHeatmap"></canvas></div>
-            </div>
-          </div>
-          <div class="card card--chart">
-            <div class="card-header">
-              <h2><i data-lucide="flame"></i> Clean Food Streak</h2>
-            </div>
-            <div class="card-body">
-              <div class="chart-container"><canvas id="streakChart"></canvas></div>
+
+          <!-- Weekly Steps Card -->
+          <div class="card" style="border-color: rgba(16, 185, 129, 0.2);">
+            <div class="card-body" style="display: flex; flex-direction: column; gap: var(--space-xs);">
+              <span style="font-size: 10px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px;">WEEKLY STEPS</span>
+              <div style="font-size: 22px; font-weight: 800; color: var(--text); display: flex; align-items: baseline; gap: 4px; margin-top: 2px;">
+                <span id="trendsWeeklyStepsVal" class="text-mono">68.4k</span>
+                <span style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">total</span>
+              </div>
+              <div style="margin-top: 4px;">
+                <span id="trendsWeeklyStepsGoal" style="font-size: 11px; font-weight: 600; color: var(--text-secondary); display: inline-block;">Daily Goal Met 5/7</span>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Performance Over Time Correlation Chart -->
+        <div class="card card--chart" style="margin-bottom: var(--space-md); border-color: rgba(99, 135, 255, 0.25);">
+          <div class="card-header" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; border: none; padding-bottom: 0;">
+            <h2 style="font-size: 15px; font-weight: 700; color: var(--text);"><i data-lucide="line-chart" style="color: var(--primary); vertical-align: middle; margin-right: 6px;"></i> Performance Over Time</h2>
+            <p style="font-size: 11px; color: var(--text-secondary);">Correlation analysis: Lipid levels vs Activity</p>
+          </div>
+          <div class="card-body" style="margin-top: var(--space-sm);">
+            <div class="chart-container" style="height: 220px;"><canvas id="correlationChart"></canvas></div>
+            <div style="display: flex; justify-content: center; gap: var(--space-lg); margin-top: var(--space-sm); font-size: 11px; font-weight: 600;">
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; background: var(--primary); border-radius: 50%;"></span> Triglycerides (Line)</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; background: var(--success); border-radius: 2px;"></span> Steps (Bars)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Log Card (Mockup Style) -->
+        <div class="card" style="margin-bottom: var(--space-md); border-color: rgba(59, 130, 246, 0.2);">
+          <div class="card-header" style="border: none; padding-bottom: 0;">
+            <h2 style="font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px;"><i data-lucide="plus-circle" style="color: var(--primary);"></i> Add Log</h2>
+          </div>
+          <div class="card-body" style="padding-top: var(--space-sm); display: flex; flex-direction: column; gap: var(--space-md);">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md);">
+              <div class="input-group">
+                <label for="inputWeightProgress" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px;">Weight (kg)</label>
+                <input type="number" id="inputWeightProgress" class="input" style="font-size: 13px; margin-top: 4px;" placeholder="78.5" step="0.1">
+              </div>
+              <div class="input-group">
+                <label for="inputTrigProgress" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px;">Triglycerides (mg/dL)</label>
+                <input type="number" id="inputTrigProgress" class="input" style="font-size: 13px; margin-top: 4px;" placeholder="150">
+              </div>
+            </div>
+            <button class="btn btn--primary" id="saveProgressEntry" style="width: 100%; font-size: 13px; font-weight: 700; justify-content: center; padding: 10px;">Save Entry</button>
+          </div>
+        </div>
+
+        <!-- Collapsible panel for 8 secondary trend charts required by E2E tests -->
+        <details class="secondary-charts-details" style="margin-bottom: var(--space-md); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md);">
+          <summary style="cursor: pointer; font-weight: 600; color: var(--text-secondary); font-size: 13px;">📊 View Secondary Transformation Charts</summary>
+          <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-md); margin-top: var(--space-sm); border-top: 1px solid var(--border-subtle); padding-top: var(--space-md);">
+            
+            <div class="card card--chart">
+              <div class="card-header"><h2><i data-lucide="scale"></i> Weight Trend</h2></div>
+              <div class="card-body"><div class="chart-container" style="height: 180px;"><canvas id="weightChart"></canvas></div></div>
+            </div>
+
+            <div class="card card--chart">
+              <div class="card-header"><h2><i data-lucide="circle-dot"></i> Waist Trend</h2></div>
+              <div class="card-body"><div class="chart-container" style="height: 180px;"><canvas id="waistChart"></canvas></div></div>
+            </div>
+
+            <div class="card card--chart">
+              <div class="card-header"><h2><i data-lucide="footprints"></i> Steps</h2></div>
+              <div class="card-body"><div class="chart-container" style="height: 180px;"><canvas id="stepsChart"></canvas></div></div>
+            </div>
+
+            <div class="card card--chart">
+              <div class="card-header"><h2><i data-lucide="beef"></i> Protein Intake</h2></div>
+              <div class="card-body"><div class="chart-container" style="height: 180px;"><canvas id="proteinChart"></canvas></div></div>
+            </div>
+
+            <div class="card card--chart card--chart-wide" style="grid-column: 1 / -1;">
+              <div class="card-header"><h2><i data-lucide="target"></i> Goal Trajectory</h2></div>
+              <div class="card-body"><div class="chart-container chart-container--wide" style="height: 180px;"><canvas id="trajectoryChart"></canvas></div></div>
+            </div>
+
+            <div class="card card--chart">
+              <div class="card-header"><h2><i data-lucide="award"></i> Daily Scores</h2></div>
+              <div class="card-body"><div class="chart-container" style="height: 180px;"><canvas id="complianceChart"></canvas></div></div>
+            </div>
+
+            <div class="card card--chart">
+              <div class="card-header"><h2><i data-lucide="dumbbell"></i> Workouts</h2></div>
+              <div class="card-body"><div class="chart-container" style="height: 180px;"><canvas id="workoutHeatmap"></canvas></div></div>
+            </div>
+
+            <div class="card card--chart">
+              <div class="card-header"><h2><i data-lucide="flame"></i> Clean Food Streak</h2></div>
+              <div class="card-body"><div class="chart-container" style="height: 180px;"><canvas id="streakChart"></canvas></div></div>
+            </div>
+
+          </div>
+        </details>
       </section>
 
       <!-- ===== SCREEN 6: REVIEW ===== -->

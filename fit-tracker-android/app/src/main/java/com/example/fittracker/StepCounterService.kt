@@ -36,16 +36,26 @@ class StepCounterService : Service(), SensorEventListener {
     private var sessionStartSteps = 0
     private var currentSessionDate = ""
 
-    // Accelerometer variables for peak detection (Mode 3)
+    // Accelerometer variables for adaptive threshold peak detection (Mode 3)
     private var lastStepTime: Long = 0
-    private val STEP_DEBOUNCE_MS = 300L
-    private val STEP_THRESHOLD = 1.4f // m/s^2 peak threshold for step detection (gravity subtracted)
-    private val RESET_THRESHOLD = 0.7f // return threshold to reset peak state (gravity subtracted)
+    private val STEP_DEBOUNCE_MS = 250L // 4 Hz max step rate
     private var isPeakDetected = false
 
-    // Exponential smoothing factor for raw accelerometer values
-    private val alpha = 0.98f
-    private var gravity = floatArrayOf(0f, 9.8f, 0f)
+    // Exponential Moving Average filter for accelerometer fallback
+    private var smoothedMagnitude = 9.8f
+    private val FILTER_ALPHA = 0.15f // Low-pass filter coefficient for 50Hz (20ms delay)
+
+    // Sliding window of magnitudes for adaptive baseline
+    private val windowSize = 50
+    private val magnitudeWindow = FloatArray(windowSize)
+    private var windowIndex = 0
+    private var windowCount = 0
+    private var lastMagnitude = 9.8f
+
+    // Pre-step validation buffer parameters
+    private val candidateSteps = mutableListOf<Long>()
+    private val REQUIRED_CONSECUTIVE_STEPS = 6
+    private var isWalkingSessionActive = false
 
     override fun onCreate() {
         super.onCreate()
@@ -69,8 +79,11 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun setupOptimalSensor() {
-        val stepCounter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-        val stepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+        // Look for wake-up sensors first, then fall back to normal ones
+        val stepCounter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER, true)
+            ?: sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER, false)
+        val stepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR, true)
+            ?: sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR, false)
         val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
         val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
@@ -79,12 +92,12 @@ class StepCounterService : Service(), SensorEventListener {
             // Mode 1: Hardware Step Counter (Session-Baseline)
             sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_UI)
             activeTrackingMode = "counter"
-            Log.d(TAG, "Step Pedometer: Registered Hardware Step Counter (Mode 1)")
+            Log.d(TAG, "Step Pedometer: Registered Hardware Step Counter (Mode 1, Wake-up: ${stepCounter.isWakeUpSensor})")
         } else if (stepDetector != null) {
             // Mode 2: Hardware Step Detector (Incremental)
             sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_UI)
             activeTrackingMode = "detector"
-            Log.d(TAG, "Step Pedometer: Registered Hardware Step Detector (Mode 2)")
+            Log.d(TAG, "Step Pedometer: Registered Hardware Step Detector (Mode 2, Wake-up: ${stepDetector.isWakeUpSensor})")
         } else if (accelerometer != null) {
             // Mode 3: Software Accelerometer Peak Detection Fallback
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME)
@@ -147,18 +160,25 @@ class StepCounterService : Service(), SensorEventListener {
         val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
 
         // Ensure saved date exists in preferences
-        val savedDate = prefs.getString("saved_date", todayStr) ?: todayStr
-        if (savedDate != todayStr) {
+        val savedDate = prefs.getString("saved_date", null)
+        if (savedDate == null) {
+            prefs.edit().putString("saved_date", todayStr).apply()
+        } else if (savedDate != todayStr) {
             // Day Rollover
             prefs.edit()
                 .putString("saved_date", todayStr)
                 .putInt("steps_$todayStr", 0)
                 .putInt("last_calculated_steps", 0)
+                .putInt("sensor_baseline", -1)
+                .putInt("session_start_steps", 0)
+                .putString("sensor_baseline_date", todayStr)
                 .apply()
             
             sessionBaseline = -1
             sessionStartSteps = 0
             currentSessionDate = todayStr
+            candidateSteps.clear()
+            isWalkingSessionActive = false
             Log.d(TAG, "Day rollover reset. New day: $todayStr")
             return
         }
@@ -166,15 +186,28 @@ class StepCounterService : Service(), SensorEventListener {
         when (event.sensor.type) {
             Sensor.TYPE_STEP_COUNTER -> {
                 val sensorSteps = event.values[0].toInt()
-                var savedSteps = prefs.getInt("steps_$todayStr", 0)
+                val savedSteps = prefs.getInt("steps_$todayStr", 0)
                 val lastCalculatedSteps = prefs.getInt("last_calculated_steps", -1)
+
+                // Load from SharedPreferences if in-memory cache is not initialized
+                if (sessionBaseline == -1) {
+                    sessionBaseline = prefs.getInt("sensor_baseline", -1)
+                    sessionStartSteps = prefs.getInt("session_start_steps", 0)
+                    currentSessionDate = prefs.getString("sensor_baseline_date", "") ?: ""
+                }
 
                 // Re-baseline if initial, date rollover, or modified externally (e.g. simulator)
                 if (sessionBaseline == -1 || currentSessionDate != todayStr || savedSteps != lastCalculatedSteps) {
                     sessionBaseline = sensorSteps
                     sessionStartSteps = savedSteps
                     currentSessionDate = todayStr
-                    prefs.edit().putInt("last_calculated_steps", savedSteps).apply()
+                    
+                    prefs.edit()
+                        .putInt("sensor_baseline", sessionBaseline)
+                        .putInt("session_start_steps", sessionStartSteps)
+                        .putString("sensor_baseline_date", currentSessionDate)
+                        .putInt("last_calculated_steps", savedSteps)
+                        .apply()
                     Log.d(TAG, "Counter baseline initialized. Steps: $savedSteps, Sensor: $sensorSteps")
                     return
                 }
@@ -183,6 +216,10 @@ class StepCounterService : Service(), SensorEventListener {
                 if (sensorSteps < sessionBaseline) {
                     sessionBaseline = sensorSteps
                     sessionStartSteps = savedSteps
+                    prefs.edit()
+                        .putInt("sensor_baseline", sessionBaseline)
+                        .putInt("session_start_steps", sessionStartSteps)
+                        .apply()
                     return
                 }
 
@@ -209,41 +246,101 @@ class StepCounterService : Service(), SensorEventListener {
             }
             
             Sensor.TYPE_ACCELEROMETER -> {
-                // Software Accelerometer fallback peak detector
-                // Apply low-pass filter to isolate gravity
-                gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0]
-                gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
-                gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
+                // Software Accelerometer fallback peak detector with adaptive baseline
+                val rawX = event.values[0]
+                val rawY = event.values[1]
+                val rawZ = event.values[2]
+                val rawMagnitude = sqrt(rawX * rawX + rawY * rawY + rawZ * rawZ)
 
-                // Subtract gravity to get true user acceleration
-                val x = event.values[0] - gravity[0]
-                val y = event.values[1] - gravity[1]
-                val z = event.values[2] - gravity[2]
+                // Exponential Moving Average low-pass filter to smooth signal jitter
+                smoothedMagnitude = FILTER_ALPHA * rawMagnitude + (1 - FILTER_ALPHA) * smoothedMagnitude
 
-                // Compute acceleration magnitude vector
-                val magnitude = sqrt(x * x + y * y + z * z)
+                // Add to sliding window
+                magnitudeWindow[windowIndex] = smoothedMagnitude
+                windowIndex = (windowIndex + 1) % windowSize
+                if (windowCount < windowSize) {
+                    windowCount++
+                }
 
-                // Peak threshold counting with debouncing
-                if (magnitude > STEP_THRESHOLD) {
+                // Compute min, max of magnitude in current window
+                var minMag = Float.MAX_VALUE
+                var maxMag = Float.MIN_VALUE
+                for (i in 0 until windowCount) {
+                    val m = magnitudeWindow[i]
+                    if (m < minMag) minMag = m
+                    if (m > maxMag) maxMag = m
+                }
+
+                val range = maxMag - minMag
+                val adaptiveThreshold = (maxMag + minMag) / 2.0f
+
+                // Ensure the movement is significant enough to be walking (filtering noise)
+                val MIN_STEP_P2P = 1.2f // m/s^2 peak-to-peak difference
+                val now = System.currentTimeMillis()
+
+                // Crossing above the dynamic baseline
+                val crossedAbove = lastMagnitude < adaptiveThreshold && smoothedMagnitude >= adaptiveThreshold
+
+                if (crossedAbove && range > MIN_STEP_P2P) {
                     if (!isPeakDetected) {
-                        val currentTime = System.currentTimeMillis()
-                        if (currentTime - lastStepTime > STEP_DEBOUNCE_MS) {
-                            isPeakDetected = true
-                            lastStepTime = currentTime
-                            
-                            var savedSteps = prefs.getInt("steps_$todayStr", 0)
-                            savedSteps += 1
-                            prefs.edit()
-                                .putInt("steps_$todayStr", savedSteps)
-                                .putInt("last_calculated_steps", savedSteps)
-                                .apply()
-                            Log.d(TAG, "Accelerometer step detected! steps=$savedSteps, magnitude=$magnitude")
+                        isPeakDetected = true
+                        
+                        // Check if step is within a reasonable cadence
+                        val timeDiff = now - lastStepTime
+                        lastStepTime = now
+
+                        // Rhythmic walking cadence check: between 250ms (4Hz) and 1500ms (0.67Hz)
+                        if (timeDiff in 250..1500) {
+                            candidateSteps.add(now)
+
+                            if (isWalkingSessionActive) {
+                                // Already in active walking session, increment step immediately
+                                var savedSteps = prefs.getInt("steps_$todayStr", 0)
+                                savedSteps += 1
+                                prefs.edit()
+                                    .putInt("steps_$todayStr", savedSteps)
+                                    .putInt("last_calculated_steps", savedSteps)
+                                    .apply()
+                                Log.d(TAG, "Accel: Step registered (active session). Total=$savedSteps")
+                            } else {
+                                // Check if we reached the required number of rhythmic steps to start a session
+                                if (candidateSteps.size >= REQUIRED_CONSECUTIVE_STEPS) {
+                                    isWalkingSessionActive = true
+                                    var savedSteps = prefs.getInt("steps_$todayStr", 0)
+                                    savedSteps += REQUIRED_CONSECUTIVE_STEPS
+                                    prefs.edit()
+                                        .putInt("steps_$todayStr", savedSteps)
+                                        .putInt("last_calculated_steps", savedSteps)
+                                        .apply()
+                                    Log.d(TAG, "Accel: Stride rhythm validated! Credited $REQUIRED_CONSECUTIVE_STEPS steps. Total=$savedSteps")
+                                } else {
+                                    Log.d(TAG, "Accel: Rhythmic step candidate. Size=${candidateSteps.size}")
+                                }
+                            }
+                        } else {
+                            // Rhythm broken or start of a new movement. Reset candidate buffer.
+                            candidateSteps.clear()
+                            candidateSteps.add(now)
+                            // If walking session was active, deactivate it after a prolonged pause (calibrated to 3000ms)
+                            if (timeDiff > 3000) {
+                                isWalkingSessionActive = false
+                                Log.d(TAG, "Accel: Walking session timed out.")
+                            }
                         }
                     }
-                } else if (magnitude < RESET_THRESHOLD) {
-                    // Reset peak state once magnitude drops below resting gravity deviation
+                } else if (smoothedMagnitude < adaptiveThreshold) {
+                    // Reset peak detection when signal crosses back below baseline
                     isPeakDetected = false
                 }
+
+                // Periodically check for timeout to deactivate session if user stopped walking (calibrated to 3000ms)
+                if (now - lastStepTime > 3000 && (isWalkingSessionActive || candidateSteps.isNotEmpty())) {
+                    isWalkingSessionActive = false
+                    candidateSteps.clear()
+                    Log.d(TAG, "Accel: Walk timed out (inactivity). Candidate buffer cleared.")
+                }
+
+                lastMagnitude = smoothedMagnitude
             }
         }
     }

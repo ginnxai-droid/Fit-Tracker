@@ -26,7 +26,8 @@ import {
   getWeeklyMessage,
   calculateStreak,
   calculateDailyProtein,
-  MEDICAL_SAFETY_MESSAGE
+  MEDICAL_SAFETY_MESSAGE,
+  getConsolidatedDailyLogs
 } from './scoring.js';
 
 import {
@@ -152,6 +153,7 @@ function initializeApp() {
   bindWaterWidgetEvents();
   bindLocationAwareLoggerEvents();
   detectUserLocation();
+  initReminders();
 
   // Onboarding setup check & automated test bypass
   const isTestEnv = window.navigator.webdriver || window.location.search.includes('test');
@@ -490,6 +492,23 @@ function renderDashboard() {
   const score = calculateDailyScore(today);
   updateProgressRing('ringScoreFill', score.score, 100);
   setTextContent('ringScoreValue', Math.round(score.score));
+  
+  const statusScoreEl = document.getElementById('ringScoreStatus');
+  if (statusScoreEl) {
+    if (score.score >= 85) {
+      statusScoreEl.textContent = 'OPTIMAL';
+      statusScoreEl.style.color = '#10b981';
+    } else if (score.score >= 70) {
+      statusScoreEl.textContent = 'GOOD';
+      statusScoreEl.style.color = '#3b82f6';
+    } else if (score.score >= 50) {
+      statusScoreEl.textContent = 'MODERATE';
+      statusScoreEl.style.color = '#f59e0b';
+    } else {
+      statusScoreEl.textContent = 'NEEDS FOCUS';
+      statusScoreEl.style.color = '#ef4444';
+    }
+  }
 
   // Weekly compliance
   const weeklyData = calculateWeeklyCompliance();
@@ -517,6 +536,12 @@ function renderDashboard() {
     stepsBar.style.width = Math.min(100, (steps / adjustedTarget) * 100) + '%';
   }
 
+  // Sleep progress bar
+  const sleepBar = document.getElementById('sleepBarFill');
+  if (sleepBar) {
+    sleepBar.style.width = Math.min(100, ((log.sleep_hours || 0) / 8) * 100) + '%';
+  }
+
   // Calories and benchmark status
   const weight = latestWeight || profile.start_weight_kg;
   const height = profile.height_cm;
@@ -524,12 +549,14 @@ function renderDashboard() {
   
   if (stepsMetrics.requiresProfile) {
     setTextContent('todayStepsCaloriesValue', '-- kcal');
+    setTextContent('dashboardActiveCalories', '0');
     const caloriesEl = document.getElementById('todayStepsCalories');
     if (caloriesEl) {
       caloriesEl.title = "Set weight and height in settings to calculate precise calories";
     }
   } else {
     setTextContent('todayStepsCaloriesValue', `${stepsMetrics.calories} kcal`);
+    setTextContent('dashboardActiveCalories', stepsMetrics.calories.toLocaleString());
     const caloriesEl = document.getElementById('todayStepsCalories');
     if (caloriesEl) {
       caloriesEl.title = "";
@@ -587,6 +614,7 @@ function renderToday() {
   renderChecklists();
   renderTodayScore();
   loadQuickLogValues();
+  updateWaterWidget(currentDate);
 }
 
 
@@ -859,6 +887,40 @@ function bindQuickLogEvents() {
   const energySlider = document.getElementById('inputEnergy');
   if (energySlider) {
     energySlider.addEventListener('input', updateEnergyDisplay);
+  }
+
+  // Progress screen log saving
+  const saveProgressBtn = document.getElementById('saveProgressEntry');
+  if (saveProgressBtn) {
+    saveProgressBtn.addEventListener('click', () => {
+      const log = getDailyLog(currentDate);
+      const weightVal = getInputNumber('inputWeightProgress');
+      const trigVal = getInputNumber('inputTrigProgress');
+
+      if (weightVal !== null) {
+        log.weight_kg = weightVal;
+      }
+      if (trigVal !== null) {
+        log.triglycerides_val = trigVal;
+      }
+      saveDailyLog(currentDate, log);
+
+      const checklist = getChecklist(currentDate);
+      if (weightVal) {
+        if (!checklist.tracking) checklist.tracking = {};
+        checklist.tracking.weight_logged = true;
+      }
+      saveChecklist(currentDate, checklist);
+
+      showToast('Weight and Triglycerides logged successfully! ✅');
+
+      // Clear inputs
+      setInputValue('inputWeightProgress', '');
+      setInputValue('inputTrigProgress', '');
+
+      // Re-render screen to show updated values & charts
+      renderCurrentScreen();
+    });
   }
 }
 
@@ -1583,6 +1645,7 @@ function renderWorkout() {
   }
 
   renderWorkoutButtons();
+  updateMetabolicCalculator();
 }
 
 function renderWorkoutButtons() {
@@ -1919,6 +1982,45 @@ function bindWorkoutEvents() {
       renderWorkout();
     });
   }
+
+  // Metabolic Calculator Bindings
+  const slider = document.getElementById('calcStepSlider');
+  if (slider) {
+    slider.addEventListener('input', () => {
+      updateMetabolicCalculator();
+    });
+  }
+
+  const paceBtns = document.querySelectorAll('.pace-btn');
+  paceBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      paceBtns.forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'transparent';
+        b.style.color = 'var(--text-secondary)';
+        b.style.boxShadow = 'none';
+      });
+      btn.classList.add('active');
+      btn.style.background = 'var(--primary)';
+      btn.style.color = '#ffffff';
+      btn.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.25)';
+      
+      selectedPace = btn.dataset.pace;
+      updateMetabolicCalculator();
+    });
+  });
+
+  // Reminders & Intervals Switches Bindings
+  const reminderKeys = ['chkSedentaryAlert', 'chkMorningFastedWalk', 'chkGlucoseBurn'];
+  reminderKeys.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', () => {
+        localStorage.setItem(`ft_settings_${id}`, el.checked);
+        showToast('Reminder settings updated! 🔔');
+      });
+    }
+  });
 }
 
 
@@ -1940,6 +2042,7 @@ function renderProgress(range = '30d') {
   if (typeof Chart === 'undefined') return;
   try {
     renderAllCharts(range);
+    updateTrendsMetrics();
   } catch (err) {
     console.warn('Charts rendering error:', err);
   }
@@ -2797,7 +2900,8 @@ function isTimeNear(timeStr, now) {
 function updateProgressRing(id, value, max) {
   const el = document.getElementById(id);
   if (!el) return;
-  const circumference = 2 * Math.PI * 60;
+  const r = parseFloat(el.getAttribute('r')) || 60;
+  const circumference = 2 * Math.PI * r;
   const pct = Math.min(1, (value || 0) / max);
   const offset = circumference - pct * circumference;
   el.style.strokeDasharray = circumference;
@@ -3145,6 +3249,12 @@ function logWalkCompletion(walkType, isCompleted) {
 
 // Pedometer Motion Detection (Shake to Step fallback)
 function initMotionPedometer() {
+  const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
+  if (isAndroid) {
+    console.log("Pedometer: Running on Android. Disabling JavaScript motion sensor fallback to prevent overwriting native steps.");
+    return;
+  }
+
   let lastX = null, lastY = null, lastZ = null;
   let threshold = 4.0; // calibrated walking acceleration change threshold
   let lastShakeTime = 0;
@@ -3776,6 +3886,9 @@ function updateLocationUI(isEnabled, cityName) {
       locationDot.style.boxShadow = '0 0 8px var(--success)';
       locationDot.classList.add('live-pulse--active');
     }
+    if (cityName) {
+      updateWeatherPill(cityName);
+    }
   } else {
     isLiveLocationEnabled = false;
     if (activeLocationSpan) {
@@ -3790,6 +3903,7 @@ function updateLocationUI(isEnabled, cityName) {
       locationDot.style.boxShadow = 'none';
       locationDot.classList.remove('live-pulse--active');
     }
+    updateWeatherPill("London");
   }
 }
 
@@ -4421,6 +4535,7 @@ function updateWaterWidget(dateStr) {
   const log = getDailyLog(dateStr);
   const currentVolume = log.water_litres || 0;
   
+  // Dashboard elements
   const displayValEl = document.getElementById('waterDisplayVal');
   if (displayValEl) {
     displayValEl.textContent = `${currentVolume.toFixed(2)} L`;
@@ -4455,45 +4570,85 @@ function updateWaterWidget(dateStr) {
       glass3d.classList.remove('target-reached');
     }
   }
-}
 
-function triggerWaterBubbles(count = 12) {
-  const glass = document.getElementById('water3DGlass');
-  if (!glass) return;
+  // Today screen elements
+  const displayValTodayEl = document.getElementById('waterDisplayValToday');
+  if (displayValTodayEl) {
+    displayValTodayEl.textContent = `${currentVolume.toFixed(2)} L`;
+  }
 
-  for (let i = 0; i < count; i++) {
-    const bubble = document.createElement('div');
-    bubble.className = 'water-bubble';
-    
-    const size = Math.random() * 6 + 4;
-    bubble.style.width = size + 'px';
-    bubble.style.height = size + 'px';
-    bubble.style.left = Math.random() * 80 + 10 + '%';
-    
-    const delay = Math.random() * 0.5;
-    const duration = Math.random() * 1.5 + 1.2;
-    bubble.style.animationDelay = delay + 's';
-    bubble.style.animationDuration = duration + 's';
+  const glassesCount = Math.round(currentVolume / 0.25);
+  const targetGlasses = settings.water_target_glasses || 8;
+  const glassesTodayEl = document.getElementById('waterGlassesToday');
+  if (glassesTodayEl) {
+    glassesTodayEl.textContent = `${glassesCount} / ${targetGlasses} Glasses`;
+  }
 
-    glass.appendChild(bubble);
+  const goalValTodayEl = document.getElementById('waterGoalValToday');
+  if (goalValTodayEl) {
+    goalValTodayEl.textContent = `Goal: ${targetVolume.toFixed(1)}L`;
+  }
 
-    setTimeout(() => {
-      bubble.remove();
-    }, (delay + duration) * 1000);
+  const liquidBodyToday = document.getElementById('liquidBodyToday');
+  const liquidTopToday = document.getElementById('liquidTopToday');
+  const glass3dToday = document.getElementById('water3DGlassToday');
+
+  if (liquidBodyToday) {
+    liquidBodyToday.style.height = `${percent}%`;
+  }
+  if (liquidTopToday) {
+    liquidTopToday.style.bottom = `${percent}%`;
+    liquidTopToday.style.display = percent > 0 ? 'block' : 'none';
+  }
+
+  if (glass3dToday) {
+    if (percent >= 100) {
+      glass3dToday.classList.add('target-reached');
+    } else {
+      glass3dToday.classList.remove('target-reached');
+    }
   }
 }
 
+function triggerWaterBubbles(count = 12) {
+  const glasses = [document.getElementById('water3DGlass'), document.getElementById('water3DGlassToday')];
+  glasses.forEach(glass => {
+    if (!glass) return;
+    for (let i = 0; i < count; i++) {
+      const bubble = document.createElement('div');
+      bubble.className = 'water-bubble';
+      
+      const size = Math.random() * 6 + 4;
+      bubble.style.width = size + 'px';
+      bubble.style.height = size + 'px';
+      bubble.style.left = Math.random() * 80 + 10 + '%';
+      
+      const delay = Math.random() * 0.5;
+      const duration = Math.random() * 1.5 + 1.2;
+      bubble.style.animationDelay = delay + 's';
+      bubble.style.animationDuration = duration + 's';
+
+      glass.appendChild(bubble);
+
+      setTimeout(() => {
+        bubble.remove();
+      }, (delay + duration) * 1000);
+    }
+  });
+}
+
 function triggerWaterSlosh() {
-  const top = document.getElementById('liquidTop');
-  if (!top) return;
-
-  top.classList.remove('sloshing');
-  void top.offsetWidth;
-  top.classList.add('sloshing');
-
-  setTimeout(() => {
+  const tops = [document.getElementById('liquidTop'), document.getElementById('liquidTopToday')];
+  tops.forEach(top => {
+    if (!top) return;
     top.classList.remove('sloshing');
-  }, 800);
+    void top.offsetWidth;
+    top.classList.add('sloshing');
+
+    setTimeout(() => {
+      top.classList.remove('sloshing');
+    }, 800);
+  });
 }
 
 function bindWaterWidgetEvents() {
@@ -4501,6 +4656,9 @@ function bindWaterWidgetEvents() {
   const btn500 = document.getElementById('btnWater500');
   const btn750 = document.getElementById('btnWater750');
   const btnReset = document.getElementById('btnWaterReset');
+
+  const btnAddToday = document.getElementById('btnWaterAddToday');
+  const btnSubToday = document.getElementById('btnWaterSubToday');
 
   const addWater = (amountL) => {
     const log = getDailyLog(currentDate);
@@ -4538,6 +4696,187 @@ function bindWaterWidgetEvents() {
       showToast("Reset water tracker for today.");
       updateWaterWidget(currentDate);
     });
+  }
+
+  if (btnAddToday) {
+    btnAddToday.addEventListener('click', () => addWater(0.25));
+  }
+
+  if (btnSubToday) {
+    btnSubToday.addEventListener('click', () => {
+      const log = getDailyLog(currentDate);
+      const oldWater = log.water_litres || 0;
+      if (oldWater <= 0) return;
+      log.water_litres = Math.max(0, Math.round((oldWater - 0.25) * 100) / 100);
+      saveDailyLog(currentDate, log);
+
+      const checklist = getChecklist(currentDate);
+      if (checklist.health && log.water_litres === 0) {
+        checklist.health.water_started = false;
+        saveChecklist(currentDate, checklist);
+      }
+
+      showToast("Removed 1 glass of water.");
+      updateWaterWidget(currentDate);
+      triggerWaterSlosh();
+    });
+  }
+}
+
+// ── Redesign Helpers & Initializers ──
+
+function updateWeatherPill(cityName) {
+  let weatherText = "London 18°C";
+  if (cityName) {
+    let cleanCity = cityName.split(',')[0].trim();
+    let temp = 22;
+    if (cleanCity.toLowerCase().includes('mumbai') || cleanCity.toLowerCase().includes('bombay')) {
+      temp = 28;
+    } else if (cleanCity.toLowerCase().includes('london')) {
+      temp = 18;
+    } else if (cleanCity.toLowerCase().includes('delhi')) {
+      temp = 32;
+    } else if (cleanCity.toLowerCase().includes('pune')) {
+      temp = 26;
+    } else if (cleanCity.toLowerCase().includes('bengaluru') || cleanCity.toLowerCase().includes('bangalore')) {
+      temp = 24;
+    }
+    weatherText = `${cleanCity} ${temp}°C`;
+  }
+  
+  const pills = document.querySelectorAll('.weather-pill span');
+  pills.forEach(pill => {
+    pill.textContent = weatherText;
+  });
+}
+
+let selectedPace = 'brisk';
+
+function updateMetabolicCalculator() {
+  const slider = document.getElementById('calcStepSlider');
+  const targetStepsVal = document.getElementById('calcTargetStepsVal');
+  const estBurnVal = document.getElementById('calcEstBurnVal');
+  if (!slider || !targetStepsVal || !estBurnVal) return;
+
+  const steps = parseInt(slider.value);
+  targetStepsVal.textContent = steps.toLocaleString();
+
+  const activeBtn = document.querySelector('.pace-btn.active');
+  const pace = activeBtn ? activeBtn.dataset.pace : selectedPace;
+
+  let met = 3.5;
+  if (pace === 'slow') met = 2.0;
+  else if (pace === 'run') met = 6.0;
+
+  const profile = getProfile();
+  const w = profile.weight_kg ? parseFloat(profile.weight_kg) : 75;
+  const h = profile.height_cm ? parseFloat(profile.height_cm) : 175;
+  const sex = profile.sex || 'male';
+  let age = profile.age ? parseFloat(profile.age) : 30;
+
+  let metAdjustment = 1.0;
+  if (profile.fitness_level === 'beginner') {
+    metAdjustment = 1.10;
+  } else if (profile.fitness_level === 'advanced') {
+    metAdjustment = 0.95;
+  }
+
+  let bmr = 0;
+  if (sex.toLowerCase() === 'female') {
+    bmr = 447.593 + (9.247 * w) + (3.098 * h) - (4.330 * age);
+  } else {
+    bmr = 88.362 + (13.397 * w) + (4.799 * h) - (5.677 * age);
+  }
+
+  const calories = Math.round((met * bmr / 1440) * (steps / 100) * metAdjustment);
+  estBurnVal.textContent = `${calories} kcal`;
+}
+
+function initReminders() {
+  const keys = ['chkSedentaryAlert', 'chkMorningFastedWalk', 'chkGlucoseBurn'];
+  keys.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const storedVal = localStorage.getItem(`ft_settings_${id}`);
+    if (storedVal !== null) {
+      el.checked = storedVal === 'true';
+    }
+  });
+}
+
+function updateTrendsMetrics() {
+  const trendsTrigVal = document.getElementById('trendsTrigVal');
+  const trendsTrigChange = document.getElementById('trendsTrigChange');
+  const trendsWeeklyStepsVal = document.getElementById('trendsWeeklyStepsVal');
+  const trendsWeeklyStepsGoal = document.getElementById('trendsWeeklyStepsGoal');
+
+  const allLogs = getConsolidatedDailyLogs();
+  
+  // Weekly steps target calculations
+  const last7Logs = allLogs.slice(-7);
+  const totalSteps = last7Logs.reduce((sum, log) => sum + (log.steps || 0), 0);
+  
+  let goalMetCount = 0;
+  last7Logs.forEach(log => {
+    const target = getAdjustedStepTarget(log.date);
+    if (log.steps >= target) {
+      goalMetCount++;
+    }
+  });
+
+  if (trendsWeeklyStepsVal) {
+    trendsWeeklyStepsVal.textContent = (totalSteps / 1000).toFixed(1) + 'k';
+  }
+  if (trendsWeeklyStepsGoal) {
+    trendsWeeklyStepsGoal.textContent = `Daily Goal Met ${goalMetCount}/${last7Logs.length}`;
+  }
+
+  // Triglycerides trend calculations
+  const trigLogs = allLogs.filter(log => log.triglycerides_val != null);
+  if (trigLogs.length > 0) {
+    const latestLog = trigLogs[trigLogs.length - 1];
+    const currentTrig = latestLog.triglycerides_val;
+    if (trendsTrigVal) {
+      trendsTrigVal.textContent = currentTrig;
+    }
+
+    if (trendsTrigChange) {
+      if (trigLogs.length > 1) {
+        const baselineLog = trigLogs[0];
+        const baselineTrig = baselineLog.triglycerides_val;
+        const pctChange = Math.round(((currentTrig - baselineTrig) / baselineTrig) * 100);
+
+        if (pctChange < 0) {
+          trendsTrigChange.textContent = `${pctChange}% vs baseline`;
+          trendsTrigChange.className = 'trend-change trend-change--down';
+          trendsTrigChange.style.background = 'rgba(16, 185, 129, 0.1)';
+          trendsTrigChange.style.color = 'var(--success)';
+        } else if (pctChange > 0) {
+          trendsTrigChange.textContent = `+${pctChange}% vs baseline`;
+          trendsTrigChange.className = 'trend-change trend-change--up';
+          trendsTrigChange.style.background = 'rgba(239, 68, 68, 0.1)';
+          trendsTrigChange.style.color = 'var(--danger)';
+        } else {
+          trendsTrigChange.textContent = `0% change`;
+          trendsTrigChange.className = 'trend-change';
+          trendsTrigChange.style.background = 'rgba(156, 163, 175, 0.1)';
+          trendsTrigChange.style.color = 'var(--text-secondary)';
+        }
+      } else {
+        trendsTrigChange.textContent = 'Baseline established';
+        trendsTrigChange.className = 'trend-change';
+        trendsTrigChange.style.background = 'rgba(156, 163, 175, 0.1)';
+        trendsTrigChange.style.color = 'var(--text-secondary)';
+      }
+    }
+  } else {
+    if (trendsTrigVal) trendsTrigVal.textContent = '--';
+    if (trendsTrigChange) {
+      trendsTrigChange.textContent = 'No records';
+      trendsTrigChange.className = 'trend-change';
+      trendsTrigChange.style.background = 'rgba(156, 163, 175, 0.1)';
+      trendsTrigChange.style.color = 'var(--text-secondary)';
+    }
   }
 }
 

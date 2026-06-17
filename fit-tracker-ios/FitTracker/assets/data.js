@@ -553,6 +553,7 @@ export function getDailyLog(dateStr) {
     sleep_hours: null,
     water_litres: null,
     energy_level: null,
+    triglycerides_val: null,
     notes: ''
   };
 }
@@ -1234,6 +1235,7 @@ export function generateSampleData() {
   const sampleSteps    = [7500, 8200, 5500, 9100, 6800, 10200, 4500];
   const sampleSleep    = [7, 6.5, 7.5, 6, 8, 7, 5.5];
   const sampleEnergyLevel = [4, 4, 3, 4, 2, 4, 3];
+  const sampleTriglycerides = [275, 260, 245, 230, 210, 190, 175];
 
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today);
@@ -1250,6 +1252,7 @@ export function generateSampleData() {
       sleep_hours: sampleSleep[dayIndex],
       water_litres: 2.5,
       energy_level: sampleEnergyLevel[dayIndex],
+      triglycerides_val: sampleTriglycerides[dayIndex],
       notes: dayIndex === 4 ? 'Felt tired today, skipped evening walk' : ''
     });
 
