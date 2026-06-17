@@ -192,7 +192,7 @@
               <span class="gauge-status" id="ringScoreStatus">OPTIMAL</span>
             </div>
           </div>
-          <div class="gauge-title">Triglyceride Health Score</div>
+          <div class="gauge-title" id="healthScoreGaugeTitle">Overall Health Score</div>
         </div>
 
         <!-- Metrics Grid (Mockup Style) -->
@@ -1309,6 +1309,10 @@
               <input type="text" id="settingName" class="input" value="Amit">
             </div>
             <div class="input-group">
+              <label for="settingAvatarFile">Profile Picture</label>
+              <input type="file" id="settingAvatarFile" accept="image/*" class="input" style="font-size: 12px; padding: 4px;">
+            </div>
+            <div class="input-group">
               <label for="settingAge">Age (Years)</label>
               <input type="number" id="settingAge" class="input" value="46">
             </div>
@@ -1878,6 +1882,10 @@
         <div class="input-group">
           <label class="input-label" for="obName">Your First Name</label>
           <input class="input-field" type="text" id="obName" placeholder="Enter your name" value="">
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="obAvatarFile">Profile Picture</label>
+          <input class="input-field" type="file" id="obAvatarFile" accept="image/*" style="font-size: 12px; padding: 6px;">
         </div>
         <div class="input-group">
           <label class="input-label" for="obAge">Age (Years)</label>

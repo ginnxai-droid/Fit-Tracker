@@ -1199,6 +1199,80 @@ export function renderCorrelationChart(canvasId, range = '30d') {
   chartInstances.set(canvasId, chart);
 }
 
+/**
+ * Render a beautiful biometric steps trend bar chart on the dashboard
+ */
+export function renderDashboardTrendChart(canvasId) {
+  const ctx = getCanvasCtx(canvasId);
+  if (!ctx) return;
+  destroyChart(canvasId);
+
+  const allLogs = getConsolidatedDailyLogs();
+  const last7Logs = allLogs.slice(-7);
+
+  if (last7Logs.length === 0) {
+    drawEmptyState(ctx, canvasId);
+    return;
+  }
+
+  const labels = last7Logs.map((l) => formatLabel(l.date));
+  const steps = last7Logs.map((l) => l.steps || 0);
+
+  // Gradient background for bars
+  let gradientFill = currentTheme.primary;
+  try {
+    gradientFill = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+    gradientFill.addColorStop(0, '#3b82f6');
+    gradientFill.addColorStop(1, 'rgba(59, 130, 246, 0.15)');
+  } catch (err) {
+    console.warn("Could not create gradient for dashboardTrendChart", err);
+  }
+
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Steps',
+          data: steps,
+          backgroundColor: gradientFill,
+          borderColor: 'transparent',
+          borderWidth: 0,
+          borderRadius: 6,
+          barPercentage: 0.6,
+        },
+      ],
+    },
+    options: {
+      animation: animationConfig(),
+      scales: {
+        y: {
+          display: false,
+          beginAtZero: true,
+        },
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: currentTheme.text,
+            font: { size: 10 },
+          },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem) => `${tooltipItem.parsed.y.toLocaleString()} steps`,
+          },
+        },
+      },
+    },
+  });
+
+  chartInstances.set(canvasId, chart);
+}
+
 /* ═════════════════════════════════════════════════════════════════════════════
    UTILITY FUNCTIONS
    ═════════════════════════════════════════════════════════════════════════ */
@@ -1218,6 +1292,7 @@ export function renderAllCharts(range = '30d') {
   renderTrajectoryChart('trajectoryChart');
   renderStreakChart('streakChart', range);
   renderCorrelationChart('correlationChart', range);
+  renderDashboardTrendChart('dashboardTrendChart');
 }
 
 /**
@@ -1275,6 +1350,9 @@ export function updateChartsTheme(isDark) {
         break;
       case 'correlationChart':
         renderCorrelationChart(canvasId, range);
+        break;
+      case 'dashboardTrendChart':
+        renderDashboardTrendChart(canvasId);
         break;
       default:
         break;

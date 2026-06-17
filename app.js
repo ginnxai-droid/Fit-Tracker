@@ -34,7 +34,8 @@ import {
   renderAllCharts,
   destroyAllCharts,
   updateChartsTheme,
-  configureChartDefaults
+  configureChartDefaults,
+  renderDashboardTrendChart
 } from './charts.js';
 
 
@@ -154,6 +155,7 @@ function initializeApp() {
   bindLocationAwareLoggerEvents();
   detectUserLocation();
   initReminders();
+  updateAvatars();
 
   // Onboarding setup check & automated test bypass
   const isTestEnv = window.navigator.webdriver || window.location.search.includes('test');
@@ -284,6 +286,7 @@ function renderCurrentScreen() {
     case 'progress': renderProgress(); break;
     case 'review': renderReview(); break;
   }
+  updateAvatars();
 }
 
 function syncAndroidSteps() {
@@ -577,6 +580,26 @@ function renderDashboard() {
 
   // Update 3D water widget
   updateWaterWidget(currentDate);
+
+  // Dynamic Health Score Title
+  const scoreTitleEl = document.getElementById('healthScoreGaugeTitle');
+  if (scoreTitleEl) {
+    const goal = profile.primary_goal || 'health_management';
+    let goalName = 'Overall';
+    if (goal === 'weight_loss') goalName = 'Weight Loss';
+    else if (goal === 'muscle_gain') goalName = 'Muscle Gain';
+    else if (goal === 'health_management') goalName = 'Metabolic';
+    scoreTitleEl.textContent = `${goalName} Health Score`;
+  }
+
+  // Render Biometric Trend Chart
+  if (typeof Chart !== 'undefined') {
+    try {
+      renderDashboardTrendChart('dashboardTrendChart');
+    } catch (err) {
+      console.warn("Failed to render dashboard trend chart", err);
+    }
+  }
 }
 
 
@@ -2567,39 +2590,55 @@ function bindSettingsModal() {
       log.weight_kg = profile.start_weight_kg;
       saveDailyLog(today, log);
 
-      saveProfile(profile); // This automatically calls rebuildDynamicData
-      
-      // Re-configure targets dynamically if weight or height changed
-      if (profile.start_weight_kg !== oldWeight || profile.height_cm !== oldHeight) {
-        const settings = getSettings();
-        const w = profile.start_weight_kg;
-        const h = profile.height_cm;
-        const bmi = w / ((h / 100) * (h / 100));
-        if (bmi >= 30 || profile.age >= 45) {
-          settings.step_target = 6000;
-        } else if (profile.primary_goal === 'muscle_gain') {
-          settings.step_target = 10000;
-        } else {
-          settings.step_target = 8000;
+      const saveSettingsFlow = () => {
+        saveProfile(profile); // This automatically calls rebuildDynamicData
+        
+        // Re-configure targets dynamically if weight or height changed
+        if (profile.start_weight_kg !== oldWeight || profile.height_cm !== oldHeight) {
+          const settings = getSettings();
+          const w = profile.start_weight_kg;
+          const h = profile.height_cm;
+          const bmi = w / ((h / 100) * (h / 100));
+          if (bmi >= 30 || profile.age >= 45) {
+            settings.step_target = 6000;
+          } else if (profile.primary_goal === 'muscle_gain') {
+            settings.step_target = 10000;
+          } else {
+            settings.step_target = 8000;
+          }
+          
+          if (profile.primary_goal === 'muscle_gain') {
+            settings.protein_target_g = Math.round(profile.start_weight_kg * 1.5);
+          } else {
+            settings.protein_target_g = Math.round(profile.start_weight_kg * 1.2);
+          }
+          saveSettings(settings);
         }
         
-        if (profile.primary_goal === 'muscle_gain') {
-          settings.protein_target_g = Math.round(profile.start_weight_kg * 1.5);
-        } else {
-          settings.protein_target_g = Math.round(profile.start_weight_kg * 1.2);
-        }
+        const settings = getSettings();
+        settings.lunch_walk_alarm = profile.lunch_walk_time;
+        settings.dinner_walk_alarm = profile.dinner_walk_time;
         saveSettings(settings);
+        
+        modal?.close();
+        showToast('Settings saved! ⚙️', 'success');
+        updateProgramInfo();
+        updateAvatars();
+        renderCurrentScreen();
+      };
+
+      // Handle avatar file upload
+      const avatarFileEl = document.getElementById('settingAvatarFile');
+      if (avatarFileEl && avatarFileEl.files && avatarFileEl.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          profile.avatar_url = ev.target.result;
+          saveSettingsFlow();
+        };
+        reader.readAsDataURL(avatarFileEl.files[0]);
+      } else {
+        saveSettingsFlow();
       }
-      
-      const settings = getSettings();
-      settings.lunch_walk_alarm = profile.lunch_walk_time;
-      settings.dinner_walk_alarm = profile.dinner_walk_time;
-      saveSettings(settings);
-      
-      modal?.close();
-      showToast('Settings saved! ⚙️', 'success');
-      updateProgramInfo();
-      renderCurrentScreen();
     });
   }
 
@@ -3713,43 +3752,58 @@ function bindOnboardingEvents() {
           profile.target_waist_in = profile.target_waist_in || null;
         }
 
-        profile.onboarding_completed = true;
-        saveProfile(profile);
+        const finishOnboarding = () => {
+          profile.onboarding_completed = true;
+          saveProfile(profile);
 
-        // Re-configure targets dynamically
-        const settings = getSettings();
-        const w = profile.start_weight_kg;
-        const h = profile.height_cm;
-        let bmi = 0;
-        if (w && h) {
-          bmi = w / ((h / 100) * (h / 100));
-        }
-        if (bmi >= 30 || profile.age >= 45) {
-          settings.step_target = 6000;
-        } else if (profile.primary_goal === 'muscle_gain') {
-          settings.step_target = 10000;
+          // Re-configure targets dynamically
+          const settings = getSettings();
+          const w = profile.start_weight_kg;
+          const h = profile.height_cm;
+          let bmi = 0;
+          if (w && h) {
+            bmi = w / ((h / 100) * (h / 100));
+          }
+          if (bmi >= 30 || profile.age >= 45) {
+            settings.step_target = 6000;
+          } else if (profile.primary_goal === 'muscle_gain') {
+            settings.step_target = 10000;
+          } else {
+            settings.step_target = 8000;
+          }
+          
+          const startW = profile.start_weight_kg || 70;
+          if (profile.primary_goal === 'muscle_gain') {
+            settings.protein_target_g = Math.round(startW * 1.5);
+          } else {
+            settings.protein_target_g = Math.round(startW * 1.2);
+          }
+          saveSettings(settings);
+
+          modal.close();
+          showToast("Personalized plan generated successfully! 🎉");
+          
+          const today = getDateStr(new Date());
+          const log = getDailyLog(today);
+          log.weight_kg = profile.start_weight_kg;
+          log.waist_in = profile.start_waist_in;
+          saveDailyLog(today, log);
+
+          updateAvatars();
+          renderCurrentScreen();
+        };
+
+        const obAvatarFileEl = document.getElementById('obAvatarFile');
+        if (obAvatarFileEl && obAvatarFileEl.files && obAvatarFileEl.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(ev) {
+            profile.avatar_url = ev.target.result;
+            finishOnboarding();
+          };
+          reader.readAsDataURL(obAvatarFileEl.files[0]);
         } else {
-          settings.step_target = 8000;
+          finishOnboarding();
         }
-        
-        const startW = profile.start_weight_kg || 70;
-        if (profile.primary_goal === 'muscle_gain') {
-          settings.protein_target_g = Math.round(startW * 1.5);
-        } else {
-          settings.protein_target_g = Math.round(startW * 1.2);
-        }
-        saveSettings(settings);
-
-        modal.close();
-        showToast("Personalized plan generated successfully! 🎉");
-        
-        const today = getDateStr(new Date());
-        const log = getDailyLog(today);
-        log.weight_kg = profile.start_weight_kg;
-        log.waist_in = profile.start_waist_in;
-        saveDailyLog(today, log);
-
-        renderCurrentScreen();
       } catch (err) {
         console.error("Error saving onboarding details:", err);
         alert("Unable to finish setup: " + err.message);
@@ -4878,6 +4932,14 @@ function updateTrendsMetrics() {
       trendsTrigChange.style.color = 'var(--text-secondary)';
     }
   }
+}
+
+function updateAvatars() {
+  const profile = getProfile();
+  const avatarUrl = profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80";
+  document.querySelectorAll('.user-avatar').forEach(img => {
+    img.src = avatarUrl;
+  });
 }
 
 
