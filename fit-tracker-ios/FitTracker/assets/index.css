@@ -742,7 +742,7 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 28px;
 }
 
-/* Progress Ring Color Personalization & Glowing / Fluorescent Contrast */
+/* Progress Ring Color Personalization & Clean Contrast */
 #ringScore .progress-ring__fill {
   stroke: var(--success);
 }
@@ -751,8 +751,8 @@ h1, h2, h3, h4, h5, h6 {
   stroke: oklch(0.72 0.16 150 / 0.2);
 }
 #ringScore .progress-ring__value {
-  color: oklch(0.75 0.16 150); /* Neon Fluorescent Green */
-  text-shadow: 0 0 12px oklch(0.75 0.16 150 / 0.4);
+  color: var(--success);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 #ringCompliance .progress-ring__fill {
@@ -763,8 +763,8 @@ h1, h2, h3, h4, h5, h6 {
   stroke: oklch(0.62 0.18 250 / 0.2);
 }
 #ringCompliance .progress-ring__value {
-  color: oklch(0.72 0.16 250); /* Neon Fluorescent Blue */
-  text-shadow: 0 0 12px oklch(0.72 0.16 250 / 0.4);
+  color: var(--info);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 #ringProtein .progress-ring__fill {
@@ -775,8 +775,8 @@ h1, h2, h3, h4, h5, h6 {
   stroke: oklch(0.78 0.15 70 / 0.2);
 }
 #ringProtein .progress-ring__value {
-  color: oklch(0.78 0.16 70); /* Neon Fluorescent Yellow-Orange */
-  text-shadow: 0 0 12px oklch(0.78 0.16 70 / 0.4);
+  color: var(--warning);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Light theme overrides for high contrast and readability */
@@ -1376,11 +1376,11 @@ h1, h2, h3, h4, h5, h6 {
 .btn--primary {
   background: var(--gradient-primary);
   color: oklch(0.13 0.015 260);
-  box-shadow: var(--shadow-glow);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2), var(--shadow-sm);
 }
 
 .btn--primary:hover {
-  box-shadow: 0 0 30px var(--primary-glow), var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25), var(--shadow-md);
 }
 
 .btn--accent {
@@ -3032,9 +3032,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Glass glowing effect when target reached */
 .glass-cylinder.target-reached {
-  border-color: rgba(0, 255, 255, 0.6);
-  box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.3),
-              0 0 25px rgba(0, 255, 255, 0.4);
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: inset 0 0 15px rgba(59, 130, 246, 0.2),
+              0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 /* Rims representing top opening in perspective */
@@ -3415,11 +3415,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
    PREMIUM REDESIGN ADDITIONS — FIGMA MOCKUPS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Body override for dotted grid background */
+/* Body override for a premium smooth ambient gradient (no dot static/fizz) */
 body {
-  background-color: #0b0f19 !important;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px) !important;
-  background-size: 20px 20px !important;
+  background-color: #090a0f !important;
+  background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.04) 0px, transparent 50%),
+                    radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.02) 0px, transparent 50%) !important;
+  background-size: auto !important;
+  background-attachment: fixed !important;
 }
 
 [data-theme="dark"] {
