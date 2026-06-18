@@ -17,7 +17,7 @@ export const DEFAULT_PROFILE = {
   start_waist_in: null,
   target_waist_in: null,
   program_start_date: new Date().toISOString().split('T')[0],
-  custom_location: 'Pune',
+  custom_location: '',
   use_live_location: false,
   
   // Goals

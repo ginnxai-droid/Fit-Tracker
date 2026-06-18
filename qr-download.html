@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitTracker — Download QR Code</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0a0e1a 0%, #0d1b2a 40%, #1a1a2e 100%);
+      color: #e0e0e0;
+    }
+    
+    .card {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 48px 40px;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+    }
+    
+    .logo {
+      width: 64px; height: 64px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, #34d399, #06b6d4);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 24px rgba(52, 211, 153, 0.3);
+    }
+    .logo svg { width: 36px; height: 36px; }
+    
+    h1 {
+      font-size: 28px; font-weight: 800;
+      background: linear-gradient(135deg, #34d399, #06b6d4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 4px;
+    }
+    
+    .subtitle {
+      font-size: 13px; color: rgba(255,255,255,0.5);
+      font-weight: 500; margin-bottom: 32px;
+    }
+    
+    .qr-container {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      display: inline-block;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    
+    #qrcode { display: inline-block; }
+    #qrcode canvas { border-radius: 8px; }
+    
+    .instructions {
+      font-size: 13px; color: rgba(255,255,255,0.6);
+      line-height: 1.6; margin-bottom: 24px;
+    }
+    .instructions strong { color: #34d399; }
+    
+    .download-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, #34d399, #06b6d4);
+      color: #0a0e1a; font-weight: 700; font-size: 14px;
+      padding: 14px 32px; border-radius: 12px; border: none;
+      cursor: pointer; text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(52, 211, 153, 0.3);
+    }
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(52, 211, 153, 0.4);
+    }
+    
+    .footer {
+      margin-top: 24px; font-size: 11px;
+      color: rgba(255,255,255,0.3);
+    }
+    
+    .print-only {
+      display: none;
+    }
+    
+    @media print {
+      body { background: white; }
+      .card { box-shadow: none; border: 2px solid #222; }
+      h1 { -webkit-text-fill-color: #0d7d5f; }
+      .subtitle, .instructions, .footer { color: #555; }
+      .download-btn { display: none; }
+      .print-only { display: block; font-size: 11px; color: #666; margin-top: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <!-- Logo -->
+    <div class="logo">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" stroke="white" stroke-width="2.5" fill="none"/>
+        <path d="M10 18 L14 22 L22 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+    
+    <h1>FitTracker</h1>
+    <p class="subtitle">12-Week Transformation Program</p>
+    
+    <!-- QR Code -->
+    <div class="qr-container">
+      <div id="qrcode"></div>
+    </div>
+    
+    <p class="instructions">
+      <strong>Scan this QR code</strong> with your phone camera to download the FitTracker APK directly from GitHub.<br>
+      Works on <strong>Android 8.0+</strong> devices.
+    </p>
+    
+    <!-- Direct download button -->
+    <a class="download-btn" id="downloadLink" href="https://github.com/ginnxai-droid/Fit-Tracker/raw/main/fit-tracker-professional.apk" target="_blank">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download APK
+    </a>
+    
+    <p class="print-only">
+      URL: https://github.com/ginnxai-droid/Fit-Tracker/raw/main/fit-tracker-professional.apk
+    </p>
+    
+    <p class="footer">
+      FitTracker &copy; 2026 &middot; Built with ❤️ for your health journey
+    </p>
+  </div>
+  
+  <!-- QRCode.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script>
+    const APK_URL = "https://github.com/ginnxai-droid/Fit-Tracker/raw/main/fit-tracker-professional.apk";
+    
+    new QRCode(document.getElementById("qrcode"), {
+      text: APK_URL,
+      width: 220,
+      height: 220,
+      colorDark: "#0a0e1a",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  </script>
+</body>
+</html>

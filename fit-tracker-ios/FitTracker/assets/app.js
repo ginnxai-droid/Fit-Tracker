@@ -2386,7 +2386,7 @@ function bindSettingsModal() {
     setInputValue('settingTargetWaist', profile.target_waist_in || '');
     setInputValue('settingTimelineVal', profile.target_timeline_value || 3);
     setInputValue('settingTimelineUnit', profile.target_timeline_unit || 'months');
-    setInputValue('settingLocation', profile.custom_location || 'Pune');
+    setInputValue('settingLocation', profile.custom_location || '');
     const settingPreview = document.getElementById('settingAvatarPreview');
     if (settingPreview) {
       settingPreview.src = profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80";
