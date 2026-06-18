@@ -1093,6 +1093,186 @@ export function renderStreakChart(canvasId, range = '30d') {
   chartInstances.set(canvasId, chart);
 }
 
+/**
+ * Render a mixed correlation chart showing Steps (bars) and Triglycerides (line)
+ */
+export function renderCorrelationChart(canvasId, range = '30d') {
+  const ctx = getCanvasCtx(canvasId);
+  if (!ctx) return;
+  destroyChart(canvasId);
+
+  const allLogs = getConsolidatedDailyLogs();
+  const logs = filterByRange(allLogs, range);
+
+  if (logs.length === 0) {
+    drawEmptyState(ctx, canvasId);
+    return;
+  }
+
+  const labels = logs.map((l) => formatLabel(l.date));
+  const steps = logs.map((l) => l.steps || 0);
+  const triglycerides = logs.map((l) => l.triglycerides_val);
+
+  // Check if we have any valid data to show
+  const hasSteps = steps.some(s => s > 0);
+  const hasTriglycerides = triglycerides.some(t => t != null);
+
+  if (!hasSteps && !hasTriglycerides) {
+    drawEmptyState(ctx, canvasId);
+    return;
+  }
+
+  const chart = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Steps',
+          data: steps,
+          backgroundColor: currentTheme.success,
+          borderColor: 'transparent',
+          borderWidth: 0,
+          borderRadius: 6,
+          yAxisID: 'y',
+          barPercentage: 0.6,
+        },
+        {
+          type: 'line',
+          label: 'Triglycerides (mg/dL)',
+          data: triglycerides,
+          borderColor: currentTheme.info,
+          backgroundColor: 'transparent',
+          pointBackgroundColor: currentTheme.info,
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 1,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 3,
+          tension: 0.35,
+          yAxisID: 'y2',
+          spanGaps: true,
+        },
+      ],
+    },
+    options: {
+      animation: animationConfig(),
+      scales: {
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          beginAtZero: true,
+          title: { display: true, text: 'Steps', color: currentTheme.text },
+          grid: { color: currentTheme.grid },
+        },
+        y2: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          beginAtZero: false,
+          title: { display: true, text: 'Triglycerides (mg/dL)', color: currentTheme.text },
+          grid: { drawOnChartArea: false },
+        },
+        x: {
+          grid: { display: false },
+        },
+      },
+      plugins: {
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+        },
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            color: currentTheme.text,
+            boxWidth: 12,
+            font: { size: 11 },
+          },
+        },
+      },
+    },
+  });
+
+  chartInstances.set(canvasId, chart);
+}
+
+/**
+ * Render a beautiful biometric steps trend bar chart on the dashboard
+ */
+export function renderDashboardTrendChart(canvasId) {
+  const ctx = getCanvasCtx(canvasId);
+  if (!ctx) return;
+  destroyChart(canvasId);
+
+  const allLogs = getConsolidatedDailyLogs();
+  const last7Logs = allLogs.slice(-7);
+
+  if (last7Logs.length === 0) {
+    drawEmptyState(ctx, canvasId);
+    return;
+  }
+
+  const labels = last7Logs.map((l) => formatLabel(l.date));
+  const steps = last7Logs.map((l) => l.steps || 0);
+
+  // Gradient background for bars
+  let gradientFill = currentTheme.primary;
+  try {
+    gradientFill = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+    gradientFill.addColorStop(0, '#3b82f6');
+    gradientFill.addColorStop(1, 'rgba(59, 130, 246, 0.15)');
+  } catch (err) {
+    console.warn("Could not create gradient for dashboardTrendChart", err);
+  }
+
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Steps',
+          data: steps,
+          backgroundColor: gradientFill,
+          borderColor: 'transparent',
+          borderWidth: 0,
+          borderRadius: 6,
+          barPercentage: 0.6,
+        },
+      ],
+    },
+    options: {
+      animation: animationConfig(),
+      scales: {
+        y: {
+          display: false,
+          beginAtZero: true,
+        },
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: currentTheme.text,
+            font: { size: 10 },
+          },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem) => `${tooltipItem.parsed.y.toLocaleString()} steps`,
+          },
+        },
+      },
+    },
+  });
+
+  chartInstances.set(canvasId, chart);
+}
+
 /* ═════════════════════════════════════════════════════════════════════════════
    UTILITY FUNCTIONS
    ═════════════════════════════════════════════════════════════════════════ */
@@ -1111,6 +1291,8 @@ export function renderAllCharts(range = '30d') {
   renderComplianceChart('complianceChart', range);
   renderTrajectoryChart('trajectoryChart');
   renderStreakChart('streakChart', range);
+  renderCorrelationChart('correlationChart', range);
+  renderDashboardTrendChart('dashboardTrendChart');
 }
 
 /**
@@ -1165,6 +1347,12 @@ export function updateChartsTheme(isDark) {
         break;
       case 'streakChart':
         renderStreakChart(canvasId, range);
+        break;
+      case 'correlationChart':
+        renderCorrelationChart(canvasId, range);
+        break;
+      case 'dashboardTrendChart':
+        renderDashboardTrendChart(canvasId);
         break;
       default:
         break;

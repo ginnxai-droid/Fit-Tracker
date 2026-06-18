@@ -2854,7 +2854,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 4px 12px rgba(0, 255, 255, 0.05);
 }
 
-.exercise-thumb {
+.exercise-thumb,
+.meal-thumb {
   width: 52px;
   height: 52px;
   border-radius: var(--radius-md);
@@ -2865,7 +2866,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transition: border-color var(--transition-fast);
 }
 
-.workout-exercise:hover .exercise-thumb {
+.workout-exercise:hover .exercise-thumb,
+.meal-card:hover .meal-thumb {
   border-color: var(--primary);
 }
 
@@ -3467,22 +3469,24 @@ body {
   letter-spacing: -0.2px;
 }
 
-.weather-pill {
+/* Premium Location Pill styling */
+.location-pill {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
   border-radius: var(--radius-full);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  font-size: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
 }
 
-.weather-pill i {
-  width: 14px;
-  height: 14px;
+.location-pill i {
+  width: 13px;
+  height: 13px;
   color: var(--primary);
 }
 
@@ -3851,6 +3855,28 @@ input:checked + .slider-switch:before {
 
 .daily-intake-card-new {
   box-shadow: var(--shadow-sm);
+}
+
+/* Avatar Option grid selection styles */
+.avatar-option:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-option.selected {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary) !important;
+}
+
+/* Support system safe areas on mobile devices to prevent touch blockers */
+@media (max-width: 768px) {
+  .mobile-nav {
+    padding-bottom: calc(var(--space-xs) + env(safe-area-inset-bottom, 0px)) !important;
+    height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .main {
+    padding-bottom: calc(64px + var(--space-md) + env(safe-area-inset-bottom, 0px)) !important;
+  }
 }
 
 

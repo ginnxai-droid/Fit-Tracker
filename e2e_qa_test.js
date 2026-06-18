@@ -414,9 +414,30 @@ async function runTests() {
 
     // ── TEST 8: Charts & Recommendations ──
     try {
+      const stateBeforeProgress = await page.evaluate(() => {
+        return {
+          hash: window.location.hash,
+          progressActive: document.getElementById('screen-progress')?.classList.contains('active'),
+          reviewActive: document.getElementById('screen-review')?.classList.contains('active'),
+          workoutActive: document.getElementById('screen-workout')?.classList.contains('active'),
+          mealsActive: document.getElementById('screen-meals')?.classList.contains('active'),
+          todayActive: document.getElementById('screen-today')?.classList.contains('active'),
+          dashboardActive: document.getElementById('screen-dashboard')?.classList.contains('active')
+        };
+      });
+      console.log(`DEBUG Navigation [Before Progress Click]: hash=${stateBeforeProgress.hash}, progress=${stateBeforeProgress.progressActive}, review=${stateBeforeProgress.reviewActive}, workout=${stateBeforeProgress.workoutActive}, meals=${stateBeforeProgress.mealsActive}, today=${stateBeforeProgress.todayActive}, dashboard=${stateBeforeProgress.dashboardActive}`);
+
       // Go to Progress page
       await page.click('.mobile-nav-item[data-screen="progress"]');
       await new Promise(r => setTimeout(r, 800));
+
+      const stateAfterProgress = await page.evaluate(() => {
+        return {
+          hash: window.location.hash,
+          progressActive: document.getElementById('screen-progress')?.classList.contains('active')
+        };
+      });
+      console.log(`DEBUG Navigation [After Progress Click]: hash=${stateAfterProgress.hash}, progress=${stateAfterProgress.progressActive}`);
 
       const canvasListOk = await page.evaluate(() => {
         const ids = ['weightChart', 'waistChart', 'stepsChart', 'proteinChart', 'trajectoryChart', 'complianceChart', 'workoutHeatmap', 'streakChart'];
@@ -427,16 +448,94 @@ async function runTests() {
       });
       logTestResult("Test 8a: Chart.js Progress Canvas Containers Rendered", canvasListOk);
 
+      const stateBeforeReview = await page.evaluate(() => {
+        return {
+          hash: window.location.hash,
+          reviewActive: document.getElementById('screen-review')?.classList.contains('active')
+        };
+      });
+      console.log(`DEBUG Navigation [Before Review Click]: hash=${stateBeforeReview.hash}, review=${stateBeforeReview.reviewActive}`);
+
       // Navigate to Review screen
       await page.click('.mobile-nav-item[data-screen="review"]');
       await new Promise(r => setTimeout(r, 800));
 
-      const coachMessageRendered = await page.evaluate(() => {
+      const stateAfterReview = await page.evaluate(() => {
+        return {
+          hash: window.location.hash,
+          reviewActive: document.getElementById('screen-review')?.classList.contains('active')
+        };
+      });
+      console.log(`DEBUG Navigation [After Review Click]: hash=${stateAfterReview.hash}, review=${stateAfterReview.reviewActive}`);
+
+      const coachMessageResult = await page.evaluate(() => {
         const coachMsg = document.getElementById('coachMessage');
         const emptyMsg = document.querySelector('.recommendations .review-list__empty');
-        return coachMsg && window.getComputedStyle(coachMsg.parentElement).display !== 'none' && !emptyMsg;
+        const parentDisplay = coachMsg ? window.getComputedStyle(coachMsg.parentElement).display : 'none';
+        const grandparentDisplay = coachMsg && coachMsg.parentElement && coachMsg.parentElement.parentElement ? window.getComputedStyle(coachMsg.parentElement.parentElement).display : 'none';
+        const hasCoachMsg = !!(coachMsg && coachMsg.textContent.trim());
+        const hasEmptyMsg = !!emptyMsg;
+        const ok = hasCoachMsg && parentDisplay !== 'none' && grandparentDisplay !== 'none' && !hasEmptyMsg;
+        
+        const profile = JSON.parse(localStorage.getItem('ft_profile') || '{}');
+        const dailyLogs = JSON.parse(localStorage.getItem('ft_daily_logs') || '{}');
+        const checklists = JSON.parse(localStorage.getItem('ft_checklists') || '{}');
+        const mealLogs = JSON.parse(localStorage.getItem('ft_meal_logs') || '{}');
+        
+        // Let's call the functions directly in the page context to see what they return
+        let calculatedReview = null;
+        let generatedRecs = null;
+        let weeklyMsg = null;
+        let executionError = null;
+        try {
+          const weekStartStr = profile.program_start_date || '2026-06-08';
+          // Since scoring.js is imported as an ES module, we can access functions defined on the window
+          // or we can invoke the same logic if we exported them, or check if they are globally accessible.
+          // Let's see if we can call window.calculateWeeklyReview or calculateWeeklyReview.
+          const fnReview = window.calculateWeeklyReview || typeof calculateWeeklyReview !== 'undefined' ? calculateWeeklyReview : null;
+          if (fnReview) {
+            calculatedReview = fnReview(weekStartStr);
+            if (calculatedReview) {
+              const fnRecs = window.generateRecommendations || typeof generateRecommendations !== 'undefined' ? generateRecommendations : null;
+              if (fnRecs) generatedRecs = fnRecs(calculatedReview, 'weekly');
+              const fnMsg = window.getWeeklyMessage || typeof getWeeklyMessage !== 'undefined' ? getWeeklyMessage : null;
+              if (fnMsg) weeklyMsg = fnMsg(calculatedReview);
+            }
+          } else {
+            executionError = "calculateWeeklyReview function not found in global scope";
+          }
+        } catch (e) {
+          executionError = e.message + '\nStack: ' + e.stack;
+        }
+        
+        const recsContainer = document.getElementById('reviewRecommendations');
+        const winsContainer = document.getElementById('reviewWins');
+        const problemsContainer = document.getElementById('reviewProblems');
+        
+        return {
+          ok,
+          hasCoachMsg,
+          parentDisplay,
+          grandparentDisplay,
+          hasEmptyMsg,
+          coachMsgText: coachMsg ? coachMsg.textContent.trim() : '',
+          profile,
+          dailyLogKeys: Object.keys(dailyLogs),
+          checklistKeys: Object.keys(checklists),
+          mealLogKeys: Object.keys(mealLogs),
+          recsHtml: recsContainer ? recsContainer.innerHTML.trim() : '',
+          winsHtml: winsContainer ? winsContainer.innerHTML.trim() : '',
+          problemsHtml: problemsContainer ? problemsContainer.innerHTML.trim() : '',
+          calculatedReview,
+          generatedRecs,
+          weeklyMsg,
+          executionError,
+          hash: window.location.hash,
+          reviewScreenActive: document.getElementById('screen-review')?.classList.contains('active'),
+          reviewScreenDisplay: document.getElementById('screen-review') ? window.getComputedStyle(document.getElementById('screen-review')).display : 'none'
+        };
       });
-      logTestResult("Test 8b: Coach Recommendations Engine Calculated Recommendations", coachMessageRendered);
+      logTestResult("Test 8b: Coach Recommendations Engine Calculated Recommendations", coachMessageResult.ok, `hasCoachMsg=${coachMessageResult.hasCoachMsg}, parentDisplay=${coachMessageResult.parentDisplay}, grandparentDisplay=${coachMessageResult.grandparentDisplay}, hasEmptyMsg=${coachMessageResult.hasEmptyMsg}, coachMsgText="${coachMessageResult.coachMsgText}", recsHtml="${coachMessageResult.recsHtml}", winsHtml="${coachMessageResult.winsHtml}", problemsHtml="${coachMessageResult.problemsHtml}", executionError="${coachMessageResult.executionError}", hash="${coachMessageResult.hash}", reviewScreenActive=${coachMessageResult.reviewScreenActive}, reviewScreenDisplay="${coachMessageResult.reviewScreenDisplay}"`);
     } catch (e) {
       logTestResult("Test 8: Progress Charts & Recommendations", false, e.message);
     }

@@ -119,7 +119,7 @@ function initializeApp() {
 
   // Initialize theme
   const settings = getSettings();
-  applyTheme(settings.theme || 'light');
+  applyTheme(settings.theme || 'dark');
 
   // Initialize Lucide icons
   if (typeof lucide !== 'undefined') {
@@ -156,6 +156,10 @@ function initializeApp() {
   detectUserLocation();
   initReminders();
   updateAvatars();
+  bindAvatarPickerEvents();
+
+  // Generate baseline history if no daily logs exist yet
+  generateBaselineHistoryIfEmpty();
 
   // Onboarding setup check & automated test bypass
   const isTestEnv = window.navigator.webdriver || window.location.search.includes('test');
@@ -287,6 +291,7 @@ function renderCurrentScreen() {
     case 'review': renderReview(); break;
   }
   updateAvatars();
+  updateLocationDisplay();
 }
 
 function syncAndroidSteps() {
@@ -532,7 +537,12 @@ function renderDashboard() {
   // Steps & Sleep
   const steps = log.steps || 0;
   setTextContent('todaySteps', steps.toLocaleString());
-  setTextContent('todaySleep', log.sleep_hours || 0);
+  
+  const effectiveSleep = (log.sleep_hours !== null && log.sleep_hours !== undefined && log.sleep_hours > 0)
+    ? log.sleep_hours
+    : calculateDefaultSleepHours(profile);
+  setTextContent('todaySleep', effectiveSleep);
+
   const adjustedTarget = getAdjustedStepTarget(today);
   const stepsBar = document.getElementById('stepsBarFill');
   if (stepsBar) {
@@ -542,7 +552,27 @@ function renderDashboard() {
   // Sleep progress bar
   const sleepBar = document.getElementById('sleepBarFill');
   if (sleepBar) {
-    sleepBar.style.width = Math.min(100, ((log.sleep_hours || 0) / 8) * 100) + '%';
+    sleepBar.style.width = Math.min(100, (effectiveSleep / 8) * 100) + '%';
+  }
+
+  // Update dynamic sleep quality description
+  const sleepDesc = document.getElementById('todaySleepDesc');
+  if (sleepDesc) {
+    let quality = 'Optimal';
+    let color = 'var(--success)';
+    if (effectiveSleep < 6) {
+      quality = 'Poor (Sleep Deprived)';
+      color = 'var(--danger)';
+    } else if (effectiveSleep < 7) {
+      quality = 'Fair (Short Sleep)';
+      color = 'var(--warning)';
+    } else if (effectiveSleep > 9) {
+      quality = 'Long Sleep';
+      color = 'var(--info)';
+    }
+    const isLogged = log.sleep_hours !== null && log.sleep_hours !== undefined && log.sleep_hours > 0;
+    sleepDesc.textContent = `${quality} Quality${isLogged ? '' : ' (Default)'}`;
+    sleepDesc.style.color = color;
   }
 
   // Calories and benchmark status
@@ -807,12 +837,32 @@ function renderTodayScore() {
 
 
 // ── Quick Log ──
+function calculateDefaultSleepHours(profile) {
+  const wake = profile.wake_time || '08:00';
+  const sleep = profile.sleep_time || '00:15';
+  
+  const [wakeH, wakeM] = wake.split(':').map(Number);
+  const [sleepH, sleepM] = sleep.split(':').map(Number);
+  
+  let diffMin = (wakeH * 60 + wakeM) - (sleepH * 60 + sleepM);
+  if (diffMin < 0) {
+    diffMin += 24 * 60; // Rollover midnight
+  }
+  return +(diffMin / 60).toFixed(2);
+}
+
 function loadQuickLogValues() {
   const log = getDailyLog(currentDate);
   setInputValue('inputWeight', log.weight_kg);
   setInputValue('inputWaist', log.waist_in);
   setInputValue('inputSteps', log.steps);
-  setInputValue('inputSleep', log.sleep_hours);
+
+  let sleepVal = log.sleep_hours;
+  if ((sleepVal === null || sleepVal === undefined || sleepVal === '' || sleepVal === 0) && currentDate === getDateStr(new Date())) {
+    const profile = getProfile();
+    sleepVal = calculateDefaultSleepHours(profile);
+  }
+  setInputValue('inputSleep', sleepVal);
   setInputValue('inputWater', log.water_litres);
   setInputValue('inputEnergy', log.energy_level || 3);
   setInputValue('inputNotes', log.notes);
@@ -1249,6 +1299,13 @@ function renderMealPlan() {
   let totalActualProtein = 0;
   let totalActualCalories = 0;
 
+  const mealThumbs = {
+    'First Meal': 'https://images.unsplash.com/photo-1541832676-9b763b0239ab?w=120&auto=format&fit=crop&q=80',
+    'Lunch': 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=120&auto=format&fit=crop&q=80',
+    'Evening Snack': 'https://images.unsplash.com/photo-1608797178974-15b35a61d121?w=120&auto=format&fit=crop&q=80',
+    'Dinner': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120&auto=format&fit=crop&q=80'
+  };
+
   container.innerHTML = loggedMeals.map((meal, i) => {
     // If it's a custom logged entry
     if (meal.is_custom) {
@@ -1257,11 +1314,13 @@ function renderMealPlan() {
       return `
         <div class="meal-card card custom-meal-card meal-completed" data-meal-index="${i}" style="border-color: var(--accent); margin-bottom: var(--space-md);">
           <div class="card-header" style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 0;">
-            <div class="meal-card__header">
-              <i data-lucide="utensils" style="color: var(--accent);"></i>
+            <div class="meal-card__header" style="display: flex; align-items: center; gap: var(--space-sm);">
+              <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; border: 2px solid var(--accent); flex-shrink: 0;">
+                <i data-lucide="utensils" style="color: var(--accent); width: 24px; height: 24px;"></i>
+              </div>
               <div>
                 <h3>${meal.items[0]}</h3>
-                <span class="meal-card__time text-mono">${meal.time} — Custom Entry</span>
+                <span class="meal-card__time text-mono">${meal.time} — Custom</span>
               </div>
             </div>
             <div class="meal-card__protein-badges" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
@@ -1284,8 +1343,7 @@ function renderMealPlan() {
     totalActualCalories += meal.completed ? 450 : 0;
 
     const templateMeal = templates[i] || templates[0];
-    const mealIcons = { 'First Meal': 'sunrise', 'Lunch': 'sun', 'Office Snack': 'coffee', 'Dinner': 'moon' };
-    const icon = mealIcons[meal.label] || 'utensils';
+    const mealThumb = mealThumbs[meal.label] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120&auto=format&fit=crop&q=80';
     
     const isEditing = editingMealIndexes[i];
 
@@ -1293,8 +1351,8 @@ function renderMealPlan() {
       return `
         <div class="meal-card card meal-card--editing" data-meal-index="${i}" style="margin-bottom: var(--space-md);">
           <div class="card-header">
-            <div class="meal-card__header">
-              <i data-lucide="${icon}"></i>
+            <div class="meal-card__header" style="display: flex; align-items: center; gap: var(--space-sm);">
+              <img src="${mealThumb}" class="meal-thumb" alt="${meal.label}">
               <div>
                 <h3>Editing ${meal.label}</h3>
                 <span class="meal-card__time text-mono">${meal.time}</span>
@@ -1328,8 +1386,8 @@ function renderMealPlan() {
     return `
       <div class="meal-card card ${meal.completed ? 'meal-completed' : ''}" data-meal-index="${i}" style="${meal.completed ? 'border-color: var(--success);' : ''}; margin-bottom: var(--space-md);">
         <div class="card-header" style="display: flex; align-items: flex-start; justify-content: space-between;">
-          <div class="meal-card__header">
-            <i data-lucide="${icon}"></i>
+          <div class="meal-card__header" style="display: flex; align-items: center; gap: var(--space-sm);">
+            <img src="${mealThumb}" class="meal-thumb" alt="${meal.label}">
             <div>
               <h3>${meal.label}</h3>
               <span class="meal-card__time text-mono">${meal.time}</span>
@@ -2203,6 +2261,41 @@ function bindSettingsModal() {
   const loadSampleBtn = document.getElementById('loadSampleData');
   const clearBtn = document.getElementById('clearDataBtn');
 
+  const whitelistBtn = document.getElementById('btnRequestBatteryWhitelist');
+  if (whitelistBtn) {
+    whitelistBtn.addEventListener('click', () => {
+      const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
+      if (isAndroid && typeof window.AndroidInterface.requestIgnoreBatteryOptimizations === 'function') {
+        window.AndroidInterface.requestIgnoreBatteryOptimizations();
+      }
+    });
+  }
+
+  const applyCalibrationBtn = document.getElementById('btnApplySensorCalibration');
+  if (applyCalibrationBtn) {
+    applyCalibrationBtn.addEventListener('click', () => {
+      const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
+      if (isAndroid) {
+        const mode = document.getElementById('settingSensorMode')?.value || 'auto';
+        const threshold = parseFloat(document.getElementById('settingSensorThreshold')?.value || '1.2');
+        if (typeof window.AndroidInterface.setPreferredTrackingMode === 'function') {
+          window.AndroidInterface.setPreferredTrackingMode(mode);
+        }
+        if (typeof window.AndroidInterface.setAccelerometerThreshold === 'function') {
+          window.AndroidInterface.setAccelerometerThreshold(threshold);
+        }
+        if (typeof window.AndroidInterface.restartStepCounterService === 'function') {
+          window.AndroidInterface.restartStepCounterService();
+          showToast('Sensor engine calibrated and restarted! 🚀', 'success');
+        } else {
+          showToast('Failed to restart sensor service.', 'danger');
+        }
+      } else {
+        showToast('Calibration is only supported on Android devices.', 'warning');
+      }
+    });
+  }
+
   const checkSettingsGoalValidity = () => {
     const settingCurrentWeight = document.getElementById('settingCurrentWeight');
     const settingTargetWeight = document.getElementById('settingTargetWeight');
@@ -2265,6 +2358,17 @@ function bindSettingsModal() {
   };
 
   const openSettings = () => {
+    const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
+    const batteryOptimSec = document.getElementById('batteryOptimizationSection');
+    if (batteryOptimSec) {
+      if (isAndroid && typeof window.AndroidInterface.isBatteryOptimizationIgnored === 'function') {
+        const ignored = window.AndroidInterface.isBatteryOptimizationIgnored();
+        batteryOptimSec.style.display = ignored ? 'none' : 'block';
+      } else {
+        batteryOptimSec.style.display = 'none';
+      }
+    }
+
     const profile = getProfile();
     setInputValue('settingName', profile.name);
     setInputValue('settingAge', profile.age || '');
@@ -2282,6 +2386,11 @@ function bindSettingsModal() {
     setInputValue('settingTargetWaist', profile.target_waist_in || '');
     setInputValue('settingTimelineVal', profile.target_timeline_value || 3);
     setInputValue('settingTimelineUnit', profile.target_timeline_unit || 'months');
+    setInputValue('settingLocation', profile.custom_location || 'Pune');
+    const settingPreview = document.getElementById('settingAvatarPreview');
+    if (settingPreview) {
+      settingPreview.src = profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80";
+    }
     updateSettingsBmiDisplay();
 
     // Diet options
@@ -2360,6 +2469,21 @@ function bindSettingsModal() {
     setInputValue('settingDinnerTime', profile.dinner_time || '21:00');
     setInputValue('settingDinnerAction', profile.dinner_action || '');
     setInputValue('settingDinnerWalkTime', profile.dinner_walk_time || '21:45');
+
+    const pcalSection = document.getElementById('pedometerCalibrationSection');
+    if (pcalSection) {
+      if (isAndroid) {
+        pcalSection.style.display = 'block';
+        if (typeof window.AndroidInterface.getPreferredTrackingMode === 'function') {
+          setInputValue('settingSensorMode', window.AndroidInterface.getPreferredTrackingMode());
+        }
+        if (typeof window.AndroidInterface.getAccelerometerThreshold === 'function') {
+          setInputValue('settingSensorThreshold', window.AndroidInterface.getAccelerometerThreshold().toString());
+        }
+      } else {
+        pcalSection.style.display = 'none';
+      }
+    }
 
     const toggleDietOpts = () => {
       const diet = document.getElementById('settingDiet')?.value;
@@ -2590,55 +2714,73 @@ function bindSettingsModal() {
       log.weight_kg = profile.start_weight_kg;
       saveDailyLog(today, log);
 
-      const saveSettingsFlow = () => {
-        saveProfile(profile); // This automatically calls rebuildDynamicData
-        
-        // Re-configure targets dynamically if weight or height changed
-        if (profile.start_weight_kg !== oldWeight || profile.height_cm !== oldHeight) {
-          const settings = getSettings();
-          const w = profile.start_weight_kg;
-          const h = profile.height_cm;
-          const bmi = w / ((h / 100) * (h / 100));
-          if (bmi >= 30 || profile.age >= 45) {
-            settings.step_target = 6000;
-          } else if (profile.primary_goal === 'muscle_gain') {
-            settings.step_target = 10000;
-          } else {
-            settings.step_target = 8000;
+      const settingPreview = document.getElementById('settingAvatarPreview');
+      if (settingPreview && settingPreview.src) {
+        profile.avatar_url = settingPreview.src;
+      }
+      profile.custom_location = document.getElementById('settingLocation')?.value || 'Pune';
+      if (!isLiveLocationEnabled) {
+        updateLocationUI(false, profile.custom_location);
+      }
+
+      const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
+      if (isAndroid) {
+        const sensorMode = document.getElementById('settingSensorMode')?.value || 'auto';
+        const sensorThresh = parseFloat(document.getElementById('settingSensorThreshold')?.value || '1.2');
+        let changed = false;
+        if (typeof window.AndroidInterface.getPreferredTrackingMode === 'function') {
+          const oldMode = window.AndroidInterface.getPreferredTrackingMode();
+          if (oldMode !== sensorMode) {
+            window.AndroidInterface.setPreferredTrackingMode(sensorMode);
+            changed = true;
           }
-          
-          if (profile.primary_goal === 'muscle_gain') {
-            settings.protein_target_g = Math.round(profile.start_weight_kg * 1.5);
-          } else {
-            settings.protein_target_g = Math.round(profile.start_weight_kg * 1.2);
+        }
+        if (typeof window.AndroidInterface.getAccelerometerThreshold === 'function') {
+          const oldThresh = window.AndroidInterface.getAccelerometerThreshold();
+          if (Math.abs(oldThresh - sensorThresh) > 0.01) {
+            window.AndroidInterface.setAccelerometerThreshold(sensorThresh);
+            changed = true;
           }
-          saveSettings(settings);
+        }
+        if (changed && typeof window.AndroidInterface.restartStepCounterService === 'function') {
+          window.AndroidInterface.restartStepCounterService();
+        }
+      }
+
+      saveProfile(profile); // This automatically calls rebuildDynamicData
+      
+      // Re-configure targets dynamically if weight or height changed
+      if (profile.start_weight_kg !== oldWeight || profile.height_cm !== oldHeight) {
+        const settings = getSettings();
+        const w = profile.start_weight_kg;
+        const h = profile.height_cm;
+        const bmi = w / ((h / 100) * (h / 100));
+        if (bmi >= 30 || profile.age >= 45) {
+          settings.step_target = 6000;
+        } else if (profile.primary_goal === 'muscle_gain') {
+          settings.step_target = 10000;
+        } else {
+          settings.step_target = 8000;
         }
         
-        const settings = getSettings();
-        settings.lunch_walk_alarm = profile.lunch_walk_time;
-        settings.dinner_walk_alarm = profile.dinner_walk_time;
+        if (profile.primary_goal === 'muscle_gain') {
+          settings.protein_target_g = Math.round(profile.start_weight_kg * 1.5);
+        } else {
+          settings.protein_target_g = Math.round(profile.start_weight_kg * 1.2);
+        }
         saveSettings(settings);
-        
-        modal?.close();
-        showToast('Settings saved! ⚙️', 'success');
-        updateProgramInfo();
-        updateAvatars();
-        renderCurrentScreen();
-      };
-
-      // Handle avatar file upload
-      const avatarFileEl = document.getElementById('settingAvatarFile');
-      if (avatarFileEl && avatarFileEl.files && avatarFileEl.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-          profile.avatar_url = ev.target.result;
-          saveSettingsFlow();
-        };
-        reader.readAsDataURL(avatarFileEl.files[0]);
-      } else {
-        saveSettingsFlow();
       }
+      
+      const settings = getSettings();
+      settings.lunch_walk_alarm = profile.lunch_walk_time;
+      settings.dinner_walk_alarm = profile.dinner_walk_time;
+      saveSettings(settings);
+      
+      modal?.close();
+      showToast('Settings saved! ⚙️', 'success');
+      updateProgramInfo();
+      updateAvatars();
+      renderCurrentScreen();
     });
   }
 
@@ -3299,6 +3441,11 @@ function initMotionPedometer() {
   let lastShakeTime = 0;
 
   window.addEventListener('devicemotion', (event) => {
+    // Guard against race conditions where AndroidInterface is injected after initialization
+    if (typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid()) {
+      return;
+    }
+
     const acceleration = event.accelerationIncludingGravity;
     if (!acceleration) return;
 
@@ -3675,6 +3822,8 @@ function bindOnboardingEvents() {
         profile.agreed_to_terms = true;
         profile.agreed_to_terms_timestamp = new Date().toISOString();
         profile.name = document.getElementById('obName')?.value || profile.name;
+        profile.custom_location = document.getElementById('obLocation')?.value || 'Pune';
+        profile.use_live_location = false;
         profile.age = parseInt(document.getElementById('obAge')?.value) || profile.age;
         profile.sex = document.getElementById('obGender')?.value || 'male';
         profile.fitness_level = document.getElementById('obFitnessLevel')?.value || 'beginner';
@@ -3793,17 +3942,12 @@ function bindOnboardingEvents() {
           renderCurrentScreen();
         };
 
-        const obAvatarFileEl = document.getElementById('obAvatarFile');
-        if (obAvatarFileEl && obAvatarFileEl.files && obAvatarFileEl.files[0]) {
-          const reader = new FileReader();
-          reader.onload = function(ev) {
-            profile.avatar_url = ev.target.result;
-            finishOnboarding();
-          };
-          reader.readAsDataURL(obAvatarFileEl.files[0]);
-        } else {
-          finishOnboarding();
+        // Read avatar from the preview image (which may have been set by the picker modal)
+        const obPreview = document.getElementById('obAvatarPreview');
+        if (obPreview && obPreview.src) {
+          profile.avatar_url = obPreview.src;
         }
+        finishOnboarding();
       } catch (err) {
         console.error("Error saving onboarding details:", err);
         alert("Unable to finish setup: " + err.message);
@@ -3940,9 +4084,7 @@ function updateLocationUI(isEnabled, cityName) {
       locationDot.style.boxShadow = '0 0 8px var(--success)';
       locationDot.classList.add('live-pulse--active');
     }
-    if (cityName) {
-      updateWeatherPill(cityName);
-    }
+    // Weather pill removed per user request
   } else {
     isLiveLocationEnabled = false;
     if (activeLocationSpan) {
@@ -3957,7 +4099,7 @@ function updateLocationUI(isEnabled, cityName) {
       locationDot.style.boxShadow = 'none';
       locationDot.classList.remove('live-pulse--active');
     }
-    updateWeatherPill("London");
+    // Weather pill removed per user request
   }
 }
 
@@ -4942,4 +5084,241 @@ function updateAvatars() {
   });
 }
 
+function updateLocationDisplay() {
+  const profile = getProfile();
+  const cleanCity = profile.custom_location ? profile.custom_location.split(',')[0].trim() : 'Pune';
+  document.querySelectorAll('.location-text').forEach(el => {
+    el.textContent = cleanCity;
+  });
+}
+
+// ── Avatar Picker Modal ────────────────────────────────────
+let activeAvatarContext = null; // 'settings' or 'onboarding'
+
+function bindAvatarPickerEvents() {
+  const pickerModal = document.getElementById('avatarPickerModal');
+  const pickerClose = document.getElementById('avatarPickerClose');
+  const uploadBtn = document.getElementById('btnUploadCustomPhoto');
+
+  const settingWrapper = document.getElementById('settingAvatarSelectWrapper');
+  const obWrapper = document.getElementById('obAvatarSelectWrapper');
+
+  if (settingWrapper) {
+    settingWrapper.addEventListener('click', () => {
+      activeAvatarContext = 'settings';
+      openAvatarPicker();
+    });
+  }
+
+  if (obWrapper) {
+    obWrapper.addEventListener('click', () => {
+      activeAvatarContext = 'onboarding';
+      openAvatarPicker();
+    });
+  }
+
+  if (pickerClose && pickerModal) {
+    pickerClose.addEventListener('click', () => pickerModal.close());
+  }
+
+  // Preset avatar selection
+  if (pickerModal) {
+    pickerModal.querySelectorAll('.avatar-option').forEach(option => {
+      option.addEventListener('click', () => {
+        const url = option.dataset.url;
+        if (!url) return;
+
+        // Highlight selection
+        pickerModal.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+        option.classList.add('selected');
+
+        // Update the active context preview
+        const previewId = activeAvatarContext === 'settings' ? 'settingAvatarPreview' : 'obAvatarPreview';
+        const previewEl = document.getElementById(previewId);
+        if (previewEl) previewEl.src = url;
+
+        // Save to profile immediately if in settings context
+        if (activeAvatarContext === 'settings') {
+          const profile = getProfile();
+          profile.avatar_url = url;
+          saveProfile(profile);
+          updateAvatars();
+        }
+
+        setTimeout(() => pickerModal.close(), 200);
+      });
+    });
+  }
+
+  // Custom photo upload
+  if (uploadBtn && pickerModal) {
+    uploadBtn.addEventListener('click', () => {
+      const fileInputId = activeAvatarContext === 'settings' ? 'settingAvatarFile' : 'obAvatarFile';
+      const fileInput = document.getElementById(fileInputId);
+      if (fileInput) fileInput.click();
+    });
+  }
+
+  // File input change handlers
+  const settingFileInput = document.getElementById('settingAvatarFile');
+  if (settingFileInput) {
+    settingFileInput.addEventListener('change', (e) => {
+      handleAvatarFileChange(e, 'settingAvatarPreview', true);
+    });
+  }
+
+  const obFileInput = document.getElementById('obAvatarFile');
+  if (obFileInput) {
+    obFileInput.addEventListener('change', (e) => {
+      handleAvatarFileChange(e, 'obAvatarPreview', false);
+    });
+  }
+}
+
+function openAvatarPicker() {
+  const pickerModal = document.getElementById('avatarPickerModal');
+  if (!pickerModal) return;
+
+  // Highlight current selection if it matches a preset
+  const previewId = activeAvatarContext === 'settings' ? 'settingAvatarPreview' : 'obAvatarPreview';
+  const currentSrc = document.getElementById(previewId)?.src || '';
+
+  pickerModal.querySelectorAll('.avatar-option').forEach(option => {
+    const optUrl = option.dataset.url || '';
+    option.classList.toggle('selected', currentSrc.includes(optUrl.split('?')[0].split('/').pop()));
+  });
+
+  // Initialize Lucide icons if needed
+  if (typeof lucide !== 'undefined') lucide.createIcons({ node: pickerModal });
+
+  pickerModal.showModal();
+}
+
+function resizeImage(dataUrl, maxW, maxH, callback) {
+  const img = new Image();
+  img.onload = () => {
+    let width = img.width;
+    let height = img.height;
+    if (width > maxW || height > maxH) {
+      if (width > height) {
+        height = Math.round((height * maxW) / width);
+        width = maxW;
+      } else {
+        width = Math.round((width * maxH) / height);
+        height = maxH;
+      }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(img, 0, 0, width, height);
+      callback(canvas.toDataURL('image/jpeg', 0.8));
+    } else {
+      callback(dataUrl);
+    }
+  };
+  img.onerror = () => callback(dataUrl);
+  img.src = dataUrl;
+}
+
+function handleAvatarFileChange(event, previewId, saveImmediately) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const rawDataUrl = ev.target.result;
+    resizeImage(rawDataUrl, 150, 150, (resizedDataUrl) => {
+      const previewEl = document.getElementById(previewId);
+      if (previewEl) previewEl.src = resizedDataUrl;
+
+      if (saveImmediately) {
+        const profile = getProfile();
+        profile.avatar_url = resizedDataUrl;
+        saveProfile(profile);
+        updateAvatars();
+      }
+
+      const pickerModal = document.getElementById('avatarPickerModal');
+      if (pickerModal) pickerModal.close();
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Baseline History Generation ────────────────────────────
+function generateBaselineHistoryIfEmpty() {
+  const allLogs = getAllDailyLogs();
+  const logDates = Object.keys(allLogs);
+  if (logDates.length > 0) return; // Already have data
+
+  const profile = getProfile();
+  const startWeight = profile.start_weight_kg || 90;
+  const today = new Date();
+
+  const sampleWeights = [
+    startWeight,
+    +(startWeight - 0.2).toFixed(1),
+    +(startWeight - 0.5).toFixed(1),
+    +(startWeight - 0.3).toFixed(1),
+    +(startWeight - 0.7).toFixed(1),
+    +(startWeight - 0.4).toFixed(1),
+    +(startWeight - 0.8).toFixed(1)
+  ];
+  const sampleSteps = [7500, 8200, 5500, 9100, 6800, 10200, 4500];
+  const sampleSleep = [7, 6.5, 7.5, 6, 8, 7, 5.5];
+  const sampleEnergy = [4, 4, 3, 4, 2, 4, 3];
+  const sampleTriglycerides = [275, 260, 245, 230, 210, 190, 142];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = getDateStr(d);
+    const dayIndex = 6 - i;
+
+    saveDailyLog(dateStr, {
+      date: dateStr,
+      weight_kg: sampleWeights[dayIndex],
+      waist_in: dayIndex === 0 ? (profile.start_waist_in || 37.5) : null,
+      steps: sampleSteps[dayIndex],
+      sleep_hours: sampleSleep[dayIndex],
+      water_litres: 2.5,
+      energy_level: sampleEnergy[dayIndex],
+      triglycerides_val: sampleTriglycerides[dayIndex],
+      notes: ''
+    });
+
+    const checklist = getChecklist(dateStr);
+    if (checklist.health) {
+      checklist.health.wake_logged = true;
+      checklist.health.water_started = true;
+      checklist.health.sleep_logged = true;
+    }
+    if (checklist.food) {
+      checklist.food.protein_breakfast = true;
+      checklist.food.lunch_completed = true;
+      checklist.food.snack_completed = dayIndex !== 2;
+      checklist.food.no_biscuits = dayIndex !== 3;
+      checklist.food.no_sweets = dayIndex !== 1;
+      checklist.food.no_namkeen = true;
+      checklist.food.no_sugar_drink = true;
+      checklist.food.dinner_rule = dayIndex !== 5;
+      checklist.food.protein_target = dayIndex < 4;
+    }
+    if (checklist.movement) {
+      checklist.movement.morning_workout = dayIndex !== 4 && dayIndex !== 6;
+      checklist.movement.post_lunch_walk = dayIndex !== 2;
+      checklist.movement.post_dinner_walk = dayIndex !== 4;
+      checklist.movement.step_target = sampleSteps[dayIndex] >= 8000;
+    }
+    if (checklist.tracking) {
+      checklist.tracking.weight_logged = true;
+      checklist.tracking.waist_logged = dayIndex === 0;
+      checklist.tracking.energy_logged = true;
+    }
+    saveChecklist(dateStr, checklist);
+  }
+}
 

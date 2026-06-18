@@ -14,6 +14,7 @@ import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationCompat
@@ -28,6 +29,33 @@ class MainActivity : ComponentActivity() {
 
     private var pendingGeolocationOrigin: String? = null
     private var pendingGeolocationCallback: GeolocationPermissions.Callback? = null
+
+    private var filePathCallback: android.webkit.ValueCallback<Array<android.net.Uri>>? = null
+
+    private val fileChooserLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data
+            val uris = if (data != null) {
+                val clipData = data.clipData
+                if (clipData != null) {
+                    val list = mutableListOf<android.net.Uri>()
+                    for (i in 0 until clipData.itemCount) {
+                        list.add(clipData.getItemAt(i).uri)
+                    }
+                    list.toTypedArray()
+                } else {
+                    val dataUri = data.data
+                    if (dataUri != null) arrayOf(dataUri) else null
+                }
+            } else null
+            filePathCallback?.onReceiveValue(uris)
+        } else {
+            filePathCallback?.onReceiveValue(null)
+        }
+        filePathCallback = null
+    }
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -121,6 +149,30 @@ class MainActivity : ComponentActivity() {
                         )
                     )
                 }
+            }
+
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: android.webkit.ValueCallback<Array<android.net.Uri>>?,
+                fileChooserParams: android.webkit.WebChromeClient.FileChooserParams?
+            ): Boolean {
+                this@MainActivity.filePathCallback?.onReceiveValue(null)
+                this@MainActivity.filePathCallback = filePathCallback
+
+                val intent = fileChooserParams?.createIntent()
+                if (intent == null) {
+                    this@MainActivity.filePathCallback?.onReceiveValue(null)
+                    this@MainActivity.filePathCallback = null
+                    return false
+                }
+                try {
+                    fileChooserLauncher.launch(intent)
+                } catch (e: Exception) {
+                    this@MainActivity.filePathCallback?.onReceiveValue(null)
+                    this@MainActivity.filePathCallback = null
+                    return false
+                }
+                return true
             }
         }
 
@@ -226,10 +278,81 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun isBatteryOptimizationIgnored(): Boolean {
+            val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                pm.isIgnoringBatteryOptimizations(context.packageName)
+            } else {
+                true
+            }
+        }
+
+        @JavascriptInterface
+        fun requestIgnoreBatteryOptimizations() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                if (!pm.isIgnoringBatteryOptimizations(context.packageName)) {
+                    try {
+                        val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = android.net.Uri.parse("package:${context.packageName}")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(intent)
+                        Log.d("MainActivity", "Launched ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS dialog")
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun getPendingWalkReminder(): String? {
             val res = pendingWalkReminder
             pendingWalkReminder = null
             return res
+        }
+
+        @JavascriptInterface
+        fun getPreferredTrackingMode(): String {
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            return prefs.getString("preferred_tracking_mode", "auto") ?: "auto"
+        }
+
+        @JavascriptInterface
+        fun setPreferredTrackingMode(mode: String) {
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("preferred_tracking_mode", mode).apply()
+        }
+
+        @JavascriptInterface
+        fun getAccelerometerThreshold(): Float {
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            return prefs.getFloat("sensor_accelerometer_threshold", 1.2f)
+        }
+
+        @JavascriptInterface
+        fun setAccelerometerThreshold(threshold: Float) {
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            prefs.edit().putFloat("sensor_accelerometer_threshold", threshold).apply()
+        }
+
+        @JavascriptInterface
+        fun restartStepCounterService() {
+            try {
+                Log.d("MainActivity", "Restarting StepCounterService to apply changes")
+                val stopIntent = Intent(context, StepCounterService::class.java)
+                context.stopService(stopIntent)
+                
+                val startIntent = Intent(context, StepCounterService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(startIntent)
+                } else {
+                    context.startService(startIntent)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         @JavascriptInterface

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,11 +12,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+  <script src="lib/lucide.min.js"></script>
 
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3/dist/chartjs-plugin-annotation.min.js" defer></script>
+  <script src="lib/chart.umd.min.js"></script>
+  <script src="lib/chartjs-plugin-annotation.min.js"></script>
 
   <!-- Styles -->
   <link rel="stylesheet" href="index.css">
@@ -154,9 +154,9 @@
             </div>
           </div>
           <div class="header-right">
-            <div class="weather-pill">
-              <i data-lucide="cloud"></i>
-              <span>London 18°C</span>
+            <div class="location-pill">
+              <i data-lucide="map-pin"></i>
+              <span class="location-text">Pune</span>
             </div>
           </div>
         </div>
@@ -239,7 +239,7 @@
               <div class="metric-progress-bar">
                 <div class="metric-progress-fill" id="sleepBarFill" style="width: 75%; background: var(--success);"></div>
               </div>
-              <div class="metric-change-text" style="color: var(--success); font-size: 11px; font-weight: 600; margin-top: 4px;">
+              <div class="metric-change-text" id="todaySleepDesc" style="color: var(--success); font-size: 11px; font-weight: 600; margin-top: 4px;">
                 +12% from avg
               </div>
             </div>
@@ -422,9 +422,9 @@
             </div>
           </div>
           <div class="header-right">
-            <div class="weather-pill">
-              <i data-lucide="cloud"></i>
-              <span>London 18°C</span>
+            <div class="location-pill">
+              <i data-lucide="map-pin"></i>
+              <span class="location-text">Pune</span>
             </div>
           </div>
         </div>
@@ -627,9 +627,9 @@
             </div>
           </div>
           <div class="header-right">
-            <div class="weather-pill">
-              <i data-lucide="cloud"></i>
-              <span>London 18°C</span>
+            <div class="location-pill">
+              <i data-lucide="map-pin"></i>
+              <span class="location-text">Pune</span>
             </div>
           </div>
         </div>
@@ -867,9 +867,9 @@
           </div>
           <div class="header-right" style="display: flex; align-items: center; gap: var(--space-sm);">
             <div class="tag" id="workoutTypeTag" style="font-weight: 700; font-size: 11px; background: rgba(59, 130, 246, 0.15); color: var(--primary); border: 1px solid rgba(59, 130, 246, 0.3); padding: 4px 10px; border-radius: var(--radius-full);">Workout A</div>
-            <div class="weather-pill">
-              <i data-lucide="cloud"></i>
-              <span>London 18°C</span>
+            <div class="location-pill">
+              <i data-lucide="map-pin"></i>
+              <span class="location-text">Pune</span>
             </div>
           </div>
         </div>
@@ -1041,9 +1041,9 @@
             </div>
           </div>
           <div class="header-right">
-            <div class="weather-pill">
-              <i data-lucide="cloud"></i>
-              <span>London 18°C</span>
+            <div class="location-pill">
+              <i data-lucide="map-pin"></i>
+              <span class="location-text">Pune</span>
             </div>
           </div>
         </div>
@@ -1301,16 +1301,40 @@
         <button class="btn-icon modal-close" aria-label="Close settings"><i data-lucide="x"></i></button>
       </div>
       <div class="modal-body">
+        <!-- Battery Optimization Warning Box (Android-only) -->
+        <div class="settings-section" id="batteryOptimizationSection" style="display: none; background: rgba(239, 68, 68, 0.08); border: 1.5px solid var(--danger); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-lg);">
+          <h4 style="color: var(--danger); font-weight: 700; margin: 0 0 var(--space-xs) 0; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+            <i data-lucide="battery-warning" style="color: var(--danger); width: 16px; height: 16px;"></i> Background Step Tracking Optimization
+          </h4>
+          <p style="margin: 0 0 var(--space-sm) 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+            Your phone's system battery optimization may kill background step tracking when the app is closed. Please whitelist Fit Tracker to keep tracking active.
+          </p>
+          <button class="btn btn--danger btn--sm" id="btnRequestBatteryWhitelist" style="width: 100%; justify-content: center; font-size: 12px; font-weight: 700;">
+            <i data-lucide="shield-alert" style="width: 14px; height: 14px; margin-right: 4px;"></i> Whitelist App
+          </button>
+        </div>
+
         <div class="settings-section">
           <h3>Profile & Goals</h3>
           <div class="input-grid">
+            <div class="input-group" style="grid-column: span 2; display: flex; flex-direction: column; align-items: center; margin-bottom: var(--space-xs);">
+              <label style="margin-bottom: var(--space-xs); font-weight: 600;">Profile Photo</label>
+              <div style="position: relative; cursor: pointer; width: 80px; height: 80px;" id="settingAvatarSelectWrapper">
+                <img class="user-avatar" id="settingAvatarPreview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);" alt="Profile Picture">
+                <div style="position: absolute; bottom: 0; right: 0; background: var(--primary); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg-elevated);">
+                  <i data-lucide="camera" style="width: 12px; height: 12px; color: white;"></i>
+                </div>
+              </div>
+              <span style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Click photo to edit</span>
+              <input type="file" id="settingAvatarFile" accept="image/*" style="display: none;">
+            </div>
             <div class="input-group">
               <label for="settingName">Name</label>
               <input type="text" id="settingName" class="input" value="Amit">
             </div>
             <div class="input-group">
-              <label for="settingAvatarFile">Profile Picture</label>
-              <input type="file" id="settingAvatarFile" accept="image/*" class="input" style="font-size: 12px; padding: 4px;">
+              <label for="settingLocation">City Name (Custom Location)</label>
+              <input type="text" id="settingLocation" class="input" placeholder="e.g. Pune or Mumbai">
             </div>
             <div class="input-group">
               <label for="settingAge">Age (Years)</label>
@@ -1645,6 +1669,39 @@
             </div>
           </div>
         </div>
+
+        <!-- Pedometer Calibration & Sensors (Android-only) -->
+        <div class="settings-section" id="pedometerCalibrationSection" style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-md); display: none;">
+          <h3>Pedometer Calibration & Sensors</h3>
+          <p style="margin: 0 0 var(--space-md) 0; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+            Configure your step tracker mode based on your phone's capabilities, or calibrate the software accelerometer sensitivity.
+          </p>
+          <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
+            <div class="input-group">
+              <label for="settingSensorMode">Preferred Sensor Mode</label>
+              <select id="settingSensorMode" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="auto">Auto-Select (Recommended)</option>
+                <option value="counter">Force Hardware Step Counter</option>
+                <option value="detector">Force Hardware Step Detector</option>
+                <option value="accelerometer">Force Accelerometer Fallback</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="settingSensorThreshold">Accelerometer Sensitivity</label>
+              <select id="settingSensorThreshold" class="input" style="background: var(--bg-elevated); color: var(--text);">
+                <option value="0.6">High (0.6 m/s²)</option>
+                <option value="0.9">Medium-High (0.9 m/s²)</option>
+                <option value="1.2">Normal (1.2 m/s²)</option>
+                <option value="1.6">Medium-Low (1.6 m/s²)</option>
+                <option value="2.2">Low (2.2 m/s²)</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn--secondary btn--sm" id="btnApplySensorCalibration" style="width: 100%; justify-content: center; font-size: 12px; font-weight: 700; margin-top: var(--space-md);">
+            <i data-lucide="sliders" style="width: 14px; height: 14px; margin-right: 4px;"></i> Calibrate & Restart Sensor Engine
+          </button>
+        </div>
+
         <div class="settings-section" style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-md);">
           <h3>Terms & Consent Compliance</h3>
           <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); padding: var(--space-sm); border-radius: var(--radius-md); font-size: 11px; line-height: 1.4; color: var(--text-secondary); margin-bottom: var(--space-sm); max-height: 100px; overflow-y: auto;">
@@ -1674,6 +1731,48 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn--primary" id="saveSettings">Save Settings</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Avatar Selection Modal -->
+  <dialog class="modal" id="avatarPickerModal">
+    <div class="modal-content" style="max-width: 420px;">
+      <div class="modal-header">
+        <h2>Select Profile Photo</h2>
+        <button class="btn-icon modal-close" id="avatarPickerClose" aria-label="Close avatar selection"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="padding: var(--space-md);">
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: var(--space-md); text-align: center;">
+          Choose one of our premium wellness avatars or upload your own photo.
+        </p>
+        
+        <!-- Preset Grid -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
+          <div class="avatar-option" data-url="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80" style="cursor: pointer; position: relative; border-radius: 50%; overflow: hidden; aspect-ratio: 1; border: 3px solid transparent; transition: all 0.2s;">
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar 1">
+          </div>
+          <div class="avatar-option" data-url="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80" style="cursor: pointer; position: relative; border-radius: 50%; overflow: hidden; aspect-ratio: 1; border: 3px solid transparent; transition: all 0.2s;">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar 2">
+          </div>
+          <div class="avatar-option" data-url="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80" style="cursor: pointer; position: relative; border-radius: 50%; overflow: hidden; aspect-ratio: 1; border: 3px solid transparent; transition: all 0.2s;">
+            <img src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar 3">
+          </div>
+          <div class="avatar-option" data-url="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80" style="cursor: pointer; position: relative; border-radius: 50%; overflow: hidden; aspect-ratio: 1; border: 3px solid transparent; transition: all 0.2s;">
+            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar 4">
+          </div>
+          <div class="avatar-option" data-url="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" style="cursor: pointer; position: relative; border-radius: 50%; overflow: hidden; aspect-ratio: 1; border: 3px solid transparent; transition: all 0.2s;">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar 5">
+          </div>
+          <div class="avatar-option" data-url="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80" style="cursor: pointer; position: relative; border-radius: 50%; overflow: hidden; aspect-ratio: 1; border: 3px solid transparent; transition: all 0.2s;">
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar 6">
+          </div>
+        </div>
+
+        <!-- Custom Upload Trigger -->
+        <button class="btn btn--secondary" id="btnUploadCustomPhoto" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i data-lucide="upload" style="width: 16px; height: 16px;"></i> Upload Custom Photo
+        </button>
       </div>
     </div>
   </dialog>
@@ -1879,13 +1978,24 @@
         <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin: 0;">
           Hello! I am your clinical health coach. To start, let's establish your biological baseline and identify your primary health focus.
         </p>
+        <div class="input-group" style="display: flex; flex-direction: column; align-items: center; margin-bottom: var(--space-xs);">
+          <label class="input-label" style="font-weight: 600;">Profile Photo</label>
+          <div style="position: relative; cursor: pointer; width: 80px; height: 80px;" id="obAvatarSelectWrapper">
+            <img class="user-avatar" id="obAvatarPreview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);" alt="Profile Picture">
+            <div style="position: absolute; bottom: 0; right: 0; background: var(--primary); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg-elevated);">
+              <i data-lucide="camera" style="width: 12px; height: 12px; color: white;"></i>
+            </div>
+          </div>
+          <span style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Click photo to edit</span>
+          <input type="file" id="obAvatarFile" accept="image/*" style="display: none;">
+        </div>
         <div class="input-group">
           <label class="input-label" for="obName">Your First Name</label>
           <input class="input-field" type="text" id="obName" placeholder="Enter your name" value="">
         </div>
         <div class="input-group">
-          <label class="input-label" for="obAvatarFile">Profile Picture</label>
-          <input class="input-field" type="file" id="obAvatarFile" accept="image/*" style="font-size: 12px; padding: 6px;">
+          <label class="input-label" for="obLocation">City Name (Location)</label>
+          <input class="input-field" type="text" id="obLocation" placeholder="e.g. Pune or Mumbai" value="Pune">
         </div>
         <div class="input-group">
           <label class="input-label" for="obAge">Age (Years)</label>

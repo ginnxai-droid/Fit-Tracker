@@ -79,41 +79,62 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun setupOptimalSensor() {
-        // Look for wake-up sensors first, then fall back to normal ones
+        val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+        val preferredMode = prefs.getString("preferred_tracking_mode", "auto") ?: "auto"
+
         val stepCounter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER, true)
             ?: sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER, false)
         val stepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR, true)
             ?: sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR, false)
         val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
-        val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+        var registered = false
 
-        if (stepCounter != null) {
-            // Mode 1: Hardware Step Counter (Session-Baseline)
-            sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_UI)
+        if (preferredMode == "counter" && stepCounter != null) {
+            sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL)
             activeTrackingMode = "counter"
-            Log.d(TAG, "Step Pedometer: Registered Hardware Step Counter (Mode 1, Wake-up: ${stepCounter.isWakeUpSensor})")
-        } else if (stepDetector != null) {
-            // Mode 2: Hardware Step Detector (Incremental)
-            sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_UI)
+            registered = true
+            Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Counter")
+        } else if (preferredMode == "detector" && stepDetector != null) {
+            sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL)
             activeTrackingMode = "detector"
-            Log.d(TAG, "Step Pedometer: Registered Hardware Step Detector (Mode 2, Wake-up: ${stepDetector.isWakeUpSensor})")
-        } else if (accelerometer != null) {
-            // Mode 3: Software Accelerometer Peak Detection Fallback
+            registered = true
+            Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Detector")
+        } else if (preferredMode == "accelerometer" && accelerometer != null) {
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME)
             activeTrackingMode = "accelerometer"
-            Log.d(TAG, "Step Pedometer: Registered Accelerometer Fallback (Mode 3)")
-        } else {
-            activeTrackingMode = "none"
-            Log.e(TAG, "Step Pedometer: No suitable sensors found on this device!")
+            registered = true
+            Log.d(TAG, "Step Pedometer (Forced): Registered Accelerometer Fallback")
         }
 
-        // Save tracking mode for UI visibility
+        // If forced selection failed or mode is auto, fall back to standard hierarchy
+        if (!registered) {
+            if (stepCounter != null) {
+                sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL)
+                activeTrackingMode = "counter"
+                Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Counter")
+            } else if (stepDetector != null) {
+                sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL)
+                activeTrackingMode = "detector"
+                Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Detector")
+            } else if (accelerometer != null) {
+                sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME)
+                activeTrackingMode = "accelerometer"
+                Log.d(TAG, "Step Pedometer (Auto): Registered Accelerometer Fallback")
+            } else {
+                activeTrackingMode = "none"
+                Log.e(TAG, "Step Pedometer: No suitable sensors found on this device!")
+            }
+        }
+
+        // Save active tracking mode for UI visibility
         prefs.edit().putString("tracking_mode", activeTrackingMode).apply()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "Service onStartCommand")
+        createNotificationChannel()
+        startServiceForeground()
         return START_STICKY
     }
 
@@ -275,7 +296,7 @@ class StepCounterService : Service(), SensorEventListener {
                 val adaptiveThreshold = (maxMag + minMag) / 2.0f
 
                 // Ensure the movement is significant enough to be walking (filtering noise)
-                val MIN_STEP_P2P = 1.2f // m/s^2 peak-to-peak difference
+                val MIN_STEP_P2P = prefs.getFloat("sensor_accelerometer_threshold", 1.2f)
                 val now = System.currentTimeMillis()
 
                 // Crossing above the dynamic baseline
@@ -351,6 +372,11 @@ class StepCounterService : Service(), SensorEventListener {
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.d(TAG, "onTaskRemoved called - app swiped away. stopWithTask is false so service continues.")
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
