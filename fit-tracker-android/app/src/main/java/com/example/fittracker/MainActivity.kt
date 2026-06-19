@@ -225,7 +225,8 @@ class MainActivity : ComponentActivity() {
     private fun promptBatteryOptimizationIfNeeded() {
         val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
         val strategy = prefs.getString("step_tracking_strategy", "background") ?: "background"
-        if (strategy != "background") {
+        val dismissed = prefs.getBoolean("battery_opt_warning_dismissed", false)
+        if (strategy != "background" || dismissed) {
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -391,6 +392,12 @@ class MainActivity : ComponentActivity() {
         fun setStepTrackingStrategy(strategy: String) {
             val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
             prefs.edit().putString("step_tracking_strategy", strategy).apply()
+        }
+
+        @JavascriptInterface
+        fun setBatteryWarningDismissed(dismissed: Boolean) {
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("battery_opt_warning_dismissed", dismissed).apply()
         }
 
         @JavascriptInterface
