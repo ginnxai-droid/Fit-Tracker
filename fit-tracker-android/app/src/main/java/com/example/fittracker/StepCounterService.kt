@@ -383,6 +383,12 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun scheduleRestartAlarm() {
+        val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+        val strategy = prefs.getString("step_tracking_strategy", "background") ?: "background"
+        if (strategy != "background") {
+            Log.d(TAG, "Not scheduling restart alarm because strategy is $strategy")
+            return
+        }
         try {
             val restartIntent = Intent(this, StepCounterRestartReceiver::class.java).apply {
                 action = "com.example.fittracker.RESTART_STEP_SERVICE"

@@ -11,6 +11,12 @@ class StepCounterRestartReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         Log.d(TAG, "onReceive triggered with action: ${intent?.action}")
+        val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+        val strategy = prefs.getString("step_tracking_strategy", "background") ?: "background"
+        if (strategy != "background") {
+            Log.d(TAG, "Step tracking strategy is $strategy. Ignoring restart broadcast.")
+            return
+        }
         
         val serviceIntent = Intent(context, StepCounterService::class.java)
         try {
