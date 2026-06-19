@@ -1315,45 +1315,45 @@ export function generateSampleData() {
 
 export const REGIONAL_SPECIALTIES = {
   "maharashtra": [
-    { name: "Methi Zunka (1 serving)", calories: 150, protein: 7, warning: "Traditional chickpea flour paste with fenugreek. High fiber, healthy plant protein.", swap: "Jowar Bhakri instead of wheat chapatis" },
-    { name: "Jowar Bhakri (1 flatbread)", calories: 120, protein: 3, warning: "Gluten-free, fiber-rich traditional millet flatbread. Safe complex carbs.", swap: "Eat with low-fat curd or dal" },
-    { name: "Sprouts Usal (1 bowl / 150g)", calories: 180, protein: 12, warning: "Steamed mixed sprouts curry. Excellent plant-based protein & high fiber.", swap: "Keep oil minimal during tempering" },
-    { name: "Moong Dal Chilla (2 pieces)", calories: 250, protein: 12, warning: "Clean, high-protein moong dal pancake. Great light meal option.", swap: "Add grated paneer for extra protein" },
-    { name: "Roasted Chana Sprouts Chaat (1 bowl)", calories: 140, protein: 8, warning: "Unfried healthy snack. Rich in fiber, magnesium, and plant protein.", swap: "Avoid adding fried sev or oily chutneys" }
+    { name: "Methi Zunka (1 serving)", calories: 150, protein: 7, fat: 8, warning: "Traditional chickpea flour paste with fenugreek. High fiber, healthy plant protein.", swap: "Jowar Bhakri instead of wheat chapatis" },
+    { name: "Jowar Bhakri (1 flatbread)", calories: 120, protein: 3, fat: 1.5, warning: "Gluten-free, fiber-rich traditional millet flatbread. Safe complex carbs.", swap: "Eat with low-fat curd or dal" },
+    { name: "Sprouts Usal (1 bowl / 150g)", calories: 180, protein: 12, fat: 6, warning: "Steamed mixed sprouts curry. Excellent plant-based protein & high fiber.", swap: "Keep oil minimal during tempering" },
+    { name: "Moong Dal Chilla (2 pieces)", calories: 250, protein: 12, fat: 8, warning: "Clean, high-protein moong dal pancake. Great light meal option.", swap: "Add grated paneer for extra protein" },
+    { name: "Roasted Chana Sprouts Chaat (1 bowl)", calories: 140, protein: 8, fat: 2, warning: "Unfried healthy snack. Rich in fiber, magnesium, and plant protein.", swap: "Avoid adding fried sev or oily chutneys" }
   ],
   "delhi_region": [
-    { name: "Paneer Tikka (Grilled, 4 pieces)", calories: 280, protein: 15, warning: "Grilled cottage cheese with bell peppers. High protein, excellent choice.", swap: "None! This is an excellent high-protein meal" },
-    { name: "Chicken Tikka (Grilled, 4 pieces)", calories: 240, protein: 28, warning: "Tandoori grilled skinless chicken breast. High-quality lean protein, low fat.", swap: "None! Perfect high lean protein option" },
-    { name: "Soya Chaap (Grilled, dry, 1 plate)", calories: 260, protein: 18, warning: "Soy protein chunks grilled dry without heavy cream or butter. Plant protein.", swap: "Ensure it is grilled dry, not cooked in rich gravy" },
-    { name: "Dal Tadka with 1 Missi Roti", calories: 310, protein: 13, warning: "Missi Roti (chickpea-wheat flour mix) provides low glycemic index carbs.", swap: "Order without butter/ghee on top" },
-    { name: "Mixed Vegetable Raita (1 bowl)", calories: 90, protein: 5, warning: "Low-fat yogurt with cucumber, tomatoes, and roasted cumin. Probiotic-rich.", swap: "Ensure low-fat curd is used" }
+    { name: "Paneer Tikka (Grilled, 4 pieces)", calories: 280, protein: 15, fat: 18, warning: "Grilled cottage cheese with bell peppers. High protein, excellent choice.", swap: "None! This is an excellent high-protein meal" },
+    { name: "Chicken Tikka (Grilled, 4 pieces)", calories: 240, protein: 28, fat: 8, warning: "Tandoori grilled skinless chicken breast. High-quality lean protein, low fat.", swap: "None! Perfect high lean protein option" },
+    { name: "Soya Chaap (Grilled, dry, 1 plate)", calories: 260, protein: 18, fat: 10, warning: "Soy protein chunks grilled dry without heavy cream or butter. Plant protein.", swap: "Ensure it is grilled dry, not cooked in rich gravy" },
+    { name: "Dal Tadka with 1 Missi Roti", calories: 310, protein: 13, fat: 8, warning: "Missi Roti (chickpea-wheat flour mix) provides low glycemic index carbs.", swap: "Order without butter/ghee on top" },
+    { name: "Mixed Vegetable Raita (1 bowl)", calories: 90, protein: 5, fat: 2, warning: "Low-fat yogurt with cucumber, tomatoes, and roasted cumin. Probiotic-rich.", swap: "Ensure low-fat curd is used" }
   ],
   "south_india": [
-    { name: "Moong Dal Pesarattu (1 dosa)", calories: 220, protein: 9, warning: "Whole green gram crepe. Rich in protein, complex carbs, and iron.", swap: "Use minimal oil on the tawa" },
-    { name: "Steamed Oats Idli with Sambar (2 pieces)", calories: 180, protein: 8, warning: "Steamed oats-based idli with vegetable-rich dal sambar. Safe and clean.", swap: "Add a side of curd for extra protein" },
-    { name: "Ragi Mudde with Sambar (1 ball)", calories: 280, protein: 7, warning: "Finger millet ball. High fiber, calcium, and complex carbs. Low fat.", swap: "Add paneer chunks or boiled egg whites to increase protein" },
-    { name: "Kala Chana Sundal (1 cup / 100g)", calories: 150, protein: 9, warning: "Boiled black chickpeas tempered with mustard seeds and fresh coconut. High fiber.", swap: "Keep oil minimal during tempering" },
-    { name: "Kerala Grilled Fish (150g)", calories: 180, protein: 24, warning: "Fish marinated in spices and shallow/baked. Rich in Omega-3 and lean protein.", swap: "Bake or grill instead of pan frying" }
+    { name: "Moong Dal Pesarattu (1 dosa)", calories: 220, protein: 9, fat: 6, warning: "Whole green gram crepe. Rich in protein, complex carbs, and iron.", swap: "Use minimal oil on the tawa" },
+    { name: "Steamed Oats Idli with Sambar (2 pieces)", calories: 180, protein: 8, fat: 2, warning: "Steamed oats-based idli with vegetable-rich dal sambar. Safe and clean.", swap: "Add a side of curd for extra protein" },
+    { name: "Ragi Mudde with Sambar (1 ball)", calories: 280, protein: 7, fat: 2, warning: "Finger millet ball. High fiber, calcium, and complex carbs. Low fat.", swap: "Add paneer chunks or boiled egg whites to increase protein" },
+    { name: "Kala Chana Sundal (1 cup / 100g)", calories: 150, protein: 9, fat: 4, warning: "Boiled black chickpeas tempered with mustard seeds and fresh coconut. High fiber.", swap: "Keep oil minimal during tempering" },
+    { name: "Kerala Grilled Fish (150g)", calories: 180, protein: 24, fat: 6, warning: "Fish marinated in spices and shallow/baked. Rich in Omega-3 and lean protein.", swap: "Bake or grill instead of pan frying" }
   ],
   "east_india": [
-    { name: "Macher Jhol (Fish Curry, 1 serving)", calories: 240, protein: 20, warning: "Traditional light fish stew with cumin and ginger. Excellent lean protein.", swap: "Ensure minimal mustard oil is used during cooking" },
-    { name: "Steamed Bhetki Paturi (1 piece / 120g)", calories: 190, protein: 22, warning: "Fish marinated in mustard paste and steamed in banana leaves. Low fat, high protein.", swap: "None! The steaming process keeps it extremely healthy" },
-    { name: "Chana Kabli (1 bowl)", calories: 160, protein: 8, warning: "Boiled Bengal gram salad with chopped onions, tomatoes, and lemon. Fiber-rich.", swap: "Avoid any fried toppings or heavy oil dressings" },
-    { name: "Paneer Paturi (Steamed, 100g)", calories: 220, protein: 14, warning: "Cottage cheese marinated in mustard and steamed in banana leaves. High protein.", swap: "Use low-fat paneer to reduce saturated fats" },
-    { name: "Mixed Veg Dalma (1 bowl)", calories: 150, protein: 8, warning: "Traditional Odia lentil dish loaded with vegetables. High fiber and plant protein.", swap: "Prepare with very little ghee/oil tempering" }
+    { name: "Macher Jhol (Fish Curry, 1 serving)", calories: 240, protein: 20, fat: 10, warning: "Traditional light fish stew with cumin and ginger. Excellent lean protein.", swap: "Ensure minimal mustard oil is used during cooking" },
+    { name: "Steamed Bhetki Paturi (1 piece / 120g)", calories: 190, protein: 22, fat: 8, warning: "Fish marinated in mustard paste and steamed in banana leaves. Low fat, high protein.", swap: "None! The steaming process keeps it extremely healthy" },
+    { name: "Chana Kabli (1 bowl)", calories: 160, protein: 8, fat: 2, warning: "Boiled Bengal gram salad with chopped onions, tomatoes, and lemon. Fiber-rich.", swap: "Avoid any fried toppings or heavy oil dressings" },
+    { name: "Paneer Paturi (Steamed, 100g)", calories: 220, protein: 14, fat: 14, warning: "Cottage cheese marinated in mustard and steamed in banana leaves. High protein.", swap: "Use low-fat paneer to reduce saturated fats" },
+    { name: "Mixed Veg Dalma (1 bowl)", calories: 150, protein: 8, fat: 3, warning: "Traditional Odia lentil dish loaded with vegetables. High fiber and plant protein.", swap: "Prepare with very little ghee/oil tempering" }
   ],
   "west_india": [
-    { name: "Steamed Khaman Dhokla (3 pieces)", calories: 180, protein: 6, warning: "Steamed fermented chickpea batter. Light, easily digestible, low fat.", swap: "Pair with double toned curd to boost protein" },
-    { name: "Khandvi (4 pieces)", calories: 120, protein: 4, warning: "Steamed chickpea flour rolls. Low calorie, low fat, and healthy.", swap: "Add roasted sesame seeds for healthy fats, avoid heavy oil tempering" },
-    { name: "Bajra Rotla (1 flatbread)", calories: 130, protein: 4, warning: "Traditional pearl millet flatbread. Rich in fiber, iron, and magnesium.", swap: "Serve with low-fat garlic chutney and skimmed curd" },
-    { name: "Sprouted Moong Salad (1 bowl)", calories: 110, protein: 8, warning: "Fresh sprouted moong beans with onion, cucumber, tomato, and lime. Highly nutritious.", swap: "Eat raw or lightly steamed" },
-    { name: "Paneer Lifafa (Grilled, 1 serving)", calories: 260, protein: 16, warning: "Whole wheat wrap folded with grilled paneer and chopped vegetables. Balanced meal.", swap: "Use non-stick pan to grill dry without butter" }
+    { name: "Steamed Khaman Dhokla (3 pieces)", calories: 180, protein: 6, fat: 4, warning: "Steamed fermented chickpea batter. Light, easily digestible, low fat.", swap: "Pair with double toned curd to boost protein" },
+    { name: "Khandvi (4 pieces)", calories: 120, protein: 4, fat: 4, warning: "Steamed chickpea flour rolls. Low calorie, low fat, and healthy.", swap: "Add roasted sesame seeds for healthy fats, avoid heavy oil tempering" },
+    { name: "Bajra Rotla (1 flatbread)", calories: 130, protein: 4, fat: 2, warning: "Traditional pearl millet flatbread. Rich in fiber, iron, and magnesium.", swap: "Serve with low-fat garlic chutney and skimmed curd" },
+    { name: "Sprouted Moong Salad (1 bowl)", calories: 110, protein: 8, fat: 1, warning: "Fresh sprouted moong beans with onion, cucumber, tomato, and lime. Highly nutritious.", swap: "Eat raw or lightly steamed" },
+    { name: "Paneer Lifafa (Grilled, 1 serving)", calories: 260, protein: 16, fat: 12, warning: "Whole wheat wrap folded with grilled paneer and chopped vegetables. Balanced meal.", swap: "Use non-stick pan to grill dry without butter" }
   ],
   "default_india": [
-    { name: "Moong Dal Chilla (2 pieces)", calories: 260, protein: 12, warning: "Great clean option. Low-fat, plant protein.", swap: "None! This is an excellent high-protein meal" },
-    { name: "Paneer Tikka (Grilled, 4 pieces)", calories: 280, protein: 15, warning: "Excellent high protein option! Highly clinical approved.", swap: "None! This is an excellent high-protein meal" },
-    { name: "Grilled Chicken Salad (1 serving)", calories: 240, protein: 26, warning: "High lean protein option, keep oil dress/mayo low.", swap: "None! This is an excellent high-protein meal" },
-    { name: "Boiled Egg (Large, 2)", calories: 156, protein: 12, warning: "Clean option, yolks contain some cholesterol.", swap: "4 egg whites (whites contain zero fat)" }
+    { name: "Moong Dal Chilla (2 pieces)", calories: 260, protein: 12, fat: 8, warning: "Great clean option. Low-fat, plant protein.", swap: "None! This is an excellent high-protein meal" },
+    { name: "Paneer Tikka (Grilled, 4 pieces)", calories: 280, protein: 15, fat: 18, warning: "Excellent high protein option! Highly clinical approved.", swap: "None! This is an excellent high-protein meal" },
+    { name: "Grilled Chicken Salad (1 serving)", calories: 240, protein: 26, fat: 6, warning: "High lean protein option, keep oil dress/mayo low.", swap: "None! This is an excellent high-protein meal" },
+    { name: "Boiled Egg (Large, 2)", calories: 156, protein: 12, fat: 10, warning: "Clean option, yolks contain some cholesterol.", swap: "4 egg whites (whites contain zero fat)" }
   ]
 };
 

@@ -822,8 +822,14 @@
                 <input type="text" id="foodLogName" class="input" placeholder="e.g. Boiled Oats">
               </div>
               <div class="input-group">
-                <label for="foodLogGrams" style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;" id="foodLogGramsLabel">Grams/Qty</label>
-                <input type="number" id="foodLogGrams" class="input" placeholder="100" min="1">
+                <label for="foodLogGrams" style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;" id="foodLogGramsLabel">Qty / Unit</label>
+                <div style="display: flex; gap: 4px;">
+                  <input type="number" id="foodLogGrams" class="input" style="flex: 1; min-width: 50px;" placeholder="100" min="0">
+                  <select id="foodLogUnit" class="input" style="padding: 0 var(--space-xs); background: var(--bg-elevated); color: var(--text); border-color: var(--border-subtle); font-size: 11px; width: 85px;">
+                    <option value="g">Grams</option>
+                    <option value="pcs">Pieces</option>
+                  </select>
+                </div>
               </div>
               <div class="input-group">
                 <label for="foodLogMealSlot" style="font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block;">Time Slot</label>

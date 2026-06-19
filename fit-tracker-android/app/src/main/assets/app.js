@@ -4540,37 +4540,76 @@ function fillFoodLogger(name, calories, protein, fat = 0) {
   const caloriesInput = document.getElementById('foodLogCalories');
   const proteinInput = document.getElementById('foodLogProtein');
   const fatInput = document.getElementById('foodLogFat');
+  const unitSelect = document.getElementById('foodLogUnit');
 
   if (nameInput) nameInput.value = name;
   if (caloriesInput) caloriesInput.value = calories;
   if (proteinInput) proteinInput.value = protein;
   if (fatInput) fatInput.value = fat;
 
-  let baseUnit = 'grams';
+  let baseUnit = 'g';
   let baseQty = 100;
 
-  if (name.toLowerCase().includes('piece') || name.toLowerCase().includes('plate') || name.toLowerCase().includes('scoop') || name.toLowerCase().includes('glass') || name.toLowerCase().includes('katori') || name.toLowerCase().includes('ball')) {
-    baseUnit = 'pieces';
+  const lowerName = name.toLowerCase();
+  const portionKeywords = [
+    'piece', 'pieces', 'pcs',
+    'plate', 'plates',
+    'scoop', 'scoops',
+    'glass', 'glasses',
+    'katori', 'katoris',
+    'cup', 'cups',
+    'bowl', 'bowls',
+    'serving', 'servings',
+    'portion', 'portions',
+    'flatbread', 'flatbreads',
+    'roti', 'rotis',
+    'naan', 'naans',
+    'bhakri', 'bhakris',
+    'rotla', 'rotlas',
+    'chapati', 'chapatis',
+    'chilla', 'chillas',
+    'dosa', 'dosas',
+    'egg', 'eggs',
+    'samosa', 'samosas',
+    'vada', 'vadas',
+    'dhokla', 'dhoklas',
+    'idli', 'idlis',
+    'gulab jamun', 'rasgulla', 'rasgullas',
+    'bhature', 'bhaturas',
+    'ball', 'balls'
+  ];
+  
+  const hasPortionWord = portionKeywords.some(kw => lowerName.includes(kw));
+
+  if (hasPortionWord) {
+    baseUnit = 'pcs';
     baseQty = 1;
-    const match = name.match(/(\d+)\s+(piece|bhature|luchi|ball|katori)/i);
+    let match = name.match(/(\d+(?:\.\d+)?)\s*(piece|pieces|pcs|plate|plates|glass|glasses|katori|katoris|cup|cups|bowl|bowls|roti|rotis|naan|naans|bhakri|bhakris|flatbread|flatbreads|rotla|rotlas|chapati|chapatis|chilla|chillas|dosa|dosas|egg|eggs|samosa|samosas|vada|vadas|dhokla|dhoklas|idli|idlis|scoop|scoops|serving|servings|bhature|bhaturas|ball|balls)/i);
     if (match) {
-      baseQty = parseInt(match[1]);
+      baseQty = parseFloat(match[1]);
+    } else {
+      match = name.match(/\((\d+(?:\.\d+)?)\s*\)/) || name.match(/\b(\d+(?:\.\d+)?)\b/);
+      if (match) {
+        baseQty = parseFloat(match[1]);
+      }
     }
   } else {
+    baseUnit = 'g';
+    baseQty = 100;
     const match = name.match(/(\d+)\s*g/i);
     if (match) {
       baseQty = parseInt(match[1]);
     }
   }
 
-  const gramsLabel = document.getElementById('foodLogGramsLabel');
-  if (gramsLabel) {
-    gramsLabel.textContent = baseUnit === 'pieces' ? 'Quantity' : 'Grams';
+  if (unitSelect) {
+    unitSelect.value = baseUnit;
   }
 
   if (gramsInput) {
     gramsInput.value = baseQty;
     gramsInput.dataset.baseQty = baseQty;
+    gramsInput.dataset.baseUnit = baseUnit;
     gramsInput.dataset.baseCalories = calories;
     gramsInput.dataset.baseProtein = protein;
     gramsInput.dataset.baseFat = fat;
@@ -4708,20 +4747,36 @@ function bindLocationAwareLoggerEvents() {
     });
   }
 
+  const unitSelect = document.getElementById('foodLogUnit');
   if (gramsInput) {
-    gramsInput.addEventListener('input', () => {
-      const currentVal = parseFloat(gramsInput.value);
-      const baseQty = parseFloat(gramsInput.dataset.baseQty || 100);
-      const baseCalories = parseFloat(gramsInput.dataset.baseCalories || 0);
-      const baseProtein = parseFloat(gramsInput.dataset.baseProtein || 0);
-      const baseFat = parseFloat(gramsInput.dataset.baseFat || 0);
+    gramsInput.addEventListener('input', recalculateNutrients);
+  }
 
-      if (currentVal && baseQty && !isNaN(currentVal) && currentVal > 0) {
-        const factor = currentVal / baseQty;
-        if (caloriesInput) caloriesInput.value = Math.round(baseCalories * factor);
-        if (proteinInput) proteinInput.value = Math.round(baseProtein * factor);
-        if (fatInput) fatInput.value = Math.round(baseFat * factor);
+  if (unitSelect) {
+    unitSelect.addEventListener('change', () => {
+      const gramsInput = document.getElementById('foodLogGrams');
+      const nameInput = document.getElementById('foodLogName');
+      if (gramsInput && nameInput) {
+        const currentVal = parseFloat(gramsInput.value) || 0;
+        const currentUnit = unitSelect.value;
+        const baseUnit = gramsInput.dataset.baseUnit || 'g';
+        const baseQty = parseFloat(gramsInput.dataset.baseQty || 100);
+        
+        if (currentVal > 0) {
+          const foodName = nameInput.value;
+          const portionWeight = getStandardPortionWeight(foodName);
+          if (currentUnit === 'g' && baseUnit === 'pcs') {
+            gramsInput.value = Math.round(currentVal * portionWeight);
+          } else if (currentUnit === 'pcs' && baseUnit === 'pcs') {
+            gramsInput.value = baseQty;
+          } else if (currentUnit === 'pcs' && baseUnit === 'g') {
+            gramsInput.value = (currentVal / portionWeight).toFixed(1);
+          } else if (currentUnit === 'g' && baseUnit === 'g') {
+            gramsInput.value = baseQty;
+          }
+        }
       }
+      recalculateNutrients();
     });
   }
 
@@ -4771,6 +4826,7 @@ function bindLocationAwareLoggerEvents() {
       if (gramsInput) {
         gramsInput.value = '';
         gramsInput.removeAttribute('data-base-qty');
+        gramsInput.removeAttribute('data-base-unit');
         gramsInput.removeAttribute('data-base-calories');
         gramsInput.removeAttribute('data-base-protein');
         gramsInput.removeAttribute('data-base-fat');
@@ -4779,8 +4835,8 @@ function bindLocationAwareLoggerEvents() {
       if (proteinInput) proteinInput.value = '';
       if (fatInput) fatInput.value = '';
       
-      const gramsLabel = document.getElementById('foodLogGramsLabel');
-      if (gramsLabel) gramsLabel.textContent = 'Grams/Qty';
+      const unitSelect = document.getElementById('foodLogUnit');
+      if (unitSelect) unitSelect.value = 'g';
 
       const tipBox = document.getElementById('foodLogWarningTip');
       if (tipBox) {
@@ -5617,5 +5673,105 @@ function generateBaselineHistoryIfEmpty() {
     }
     saveChecklist(dateStr, checklist);
   }
+}
+
+function getStandardPortionWeight(foodName) {
+  const nameLower = foodName.toLowerCase();
+  if (nameLower.includes('roti') || nameLower.includes('chapati') || nameLower.includes('bhakri') || nameLower.includes('rotla') || nameLower.includes('phulka')) {
+    return 45; // 45g per roti/flatbread (medium)
+  }
+  if (nameLower.includes('egg') || nameLower.includes('omelette')) {
+    return 50; // 50g per egg
+  }
+  if (nameLower.includes('naan')) {
+    return 80; // 80g per naan
+  }
+  if (nameLower.includes('paratha')) {
+    return 100; // 100g per paratha
+  }
+  if (nameLower.includes('chilla')) {
+    return 60; // 60g per chilla
+  }
+  if (nameLower.includes('dosa')) {
+    return 80; // 80g per dosa
+  }
+  if (nameLower.includes('idli')) {
+    return 40; // 40g per idli
+  }
+  if (nameLower.includes('samosa')) {
+    return 50; // 50g per samosa
+  }
+  if (nameLower.includes('vada pav')) {
+    return 120; // 120g per vada pav
+  }
+  if (nameLower.includes('vada')) {
+    return 40; // 40g per vada
+  }
+  if (nameLower.includes('dhokla')) {
+    return 30; // 30g per piece
+  }
+  if (nameLower.includes('gulab jamun') || nameLower.includes('rasgulla')) {
+    return 40; // 40g per piece
+  }
+  if (nameLower.includes('whey') || nameLower.includes('protein')) {
+    return 30; // 30g per scoop
+  }
+  if (nameLower.includes('milk') || nameLower.includes('lassi') || nameLower.includes('chaas') || nameLower.includes('buttermilk')) {
+    return 250; // 250ml per glass
+  }
+  if (nameLower.includes('rice') || nameLower.includes('biryani') || nameLower.includes('poha') || nameLower.includes('upma') || nameLower.includes('khichdi')) {
+    return 150; // 150g per plate/katori/bowl
+  }
+  if (nameLower.includes('dal') || nameLower.includes('curry') || nameLower.includes('sambar') || nameLower.includes('usal') || nameLower.includes('bhurji') || nameLower.includes('paneer') || nameLower.includes('chicken') || nameLower.includes('fish')) {
+    return 150; // 150g per bowl/katori
+  }
+  return 100; // Default fallback weight
+}
+
+function recalculateNutrients() {
+  const gramsInput = document.getElementById('foodLogGrams');
+  const unitSelect = document.getElementById('foodLogUnit');
+  const caloriesInput = document.getElementById('foodLogCalories');
+  const proteinInput = document.getElementById('foodLogProtein');
+  const fatInput = document.getElementById('foodLogFat');
+  const nameInput = document.getElementById('foodLogName');
+
+  if (!gramsInput || !unitSelect || !caloriesInput || !proteinInput || !fatInput) return;
+
+  const currentVal = parseFloat(gramsInput.value) || 0;
+  const currentUnit = unitSelect.value;
+
+  const baseQty = parseFloat(gramsInput.dataset.baseQty || 100);
+  const baseUnit = gramsInput.dataset.baseUnit || 'g';
+  const baseCalories = parseFloat(gramsInput.dataset.baseCalories || 0);
+  const baseProtein = parseFloat(gramsInput.dataset.baseProtein || 0);
+  const baseFat = parseFloat(gramsInput.dataset.baseFat || 0);
+
+  if (currentVal <= 0) {
+    caloriesInput.value = 0;
+    proteinInput.value = 0;
+    fatInput.value = 0;
+    return;
+  }
+
+  let factor = 1;
+
+  if (currentUnit === baseUnit) {
+    factor = currentVal / baseQty;
+  } else if (currentUnit === 'g' && baseUnit === 'pcs') {
+    const foodName = nameInput ? nameInput.value : '';
+    const portionWeight = getStandardPortionWeight(foodName);
+    const totalBaseWeight = baseQty * portionWeight;
+    factor = currentVal / totalBaseWeight;
+  } else if (currentUnit === 'pcs' && baseUnit === 'g') {
+    const foodName = nameInput ? nameInput.value : '';
+    const portionWeight = getStandardPortionWeight(foodName);
+    const totalInputWeight = currentVal * portionWeight;
+    factor = totalInputWeight / baseQty;
+  }
+
+  caloriesInput.value = Math.round(baseCalories * factor);
+  proteinInput.value = Math.round(baseProtein * factor);
+  fatInput.value = Math.round(baseFat * factor);
 }
 
