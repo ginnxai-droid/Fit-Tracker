@@ -1712,6 +1712,14 @@
           <p style="margin: 0 0 var(--space-md) 0; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
             Configure your step tracker mode based on your phone's capabilities, or calibrate the software accelerometer sensitivity.
           </p>
+          <div class="input-group" style="margin-bottom: var(--space-md);">
+            <label for="settingStepStrategy">Step Tracking Strategy</label>
+            <select id="settingStepStrategy" class="input" style="background: var(--bg-elevated); color: var(--text);">
+              <option value="background">Always On (Background Service)</option>
+              <option value="app_open">App Open & Minimized Only (Battery Saver)</option>
+              <option value="disabled">Disabled (Manual smartwatch key-in)</option>
+            </select>
+          </div>
           <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);">
             <div class="input-group">
               <label for="settingSensorMode">Preferred Sensor Mode</label>

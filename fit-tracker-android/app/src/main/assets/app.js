@@ -419,7 +419,12 @@ function renderDashboard() {
   const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
   const batteryBanner = document.getElementById('androidBatteryBanner');
   if (batteryBanner) {
-    if (isAndroid && typeof window.AndroidInterface.isBatteryOptimizationIgnored === 'function') {
+    let strategy = 'background';
+    if (isAndroid && typeof window.AndroidInterface.getStepTrackingStrategy === 'function') {
+      strategy = window.AndroidInterface.getStepTrackingStrategy();
+    }
+    
+    if (isAndroid && strategy === 'background' && typeof window.AndroidInterface.isBatteryOptimizationIgnored === 'function') {
       const ignored = window.AndroidInterface.isBatteryOptimizationIgnored();
       batteryBanner.style.display = ignored ? 'none' : 'block';
     } else {
@@ -884,13 +889,11 @@ function loadQuickLogValues() {
   const stepsInput = document.getElementById('inputSteps');
   const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
   if (stepsInput) {
-    if (isAndroid && currentDate === getDateStr(new Date())) {
-      stepsInput.disabled = true;
-      stepsInput.style.backgroundColor = 'rgba(255,255,255,0.05)';
-      stepsInput.title = "Step tracking is managed automatically by Android hardware sensor";
+    stepsInput.disabled = false;
+    stepsInput.style.backgroundColor = '';
+    if (isAndroid) {
+      stepsInput.title = "Manually override steps or let the phone auto-track";
     } else {
-      stepsInput.disabled = false;
-      stepsInput.style.backgroundColor = '';
       stepsInput.title = "";
     }
   }
@@ -938,8 +941,23 @@ function bindQuickLogEvents() {
       log.waist_in = getInputNumber('inputWaist') || log.waist_in;
       
       const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
-      if (isAndroid && currentDate === getDateStr(new Date())) {
-        log.steps = window.AndroidInterface.getStepsToday();
+      let strategy = "background";
+      if (isAndroid && typeof window.AndroidInterface.getStepTrackingStrategy === 'function') {
+        strategy = window.AndroidInterface.getStepTrackingStrategy();
+      }
+
+      if (isAndroid && strategy !== 'disabled' && currentDate === getDateStr(new Date())) {
+        const inputStepsVal = getInputNumber('inputSteps') || 0;
+        const nativeSteps = window.AndroidInterface.getStepsToday();
+        if (inputStepsVal !== nativeSteps) {
+          log.steps = inputStepsVal;
+          log.steps_source = 'manual';
+          if (typeof window.AndroidInterface.saveStepsToday === 'function') {
+            window.AndroidInterface.saveStepsToday(log.steps);
+          }
+        } else if (log.steps_source !== 'manual') {
+          log.steps = nativeSteps;
+        }
       } else {
         log.steps = getInputNumber('inputSteps') || 0;
       }
@@ -2506,6 +2524,9 @@ function bindSettingsModal() {
         if (typeof window.AndroidInterface.getAccelerometerThreshold === 'function') {
           setInputValue('settingSensorThreshold', window.AndroidInterface.getAccelerometerThreshold().toString());
         }
+        if (typeof window.AndroidInterface.getStepTrackingStrategy === 'function') {
+          setInputValue('settingStepStrategy', window.AndroidInterface.getStepTrackingStrategy());
+        }
       } else {
         pcalSection.style.display = 'none';
       }
@@ -2802,6 +2823,16 @@ function bindSettingsModal() {
       settings.dinner_walk_alarm = profile.dinner_walk_time;
       settings.gemini_api_key = document.getElementById('settingGeminiApiKey')?.value.trim() || '';
       saveSettings(settings);
+
+      if (typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid()) {
+        if (typeof window.AndroidInterface.setStepTrackingStrategy === 'function') {
+          const strategy = document.getElementById('settingStepStrategy')?.value || 'background';
+          window.AndroidInterface.setStepTrackingStrategy(strategy);
+          if (typeof window.AndroidInterface.restartStepCounterService === 'function') {
+            window.AndroidInterface.restartStepCounterService();
+          }
+        }
+      }
       
       modal?.close();
       showToast('Settings saved! ⚙️', 'success');
