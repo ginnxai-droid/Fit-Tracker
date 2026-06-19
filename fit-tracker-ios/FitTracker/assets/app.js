@@ -415,6 +415,18 @@ function renderDashboard() {
   const log = getDailyLog(today);
   const allLogs = getAllDailyLogs();
 
+  // Battery Optimization Banner (Android)
+  const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
+  const batteryBanner = document.getElementById('androidBatteryBanner');
+  if (batteryBanner) {
+    if (isAndroid && typeof window.AndroidInterface.isBatteryOptimizationIgnored === 'function') {
+      const ignored = window.AndroidInterface.isBatteryOptimizationIgnored();
+      batteryBanner.style.display = ignored ? 'none' : 'block';
+    } else {
+      batteryBanner.style.display = 'none';
+    }
+  }
+
   // Date
   const dateEl = document.getElementById('dashboardDate');
   if (dateEl) {
@@ -1326,6 +1338,7 @@ function renderMealPlan() {
             <div class="meal-card__protein-badges" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
               <span class="badge text-mono" style="background: var(--warning); color: oklch(0.13 0.015 260); font-weight: 700; font-size: 11px;">${meal.calories_estimated || 0} kcal</span>
               <span class="badge text-mono" style="background: var(--primary); color: oklch(0.13 0.015 260); font-weight: 700; font-size: 11px;">${meal.protein_estimated || 0}g protein</span>
+              ${meal.fat_estimated !== undefined ? `<span class="badge text-mono" style="background: var(--text-secondary); color: var(--bg-main); font-weight: 700; font-size: 11px;">${meal.fat_estimated}g fat</span>` : ''}
             </div>
           </div>
           <div class="card-body" style="padding-top: 0; display: flex; justify-content: flex-end; margin-top: 4px;">
@@ -2271,6 +2284,16 @@ function bindSettingsModal() {
     });
   }
 
+  const whitelistBannerBtn = document.getElementById('btnRequestBatteryWhitelistBanner');
+  if (whitelistBannerBtn) {
+    whitelistBannerBtn.addEventListener('click', () => {
+      const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
+      if (isAndroid && typeof window.AndroidInterface.requestIgnoreBatteryOptimizations === 'function') {
+        window.AndroidInterface.requestIgnoreBatteryOptimizations();
+      }
+    });
+  }
+
   const applyCalibrationBtn = document.getElementById('btnApplySensorCalibration');
   if (applyCalibrationBtn) {
     applyCalibrationBtn.addEventListener('click', () => {
@@ -2469,6 +2492,9 @@ function bindSettingsModal() {
     setInputValue('settingDinnerTime', profile.dinner_time || '21:00');
     setInputValue('settingDinnerAction', profile.dinner_action || '');
     setInputValue('settingDinnerWalkTime', profile.dinner_walk_time || '21:45');
+
+    const appSettings = getSettings();
+    setInputValue('settingGeminiApiKey', appSettings.gemini_api_key || '');
 
     const pcalSection = document.getElementById('pedometerCalibrationSection');
     if (pcalSection) {
@@ -2774,6 +2800,7 @@ function bindSettingsModal() {
       const settings = getSettings();
       settings.lunch_walk_alarm = profile.lunch_walk_time;
       settings.dinner_walk_alarm = profile.dinner_walk_time;
+      settings.gemini_api_key = document.getElementById('settingGeminiApiKey')?.value.trim() || '';
       saveSettings(settings);
       
       modal?.close();
@@ -4476,15 +4503,17 @@ function logFoodDirect(name, calories, protein) {
   renderMealPlan();
 }
 
-function fillFoodLogger(name, calories, protein) {
+function fillFoodLogger(name, calories, protein, fat = 0) {
   const nameInput = document.getElementById('foodLogName');
   const gramsInput = document.getElementById('foodLogGrams');
   const caloriesInput = document.getElementById('foodLogCalories');
   const proteinInput = document.getElementById('foodLogProtein');
+  const fatInput = document.getElementById('foodLogFat');
 
   if (nameInput) nameInput.value = name;
   if (caloriesInput) caloriesInput.value = calories;
   if (proteinInput) proteinInput.value = protein;
+  if (fatInput) fatInput.value = fat;
 
   let baseUnit = 'grams';
   let baseQty = 100;
@@ -4513,6 +4542,7 @@ function fillFoodLogger(name, calories, protein) {
     gramsInput.dataset.baseQty = baseQty;
     gramsInput.dataset.baseCalories = calories;
     gramsInput.dataset.baseProtein = protein;
+    gramsInput.dataset.baseFat = fat;
   }
 
   let tipBox = document.getElementById('foodLogWarningTip');
@@ -4572,6 +4602,7 @@ function bindLocationAwareLoggerEvents() {
   const gramsInput = document.getElementById('foodLogGrams');
   const caloriesInput = document.getElementById('foodLogCalories');
   const proteinInput = document.getElementById('foodLogProtein');
+  const fatInput = document.getElementById('foodLogFat');
   const nameInput = document.getElementById('foodLogName');
   const logBtn = document.getElementById('btnLogCustomFood');
   const chkEnableLiveLocation = document.getElementById('chkEnableLiveLocation');
@@ -4589,18 +4620,12 @@ function bindLocationAwareLoggerEvents() {
   }
 
   if (searchInput && resultsList) {
-    searchInput.addEventListener('focus', () => {
-      if (!isLiveLocationEnabled) {
-        searchInput.blur();
-        showLocationRequiredModal();
-      }
-    });
-
     searchInput.addEventListener('input', () => {
-      if (!isLiveLocationEnabled) {
-        searchInput.value = '';
-        searchInput.blur();
-        showLocationRequiredModal();
+
+      const query = searchInput.value.toLowerCase().trim();
+      if (query.length < 2) {
+        resultsList.innerHTML = '';
+        resultsList.style.display = 'none';
         return;
       }
 
@@ -4627,7 +4652,7 @@ function bindLocationAwareLoggerEvents() {
         resultsList.innerHTML = slicedMatches.map((item, idx) => `
           <li class="food-search-item" data-idx="${idx}">
             <span>${item.name}</span>
-            <span class="food-search-item__nutrition text-mono">${item.calories} kcal | ${item.protein}g P</span>
+            <span class="food-search-item__nutrition text-mono">${item.calories} kcal | ${item.protein}g P | ${item.fat || 0}g F</span>
           </li>
         `).join('');
 
@@ -4636,7 +4661,7 @@ function bindLocationAwareLoggerEvents() {
             const idx = parseInt(e.currentTarget.dataset.idx);
             if (isNaN(idx)) return;
             const selected = slicedMatches[idx];
-            fillFoodLogger(selected.name, selected.calories, selected.protein);
+            fillFoodLogger(selected.name, selected.calories, selected.protein, selected.fat || 0);
             resultsList.style.display = 'none';
             searchInput.value = '';
           });
@@ -4658,11 +4683,13 @@ function bindLocationAwareLoggerEvents() {
       const baseQty = parseFloat(gramsInput.dataset.baseQty || 100);
       const baseCalories = parseFloat(gramsInput.dataset.baseCalories || 0);
       const baseProtein = parseFloat(gramsInput.dataset.baseProtein || 0);
+      const baseFat = parseFloat(gramsInput.dataset.baseFat || 0);
 
       if (currentVal && baseQty && !isNaN(currentVal) && currentVal > 0) {
         const factor = currentVal / baseQty;
         if (caloriesInput) caloriesInput.value = Math.round(baseCalories * factor);
         if (proteinInput) proteinInput.value = Math.round(baseProtein * factor);
+        if (fatInput) fatInput.value = Math.round(baseFat * factor);
       }
     });
   }
@@ -4672,6 +4699,7 @@ function bindLocationAwareLoggerEvents() {
       const name = nameInput ? nameInput.value.trim() : '';
       const caloriesVal = caloriesInput ? parseFloat(caloriesInput.value) : 0;
       const proteinVal = proteinInput ? parseFloat(proteinInput.value) : 0;
+      const fatVal = fatInput ? parseFloat(fatInput.value) : 0;
       const slotSelect = document.getElementById('foodLogMealSlot');
       const timeSlotText = slotSelect ? slotSelect.options[slotSelect.selectedIndex].text : "First Meal";
 
@@ -4687,6 +4715,10 @@ function bindLocationAwareLoggerEvents() {
         showToast("Please enter valid protein! ⚠️");
         return;
       }
+      if (isNaN(fatVal) || fatVal < 0) {
+        showToast("Please enter valid fat! ⚠️");
+        return;
+      }
 
       const newMeal = {
         is_custom: true,
@@ -4694,6 +4726,7 @@ function bindLocationAwareLoggerEvents() {
         items: [name],
         calories_estimated: Math.round(caloriesVal),
         protein_estimated: Math.round(proteinVal),
+        fat_estimated: Math.round(fatVal),
         completed: true
       };
 
@@ -4709,9 +4742,11 @@ function bindLocationAwareLoggerEvents() {
         gramsInput.removeAttribute('data-base-qty');
         gramsInput.removeAttribute('data-base-calories');
         gramsInput.removeAttribute('data-base-protein');
+        gramsInput.removeAttribute('data-base-fat');
       }
       if (caloriesInput) caloriesInput.value = '';
       if (proteinInput) proteinInput.value = '';
+      if (fatInput) fatInput.value = '';
       
       const gramsLabel = document.getElementById('foodLogGramsLabel');
       if (gramsLabel) gramsLabel.textContent = 'Grams/Qty';
@@ -4725,6 +4760,237 @@ function bindLocationAwareLoggerEvents() {
       renderMealPlan();
     });
   }
+
+  const btnAiParse = document.getElementById('btnAiParse');
+  const foodAiInput = document.getElementById('foodAiInput');
+  const aiSpinner = document.getElementById('aiParseSpinner');
+
+  if (btnAiParse && foodAiInput) {
+    btnAiParse.addEventListener('click', async () => {
+      const inputVal = foodAiInput.value.trim();
+      if (!inputVal) {
+        showToast("Please type what you ate! 🍽️");
+        return;
+      }
+
+      if (aiSpinner) {
+        aiSpinner.style.display = 'flex';
+      }
+      btnAiParse.disabled = true;
+
+      try {
+        const settings = getSettings();
+        const apiKey = settings.gemini_api_key;
+        
+        let result = null;
+        if (apiKey) {
+          result = await parseFoodWithGemini(inputVal, apiKey);
+        }
+
+        if (result && result.length > 0) {
+          const first = result[0];
+          fillFoodLogger(first.name, first.calories, first.protein, first.fat || 0);
+          
+          if (result.length > 1) {
+            const slotSelect = document.getElementById('foodLogMealSlot');
+            const mealSlotText = slotSelect ? slotSelect.options[slotSelect.selectedIndex].text : "First Meal";
+            const meals = getOrCreateMealLogs(currentDate);
+            
+            for (let i = 1; i < result.length; i++) {
+              const item = result[i];
+              meals.push({
+                is_custom: true,
+                time: mealSlotText,
+                items: [item.name],
+                calories_estimated: Math.round(item.calories || 0),
+                protein_estimated: Math.round(item.protein || 0),
+                fat_estimated: Math.round(item.fat || 0),
+                completed: true
+              });
+            }
+            saveAllMealLogs(currentDate, meals);
+            showToast(`Smart parsed & logged ${result.length} items! 🎉`);
+          } else {
+            showToast(`Smart parsed with Gemini AI! Click Log to save. 🤖`);
+          }
+        } else {
+          const parsed = parseFoodInputOffline(inputVal);
+          if (parsed) {
+            fillFoodLogger(parsed.name, parsed.calories, parsed.protein, parsed.fat);
+            showToast("Smart parsed offline! (Enable AI settings for custom foods) 💡");
+          } else {
+            showToast("Could not recognize food. Try typing it manually. ⚠️");
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        const parsed = parseFoodInputOffline(inputVal);
+        if (parsed) {
+          fillFoodLogger(parsed.name, parsed.calories, parsed.protein, parsed.fat);
+          showToast("Parsed offline (AI Key not working or offline) 💡");
+        } else {
+          showToast("Parsing failed. Please input values manually. ⚠️");
+        }
+      } finally {
+        if (aiSpinner) aiSpinner.style.display = 'none';
+        btnAiParse.disabled = false;
+        foodAiInput.value = '';
+      }
+    });
+  }
+}
+
+function parseFoodInputOffline(inputText) {
+  const cleanInput = inputText.toLowerCase().trim();
+  let userQty = 100;
+  let userUnit = 'g';
+  
+  let match = cleanInput.match(/(\d+(?:\.\d+)?)\s*(g|gram|grams|ml|milliliter|milliliters)\b/i);
+  if (match) {
+    userQty = parseFloat(match[1]);
+    userUnit = 'g';
+  } else {
+    match = cleanInput.match(/(\d+(?:\.\d+)?)\s*(piece|pieces|pcs|plate|plates|glass|glasses|katori|katoris|cup|cups|bowl|bowls|roti|rotis|naan|naans|egg|eggs|scoop|scoops)/i);
+    if (match) {
+      userQty = parseFloat(match[1]);
+      userUnit = 'pieces';
+    } else {
+      match = cleanInput.match(/\b(\d+(?:\.\d+)?)\b/);
+      if (match) {
+        userQty = parseFloat(match[1]);
+        userUnit = userQty > 10 ? 'g' : 'pieces';
+      }
+    }
+  }
+
+  let foodQuery = cleanInput
+    .replace(/\b\d+(?:\.\d+)?\s*(g|gram|grams|ml|pcs|piece|pieces|plate|plates|glass|glasses|katori|katoris|cup|cups|bowl|bowls|roti|rotis|naan|naans|egg|eggs|scoop|scoops)?\b/gi, '')
+    .replace(/\b(of|and|with|had|ate|have|eaten)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!foodQuery) return null;
+
+  let bestMatch = null;
+  let bestScore = 0;
+
+  for (const item of FOOD_DATABASE) {
+    const itemName = item.name.toLowerCase();
+    if (itemName.includes(foodQuery)) {
+      const score = foodQuery.length / itemName.length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = item;
+      }
+    } else if (foodQuery.includes(itemName.split('(')[0].trim())) {
+      const score = itemName.split('(')[0].trim().length / foodQuery.length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = item;
+      }
+    }
+  }
+
+  if (!bestMatch) {
+    const keywords = ['egg', 'paneer', 'chicken', 'dal', 'rice', 'roti', 'milk', 'whey', 'chana', 'sprouts', 'fish', 'tofu', 'salad'];
+    for (const kw of keywords) {
+      if (foodQuery.includes(kw)) {
+        bestMatch = FOOD_DATABASE.find(item => item.name.toLowerCase().includes(kw));
+        if (bestMatch) break;
+      }
+    }
+  }
+
+  if (!bestMatch) {
+    return {
+      name: foodQuery.charAt(0).toUpperCase() + foodQuery.slice(1),
+      grams: userQty,
+      calories: userUnit === 'g' ? Math.round(userQty * 1.5) : Math.round(userQty * 150),
+      protein: userUnit === 'g' ? Math.round(userQty * 0.1) : Math.round(userQty * 6),
+      fat: userUnit === 'g' ? Math.round(userQty * 0.05) : Math.round(userQty * 5)
+    };
+  }
+
+  let baseQty = 100;
+  let baseUnit = 'g';
+  const nameLower = bestMatch.name.toLowerCase();
+  
+  if (nameLower.includes('piece') || nameLower.includes('plate') || nameLower.includes('glass') || nameLower.includes('katori') || nameLower.includes('ball') || nameLower.includes('roti') || nameLower.includes('egg') || nameLower.match(/\b\d+\s*$/)) {
+    baseUnit = 'pieces';
+    baseQty = 1;
+    const matchQty = nameLower.match(/(\d+)\s*(piece|bhature|luchi|ball|katori|egg|scoop|glass|roti)/i);
+    if (matchQty) {
+      baseQty = parseInt(matchQty[1]);
+    } else {
+      const matchNum = nameLower.match(/\b(\d+)\b/);
+      if (matchNum) baseQty = parseInt(matchNum[1]);
+    }
+  } else {
+    baseUnit = 'g';
+    baseQty = 100;
+    const matchGrams = nameLower.match(/(\d+)\s*g/i);
+    if (matchGrams) {
+      baseQty = parseInt(matchGrams[1]);
+    }
+  }
+
+  let factor = 1;
+  if (userUnit === baseUnit) {
+    factor = userQty / baseQty;
+  } else if (userUnit === 'g' && baseUnit === 'pieces') {
+    const matchGrams = nameLower.match(/(\d+)\s*g/i);
+    if (matchGrams) {
+      const templateGrams = parseInt(matchGrams[1]);
+      factor = userQty / templateGrams;
+    } else {
+      factor = userQty / 150; 
+    }
+  } else if (userUnit === 'pieces' && baseUnit === 'g') {
+    factor = (userQty * 50) / baseQty;
+  }
+
+  return {
+    name: bestMatch.name.split('(')[0].trim(),
+    grams: userQty,
+    calories: Math.round(bestMatch.calories * factor),
+    protein: Math.round(bestMatch.protein * factor),
+    fat: Math.round((bestMatch.fat || 0) * factor)
+  };
+}
+
+async function parseFoodWithGemini(inputText, apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const prompt = `You are a professional nutrition analyzer. Parse this food diary input: "${inputText}". 
+Calculate the estimated weight in grams or pieces, total calories (kcal), protein (g), and fat (g) for the food item.
+Return ONLY a valid JSON array of parsed items (no markdown code block wrap, no extra text, just raw JSON). If the description matches multiple items, return all.
+Each object must have these exact keys: "name" (string), "grams" (number), "calories" (number), "protein" (number), "fat" (number).
+Example output:
+[{"name": "Chicken Biryani", "grams": 200, "calories": 400, "protein": 22, "fat": 14}]`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: prompt }]
+      }]
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Empty response from Gemini");
+
+  text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const parsed = JSON.parse(text);
+  if (!Array.isArray(parsed)) throw new Error("Response is not a JSON array");
+  return parsed;
 }
 
 function updateWaterWidget(dateStr) {
@@ -5272,7 +5538,7 @@ function generateBaselineHistoryIfEmpty() {
   const sampleEnergy = [4, 4, 3, 4, 2, 4, 3];
   const sampleTriglycerides = [275, 260, 245, 230, 210, 190, 142];
 
-  for (let i = 6; i >= 0; i--) {
+  for (let i = 6; i >= 1; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dateStr = getDateStr(d);

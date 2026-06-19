@@ -1,5 +1,7 @@
 package com.example.fittracker
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -375,14 +377,43 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        Log.d(TAG, "onTaskRemoved called - app swiped away. stopWithTask is false so service continues.")
+        Log.d(TAG, "onTaskRemoved called - app swiped away. Scheduling restart alarm.")
+        scheduleRestartAlarm()
         super.onTaskRemoved(rootIntent)
+    }
+
+    private fun scheduleRestartAlarm() {
+        try {
+            val restartIntent = Intent(this, StepCounterRestartReceiver::class.java).apply {
+                action = "com.example.fittracker.RESTART_STEP_SERVICE"
+            }
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_ONE_SHOT
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                this, 0, restartIntent, flags
+            )
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.set(
+                AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + 3000, // Restart after 3 seconds
+                pendingIntent
+            )
+            Log.d(TAG, "Restart alarm scheduled for 3 seconds from now")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to schedule restart alarm", e)
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "Service onDestroy")
         
+        // Schedule restart in case service was killed unexpectedly
+        scheduleRestartAlarm()
+
         try {
             if (wakeLock?.isHeld == true) {
                 wakeLock?.release()

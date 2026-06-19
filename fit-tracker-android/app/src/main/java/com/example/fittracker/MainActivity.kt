@@ -211,6 +211,40 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Sync steps from native service to WebView whenever app comes to foreground
+        webView.post {
+            webView.evaluateJavascript("javascript:if (typeof syncAndroidSteps === 'function') { syncAndroidSteps(); }", null)
+        }
+        
+        // Proactively prompt battery optimization exemption on first launch
+        promptBatteryOptimizationIfNeeded()
+    }
+
+    private fun promptBatteryOptimizationIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+                val lastPromptTime = prefs.getLong("battery_opt_last_prompt", 0)
+                val now = System.currentTimeMillis()
+                // Prompt at most once every 24 hours
+                if (now - lastPromptTime > 24 * 60 * 60 * 1000) {
+                    prefs.edit().putLong("battery_opt_last_prompt", now).apply()
+                    try {
+                        val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                            data = android.net.Uri.parse("package:$packageName")
+                        }
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        Log.d("MainActivity", "Could not launch battery optimization settings", e)
+                    }
+                }
+            }
+        }
+    }
+
     private fun handleIntent(intent: Intent?) {
         val action = intent?.getStringExtra("action")
         val walkType = intent?.getStringExtra("walk_type")

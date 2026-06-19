@@ -3879,4 +3879,15 @@ input:checked + .slider-switch:before {
   }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner-small {
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
 
