@@ -223,10 +223,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun promptBatteryOptimizationIfNeeded() {
+        val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+        val strategy = prefs.getString("step_tracking_strategy", "background") ?: "background"
+        if (strategy != "background") {
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
             if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
                 val lastPromptTime = prefs.getLong("battery_opt_last_prompt", 0)
                 val now = System.currentTimeMillis()
                 // Prompt at most once every 24 hours
@@ -289,6 +293,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startStepCounterService() {
+        val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+        val strategy = prefs.getString("step_tracking_strategy", "background") ?: "background"
+        if (strategy == "disabled") {
+            Log.d("MainActivity", "Step tracking strategy is disabled. Not starting service.")
+            return
+        }
         val intent = Intent(this, StepCounterService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -372,12 +382,32 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun getStepTrackingStrategy(): String {
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            return prefs.getString("step_tracking_strategy", "background") ?: "background"
+        }
+
+        @JavascriptInterface
+        fun setStepTrackingStrategy(strategy: String) {
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("step_tracking_strategy", strategy).apply()
+        }
+
+        @JavascriptInterface
         fun restartStepCounterService() {
             try {
-                Log.d("MainActivity", "Restarting StepCounterService to apply changes")
+                Log.d("MainActivity", "Stopping StepCounterService to apply changes")
                 val stopIntent = Intent(context, StepCounterService::class.java)
                 context.stopService(stopIntent)
                 
+                val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+                val strategy = prefs.getString("step_tracking_strategy", "background") ?: "background"
+                if (strategy == "disabled") {
+                    Log.d("MainActivity", "Step tracking is disabled. Service will remain stopped.")
+                    return
+                }
+                
+                Log.d("MainActivity", "Starting StepCounterService with strategy: $strategy")
                 val startIntent = Intent(context, StepCounterService::class.java)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(startIntent)
