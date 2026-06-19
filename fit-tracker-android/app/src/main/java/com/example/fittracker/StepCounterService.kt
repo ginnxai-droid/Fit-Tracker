@@ -70,6 +70,27 @@ class StepCounterService : Service(), SensorEventListener {
         startServiceForeground()
     }
 
+    private fun safeRegisterListener(sensor: Sensor, delay: Int, maxReportLatencyUs: Int): Boolean {
+        var success = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && maxReportLatencyUs > 0) {
+            try {
+                success = sensorManager.registerListener(this, sensor, delay, maxReportLatencyUs)
+                Log.d(TAG, "Registration with batching (latency=$maxReportLatencyUs us) result: $success")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error registering sensor with batching", e)
+            }
+        }
+        if (!success) {
+            try {
+                success = sensorManager.registerListener(this, sensor, delay)
+                Log.d(TAG, "Fallback registration without batching result: $success")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error registering sensor without batching", e)
+            }
+        }
+        return success
+    }
+
     private fun setupOptimalSensor() {
         val prefs = getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
         val preferredMode = prefs.getString("preferred_tracking_mode", "auto") ?: "auto"
@@ -83,37 +104,50 @@ class StepCounterService : Service(), SensorEventListener {
         var registered = false
 
         if (preferredMode == "counter" && stepCounter != null) {
-            sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
-            activeTrackingMode = "counter"
-            registered = true
-            Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Counter with 10s batching")
+            registered = safeRegisterListener(stepCounter, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
+            if (registered) {
+                activeTrackingMode = "counter"
+                Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Counter")
+            }
         } else if (preferredMode == "detector" && stepDetector != null) {
-            sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
-            activeTrackingMode = "detector"
-            registered = true
-            Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Detector with 10s batching")
+            registered = safeRegisterListener(stepDetector, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
+            if (registered) {
+                activeTrackingMode = "detector"
+                Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Detector")
+            }
         } else if (preferredMode == "accelerometer" && accelerometer != null) {
-            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME)
-            activeTrackingMode = "accelerometer"
-            registered = true
-            Log.d(TAG, "Step Pedometer (Forced): Registered Accelerometer Fallback")
+            registered = safeRegisterListener(accelerometer, SensorManager.SENSOR_DELAY_GAME, 0)
+            if (registered) {
+                activeTrackingMode = "accelerometer"
+                Log.d(TAG, "Step Pedometer (Forced): Registered Accelerometer Fallback")
+            }
         }
 
         // If forced selection failed or mode is auto, fall back to standard hierarchy
         if (!registered) {
             if (stepCounter != null) {
-                sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
-                activeTrackingMode = "counter"
-                Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Counter with 10s batching")
-            } else if (stepDetector != null) {
-                sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
-                activeTrackingMode = "detector"
-                Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Detector with 10s batching")
-            } else if (accelerometer != null) {
-                sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME)
-                activeTrackingMode = "accelerometer"
-                Log.d(TAG, "Step Pedometer (Auto): Registered Accelerometer Fallback")
-            } else {
+                registered = safeRegisterListener(stepCounter, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
+                if (registered) {
+                    activeTrackingMode = "counter"
+                    Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Counter")
+                }
+            }
+            if (!registered && stepDetector != null) {
+                registered = safeRegisterListener(stepDetector, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
+                if (registered) {
+                    activeTrackingMode = "detector"
+                    Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Detector")
+                }
+            }
+            if (!registered && accelerometer != null) {
+                registered = safeRegisterListener(accelerometer, SensorManager.SENSOR_DELAY_GAME, 0)
+                if (registered) {
+                    activeTrackingMode = "accelerometer"
+                    Log.d(TAG, "Step Pedometer (Auto): Registered Accelerometer Fallback")
+                }
+            }
+            
+            if (!registered) {
                 activeTrackingMode = "none"
                 Log.e(TAG, "Step Pedometer: No suitable sensors found on this device!")
             }
