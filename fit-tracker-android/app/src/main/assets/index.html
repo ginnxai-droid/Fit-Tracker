@@ -162,8 +162,11 @@
         </div>
 
         <!-- Android Battery Optimization Banner -->
-        <div id="androidBatteryBanner" style="display: none; margin: 0 var(--space-md) var(--space-md) var(--space-md); background: rgba(239, 68, 68, 0.08); border: 1.5px solid var(--danger); border-radius: var(--radius-md); padding: var(--space-md);">
-          <h4 style="color: var(--danger); font-weight: 700; margin: 0 0 var(--space-xs) 0; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+        <div id="androidBatteryBanner" style="display: none; position: relative; margin: 0 var(--space-md) var(--space-md) var(--space-md); background: rgba(239, 68, 68, 0.08); border: 1.5px solid var(--danger); border-radius: var(--radius-md); padding: var(--space-md);">
+          <button id="btnCloseBatteryBanner" class="btn-icon" style="position: absolute; top: 8px; right: 8px; color: var(--text-secondary); cursor: pointer; border: none; background: transparent; padding: 4px; display: flex; align-items: center; justify-content: center;" aria-label="Dismiss battery optimization warning">
+            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+          </button>
+          <h4 style="color: var(--danger); font-weight: 700; margin: 0 24px var(--space-xs) 0; display: flex; align-items: center; gap: 6px; font-size: 13px;">
             <i data-lucide="battery-warning" style="color: var(--danger); width: 16px; height: 16px;"></i> Background Step Tracking Optimization
           </h4>
           <p style="margin: 0 0 var(--space-sm) 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
@@ -1344,8 +1347,11 @@
       </div>
       <div class="modal-body">
         <!-- Battery Optimization Warning Box (Android-only) -->
-        <div class="settings-section" id="batteryOptimizationSection" style="display: none; background: rgba(239, 68, 68, 0.08); border: 1.5px solid var(--danger); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-lg);">
-          <h4 style="color: var(--danger); font-weight: 700; margin: 0 0 var(--space-xs) 0; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+        <div class="settings-section" id="batteryOptimizationSection" style="display: none; position: relative; background: rgba(239, 68, 68, 0.08); border: 1.5px solid var(--danger); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-lg);">
+          <button id="btnCloseBatterySettings" class="btn-icon" style="position: absolute; top: 8px; right: 8px; color: var(--text-secondary); cursor: pointer; border: none; background: transparent; padding: 4px; display: flex; align-items: center; justify-content: center;" aria-label="Dismiss battery optimization settings warning">
+            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+          </button>
+          <h4 style="color: var(--danger); font-weight: 700; margin: 0 24px var(--space-xs) 0; display: flex; align-items: center; gap: 6px; font-size: 13px;">
             <i data-lucide="battery-warning" style="color: var(--danger); width: 16px; height: 16px;"></i> Background Step Tracking Optimization
           </h4>
           <p style="margin: 0 0 var(--space-sm) 0; font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
