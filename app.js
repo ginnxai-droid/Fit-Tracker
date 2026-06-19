@@ -424,7 +424,9 @@ function renderDashboard() {
       strategy = window.AndroidInterface.getStepTrackingStrategy();
     }
     
-    if (isAndroid && strategy === 'background' && typeof window.AndroidInterface.isBatteryOptimizationIgnored === 'function') {
+    const dismissed = localStorage.getItem('ft_dismissed_battery_warning') === 'true';
+    
+    if (isAndroid && strategy === 'background' && !dismissed && typeof window.AndroidInterface.isBatteryOptimizationIgnored === 'function') {
       const ignored = window.AndroidInterface.isBatteryOptimizationIgnored();
       batteryBanner.style.display = ignored ? 'none' : 'block';
     } else {
@@ -2312,6 +2314,26 @@ function bindSettingsModal() {
     });
   }
 
+  const closeBatteryBannerBtn = document.getElementById('btnCloseBatteryBanner');
+  if (closeBatteryBannerBtn) {
+    closeBatteryBannerBtn.addEventListener('click', () => {
+      localStorage.setItem('ft_dismissed_battery_warning', 'true');
+      const batteryBanner = document.getElementById('androidBatteryBanner');
+      if (batteryBanner) batteryBanner.style.display = 'none';
+      showToast('Dismissed battery optimization warning.', 'info');
+    });
+  }
+
+  const closeBatterySettingsBtn = document.getElementById('btnCloseBatterySettings');
+  if (closeBatterySettingsBtn) {
+    closeBatterySettingsBtn.addEventListener('click', () => {
+      localStorage.setItem('ft_dismissed_battery_warning', 'true');
+      const batteryOptimSec = document.getElementById('batteryOptimizationSection');
+      if (batteryOptimSec) batteryOptimSec.style.display = 'none';
+      showToast('Dismissed battery optimization warning.', 'info');
+    });
+  }
+
   const applyCalibrationBtn = document.getElementById('btnApplySensorCalibration');
   if (applyCalibrationBtn) {
     applyCalibrationBtn.addEventListener('click', () => {
@@ -2402,7 +2424,8 @@ function bindSettingsModal() {
     const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
     const batteryOptimSec = document.getElementById('batteryOptimizationSection');
     if (batteryOptimSec) {
-      if (isAndroid && typeof window.AndroidInterface.isBatteryOptimizationIgnored === 'function') {
+      const dismissed = localStorage.getItem('ft_dismissed_battery_warning') === 'true';
+      if (isAndroid && !dismissed && typeof window.AndroidInterface.isBatteryOptimizationIgnored === 'function') {
         const ignored = window.AndroidInterface.isBatteryOptimizationIgnored();
         batteryOptimSec.style.display = ignored ? 'none' : 'block';
       } else {
@@ -2827,6 +2850,10 @@ function bindSettingsModal() {
       if (typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid()) {
         if (typeof window.AndroidInterface.setStepTrackingStrategy === 'function') {
           const strategy = document.getElementById('settingStepStrategy')?.value || 'background';
+          const oldStrategy = window.AndroidInterface.getStepTrackingStrategy();
+          if (strategy === 'background' && oldStrategy !== 'background') {
+            localStorage.removeItem('ft_dismissed_battery_warning');
+          }
           window.AndroidInterface.setStepTrackingStrategy(strategy);
           if (typeof window.AndroidInterface.restartStepCounterService === 'function') {
             window.AndroidInterface.restartStepCounterService();
