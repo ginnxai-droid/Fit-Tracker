@@ -63,16 +63,6 @@ class StepCounterService : Service(), SensorEventListener {
         super.onCreate()
         Log.d(TAG, "Service onCreate")
         
-        // Acquire partial WakeLock to ensure service keeps running when screen is off
-        try {
-            val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-            wakeLock = powerManager.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "FitTracker::StepCounterWakeLock")
-            wakeLock?.acquire()
-            Log.d(TAG, "WakeLock acquired successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to acquire WakeLock", e)
-        }
-        
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         setupOptimalSensor()
         
@@ -93,15 +83,15 @@ class StepCounterService : Service(), SensorEventListener {
         var registered = false
 
         if (preferredMode == "counter" && stepCounter != null) {
-            sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL)
+            sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
             activeTrackingMode = "counter"
             registered = true
-            Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Counter")
+            Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Counter with 10s batching")
         } else if (preferredMode == "detector" && stepDetector != null) {
-            sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL)
+            sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
             activeTrackingMode = "detector"
             registered = true
-            Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Detector")
+            Log.d(TAG, "Step Pedometer (Forced): Registered Hardware Step Detector with 10s batching")
         } else if (preferredMode == "accelerometer" && accelerometer != null) {
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME)
             activeTrackingMode = "accelerometer"
@@ -112,13 +102,13 @@ class StepCounterService : Service(), SensorEventListener {
         // If forced selection failed or mode is auto, fall back to standard hierarchy
         if (!registered) {
             if (stepCounter != null) {
-                sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL)
+                sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
                 activeTrackingMode = "counter"
-                Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Counter")
+                Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Counter with 10s batching")
             } else if (stepDetector != null) {
-                sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL)
+                sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL, 10000000)
                 activeTrackingMode = "detector"
-                Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Detector")
+                Log.d(TAG, "Step Pedometer (Auto): Registered Hardware Step Detector with 10s batching")
             } else if (accelerometer != null) {
                 sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME)
                 activeTrackingMode = "accelerometer"
@@ -131,6 +121,32 @@ class StepCounterService : Service(), SensorEventListener {
 
         // Save active tracking mode for UI visibility
         prefs.edit().putString("tracking_mode", activeTrackingMode).apply()
+
+        // Acquire WakeLock only if using accelerometer fallback mode (requires CPU awake to run peak detection)
+        if (activeTrackingMode == "accelerometer") {
+            try {
+                val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                if (wakeLock == null) {
+                    wakeLock = powerManager.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "FitTracker::StepCounterWakeLock")
+                }
+                if (wakeLock?.isHeld == false) {
+                    wakeLock?.acquire()
+                    Log.d(TAG, "WakeLock acquired for Accelerometer tracking")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to acquire WakeLock", e)
+            }
+        } else {
+            // Release WakeLock if held (e.g. if we switched modes from accelerometer to hardware)
+            try {
+                if (wakeLock?.isHeld == true) {
+                    wakeLock?.release()
+                    Log.d(TAG, "WakeLock released for hardware sensor tracking")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to release WakeLock", e)
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
