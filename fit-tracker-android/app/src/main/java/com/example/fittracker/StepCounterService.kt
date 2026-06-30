@@ -8,6 +8,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -71,6 +72,14 @@ class StepCounterService : Service(), SensorEventListener {
         
         createNotificationChannel()
         startServiceForeground()
+    }
+
+    private fun recordStepActivity(prefs: SharedPreferences, steps: Int, delta: Int) {
+        prefs.edit()
+            .putLong("last_step_event_time", System.currentTimeMillis())
+            .putInt("last_step_event_steps", steps)
+            .putInt("last_step_event_delta", delta.coerceAtLeast(1))
+            .apply()
     }
 
     private fun safeRegisterListener(sensor: Sensor, delay: Int, maxReportLatencyUs: Int): Boolean {
@@ -347,6 +356,7 @@ class StepCounterService : Service(), SensorEventListener {
                         .putInt("last_calculated_steps", newStepsToday)
                         .putInt("last_raw_counter_steps", sensorSteps)
                         .apply()
+                    recordStepActivity(prefs, newStepsToday, newStepsToday - savedSteps)
                     Log.d(TAG, "Counter step update: steps=$newStepsToday (+$delta)")
                 } else {
                     prefs.edit()
@@ -363,6 +373,7 @@ class StepCounterService : Service(), SensorEventListener {
                     .putInt("steps_$todayStr", savedSteps)
                     .putInt("last_calculated_steps", savedSteps)
                     .apply()
+                recordStepActivity(prefs, savedSteps, 1)
                 Log.d(TAG, "Detector step update: steps=$savedSteps")
             }
             
@@ -426,6 +437,7 @@ class StepCounterService : Service(), SensorEventListener {
                                     .putInt("steps_$todayStr", savedSteps)
                                     .putInt("last_calculated_steps", savedSteps)
                                     .apply()
+                                recordStepActivity(prefs, savedSteps, 1)
                                 Log.d(TAG, "Accel: Step registered (active session). Total=$savedSteps")
                             } else {
                                 // Check if we reached the required number of rhythmic steps to start a session
@@ -437,6 +449,7 @@ class StepCounterService : Service(), SensorEventListener {
                                         .putInt("steps_$todayStr", savedSteps)
                                         .putInt("last_calculated_steps", savedSteps)
                                         .apply()
+                                    recordStepActivity(prefs, savedSteps, candidateSteps.size)
                                     Log.d(TAG, "Accel: Stride rhythm validated! Credited ${candidateSteps.size} steps. Total=$savedSteps")
                                     candidateSteps.clear()
                                 } else {

@@ -3272,6 +3272,7 @@ function bindStepCalculatorModal() {
 
       let isAndroid = false;
       let deviceInfo = { manufacturer: "Web", model: "Browser", trackingMode: "simulator" };
+      let activityInfo = null;
 
       // Fetch latest steps from native if on Android and update daily log
       if (typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid()) {
@@ -3299,6 +3300,13 @@ function bindStepCalculatorModal() {
             deviceInfo = JSON.parse(window.AndroidInterface.getDeviceInfo());
           } catch (e) {
             console.error("Failed to parse device info", e);
+          }
+        }
+        if (typeof window.AndroidInterface.getStepActivityInfo === 'function') {
+          try {
+            activityInfo = JSON.parse(window.AndroidInterface.getStepActivityInfo());
+          } catch (e) {
+            console.error("Failed to parse step activity info", e);
           }
         }
       }
@@ -3385,28 +3393,33 @@ function bindStepCalculatorModal() {
       // Pulse connection/walking status indicator
       const statusIcon = document.getElementById('calcConnectionStatus');
       if (statusIcon) {
-        const lastSteps = parseInt(statusIcon.dataset.lastSteps || "0");
-        const isCurrentlyWalking = (steps > lastSteps && lastSteps > 0);
+        const lastSteps = parseInt(statusIcon.dataset.lastSteps || `${steps}`);
+        const nativeEventTime = Number(activityInfo?.lastStepEventTime || 0);
+        const nowMs = Number(activityInfo?.now || Date.now());
+        let lastStepChangeAt = Number(statusIcon.dataset.lastStepChangeAt || 0);
+        const stepDelta = steps - lastSteps;
+
+        if (stepDelta > 0) {
+          lastStepChangeAt = nowMs;
+        }
+        if (nativeEventTime > lastStepChangeAt) {
+          lastStepChangeAt = nativeEventTime;
+        }
+
+        const walkingGraceMs = deviceInfo.trackingMode === 'counter' ? 12000 : 7000;
+        const isCurrentlyWalking = lastStepChangeAt > 0 && (nowMs - lastStepChangeAt) <= walkingGraceMs;
 
         if (isCurrentlyWalking) {
           statusIcon.innerHTML = `<span class="live-pulse live-pulse--active"></span>Walking detected (Live)`;
           statusIcon.style.color = 'var(--success)';
           statusIcon.classList.add('bouncing');
-
-          clearTimeout(window.walkActiveTimeout);
-          window.walkActiveTimeout = setTimeout(() => {
-            statusIcon.innerHTML = `<span class="live-pulse"></span>Pedometer Active (Standing Still)`;
-            statusIcon.style.color = 'var(--text-secondary)';
-            statusIcon.classList.remove('bouncing');
-          }, 3000);
         } else {
-          if (!window.walkActiveTimeout) {
-            statusIcon.innerHTML = `<span class="live-pulse"></span>Pedometer Active (Standing Still)`;
-            statusIcon.style.color = 'var(--text-secondary)';
-            statusIcon.classList.remove('bouncing');
-          }
+          statusIcon.innerHTML = `<span class="live-pulse"></span>Pedometer Active (Standing Still)`;
+          statusIcon.style.color = 'var(--text-secondary)';
+          statusIcon.classList.remove('bouncing');
         }
         statusIcon.dataset.lastSteps = steps;
+        statusIcon.dataset.lastStepChangeAt = `${lastStepChangeAt}`;
       }
 
       // --- Calibration / Test Controls ---

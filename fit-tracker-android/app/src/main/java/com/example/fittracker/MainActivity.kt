@@ -435,6 +435,26 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun getStepActivityInfo(): String {
+            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            val stepsToday = prefs.getInt("steps_$todayStr", 0)
+            val trackingMode = prefs.getString("tracking_mode", "unknown") ?: "unknown"
+            val lastStepEventTime = prefs.getLong("last_step_event_time", 0L)
+            val lastStepEventSteps = prefs.getInt("last_step_event_steps", stepsToday)
+            val lastStepEventDelta = prefs.getInt("last_step_event_delta", 0)
+
+            return """{
+                "stepsToday": $stepsToday,
+                "trackingMode": "$trackingMode",
+                "lastStepEventTime": $lastStepEventTime,
+                "lastStepEventSteps": $lastStepEventSteps,
+                "lastStepEventDelta": $lastStepEventDelta,
+                "now": ${System.currentTimeMillis()}
+            }""".trimIndent()
+        }
+
+        @JavascriptInterface
         fun saveStepsToday(steps: Int) {
             val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
             val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
