@@ -57,14 +57,14 @@ const MEAL_CHECKLIST_KEYS = [
 function getStepRolloverDetails(dateStr) {
   const settings = getSettings();
   const baseTarget = settings.step_target || 8000;
-  
+
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() - 1);
   const yesterdayStr = getDateStr(d);
-  
+
   const profile = getProfile();
   const daysFromStart = getDaysBetween(profile.program_start_date, dateStr);
-  
+
   if (daysFromStart <= 0) {
     return {
       baseTarget,
@@ -75,11 +75,11 @@ function getStepRolloverDetails(dateStr) {
       type: 'none'
     };
   }
-  
+
   const yesterdayLog = getDailyLog(yesterdayStr);
   const yesterdaySteps = yesterdayLog.steps || 0;
   const delta = yesterdaySteps - baseTarget;
-  
+
   let adjustedTarget = baseTarget;
   let type = 'none';
   if (delta < 0) {
@@ -89,9 +89,9 @@ function getStepRolloverDetails(dateStr) {
     type = 'credit';
     adjustedTarget = baseTarget - delta;
   }
-  
+
   const finalAdjusted = Math.max(4000, Math.min(15000, adjustedTarget));
-  
+
   return {
     baseTarget,
     adjustedTarget: finalAdjusted,
@@ -197,12 +197,12 @@ function initializeApp() {
   setInterval(() => {
     syncAndroidSteps();
     checkWalkAlarms();
-    
+
     // Check for midnight rollover
     const todayStr = getDateStr(new Date());
     if (todayStr !== lastCheckedDate) {
       lastCheckedDate = todayStr;
-      
+
       // If currentDate was the previous date, auto-shift currentDate to new date
       const d = new Date();
       d.setDate(d.getDate() - 1);
@@ -211,14 +211,14 @@ function initializeApp() {
         currentDate = todayStr;
         currentMealDay = getDayName(currentDate);
       }
-      
+
       // Update program info badge (Day and Week number)
       updateProgramInfo();
       renderCurrentScreen();
-      
+
       showToast("A new day has started! 🌅 Daily goals reset.");
     }
-  }, 3000);
+  }, 1000); // Sync every 1 second for real-time step responsiveness
 
   // Check for any pending walk reminder passed via intent during launch
   const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
@@ -299,13 +299,13 @@ function syncAndroidSteps() {
   if (isAndroid) {
     const todayStr = getDateStr(new Date());
     const nativeSteps = window.AndroidInterface.getStepsToday();
-    
-    // Save to daily log if steps count changed
+
+    // Save to daily log if steps count changed and user has not manually overridden
     const log = getDailyLog(todayStr);
-    if (log.steps !== nativeSteps) {
+    if (log.steps_source !== 'manual' && log.steps !== nativeSteps) {
       log.steps = nativeSteps;
       saveDailyLog(todayStr, log);
-      
+
       // Auto-check/uncheck steps checklist item
       const checklist = getChecklist(todayStr);
       if (!checklist.movement) checklist.movement = {};
@@ -315,7 +315,7 @@ function syncAndroidSteps() {
         checklist.movement.step_target = targetMet;
         saveChecklist(todayStr, checklist);
       }
-      
+
       // Update UI if viewing today's screen or dashboard
       if (currentScreen === 'dashboard') {
         renderDashboard();
@@ -423,9 +423,9 @@ function renderDashboard() {
     if (isAndroid && typeof window.AndroidInterface.getStepTrackingStrategy === 'function') {
       strategy = window.AndroidInterface.getStepTrackingStrategy();
     }
-    
+
     const dismissed = localStorage.getItem('ft_dismissed_battery_warning') === 'true';
-    
+
     if (isAndroid && strategy === 'background' && !dismissed && typeof window.AndroidInterface.isBatteryOptimizationIgnored === 'function') {
       const ignored = window.AndroidInterface.isBatteryOptimizationIgnored();
       batteryBanner.style.display = ignored ? 'none' : 'block';
@@ -454,7 +454,7 @@ function renderDashboard() {
   const latestWeight = findLatestValue(allLogs, 'weight_kg') || profile.start_weight_kg;
   setTextContent('currentWeight', latestWeight ? latestWeight.toFixed(1) : '--');
   setTextContent('weightTarget', profile.target_weight_kg ? `${profile.target_weight_kg} kg` : '--');
-  
+
   const weightDelta = (latestWeight && profile.start_weight_kg) ? (latestWeight - profile.start_weight_kg) : null;
   const weightChangeEl = document.getElementById('weightChange');
   if (weightChangeEl) {
@@ -487,7 +487,7 @@ function renderDashboard() {
   const hasIntakeBaseline = profile.start_weight_kg && profile.height_cm;
   setTextContent('currentBmi', hasIntakeBaseline ? metrics.bmi.toFixed(1) : '--');
   setTextContent('currentHeight', profile.height_cm ? `${profile.height_cm} cm` : '--');
-  
+
   const currentBmiStatusEl = document.getElementById('currentBmiStatus');
   if (currentBmiStatusEl) {
     currentBmiStatusEl.textContent = metrics.bmiStatus;
@@ -498,7 +498,7 @@ function renderDashboard() {
   // Days completed
   const programDay = getProgramDay(today);
   setTextContent('daysCompleted', Math.max(0, programDay));
-  
+
   // Total program days based on profile timeline
   let totalProgramDays = 84; // Default 12 weeks
   if (profile.target_timeline_value) {
@@ -519,7 +519,7 @@ function renderDashboard() {
   const score = calculateDailyScore(today);
   updateProgressRing('ringScoreFill', score.score, 100);
   setTextContent('ringScoreValue', Math.round(score.score));
-  
+
   const statusScoreEl = document.getElementById('ringScoreStatus');
   if (statusScoreEl) {
     if (score.score >= 85) {
@@ -556,7 +556,7 @@ function renderDashboard() {
   // Steps & Sleep
   const steps = log.steps || 0;
   setTextContent('todaySteps', steps.toLocaleString());
-  
+
   const effectiveSleep = (log.sleep_hours !== null && log.sleep_hours !== undefined && log.sleep_hours > 0)
     ? log.sleep_hours
     : calculateDefaultSleepHours(profile);
@@ -598,7 +598,7 @@ function renderDashboard() {
   const weight = latestWeight || profile.start_weight_kg;
   const height = profile.height_cm;
   const stepsMetrics = getStepsMetrics(steps, weight, height, profile.sex);
-  
+
   if (stepsMetrics.requiresProfile) {
     setTextContent('todayStepsCaloriesValue', '-- kcal');
     setTextContent('dashboardActiveCalories', '0');
@@ -744,7 +744,7 @@ function renderChecklists() {
       if (schedItem) {
         label = schedItem.action;
       }
-      
+
       return `
         <label class="checklist-item ${isChecked ? 'checked' : ''}">
           <input type="checkbox" data-category="${category}" data-key="${item.key}"
@@ -776,7 +776,7 @@ function bindChecklistEvents() {
       if (category === 'food' && MEAL_CHECKLIST_KEYS.includes(key)) {
         syncChecklistToMealLogs(currentDate, key, e.target.checked);
       }
-      
+
       // Bi-directional sync: if user checked a walk in Today's checklist, sync to walking checklist in Workout tab
       if (category === 'movement') {
         const walkInput = document.querySelector(`.walk-checkbox[data-key="${key}"]`);
@@ -859,10 +859,10 @@ function renderTodayScore() {
 function calculateDefaultSleepHours(profile) {
   const wake = profile.wake_time || '08:00';
   const sleep = profile.sleep_time || '00:15';
-  
+
   const [wakeH, wakeM] = wake.split(':').map(Number);
   const [sleepH, sleepM] = sleep.split(':').map(Number);
-  
+
   let diffMin = (wakeH * 60 + wakeM) - (sleepH * 60 + sleepM);
   if (diffMin < 0) {
     diffMin += 24 * 60; // Rollover midnight
@@ -893,6 +893,7 @@ function loadQuickLogValues() {
   if (stepsInput) {
     stepsInput.disabled = false;
     stepsInput.style.backgroundColor = '';
+    stepsInput.dataset.userModified = 'false'; // Reset on render so auto-synced values are not treated as manual edits
     if (isAndroid) {
       stepsInput.title = "Manually override steps or let the phone auto-track";
     } else {
@@ -936,12 +937,22 @@ function loadQuickLogValues() {
 
 function bindQuickLogEvents() {
   const saveBtn = document.getElementById('saveQuickLog');
+
+  // Track manual modification of steps input to distinguish user edits from stale auto-populated values
+  const stepsInput = document.getElementById('inputSteps');
+  if (stepsInput && !stepsInput.dataset.listenerBound) {
+    stepsInput.dataset.listenerBound = 'true';
+    stepsInput.addEventListener('input', function() {
+      this.dataset.userModified = 'true';
+    });
+  }
+
   if (saveBtn) {
     saveBtn.addEventListener('click', () => {
       const log = getDailyLog(currentDate);
       log.weight_kg = getInputNumber('inputWeight') || log.weight_kg;
       log.waist_in = getInputNumber('inputWaist') || log.waist_in;
-      
+
       const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
       let strategy = "background";
       if (isAndroid && typeof window.AndroidInterface.getStepTrackingStrategy === 'function') {
@@ -949,21 +960,25 @@ function bindQuickLogEvents() {
       }
 
       if (isAndroid && strategy !== 'disabled' && currentDate === getDateStr(new Date())) {
-        const inputStepsVal = getInputNumber('inputSteps') || 0;
         const nativeSteps = window.AndroidInterface.getStepsToday();
-        if (inputStepsVal !== nativeSteps) {
+        const userModified = stepsInput && stepsInput.dataset.userModified === 'true';
+
+        if (userModified) {
+          const inputStepsVal = getInputNumber('inputSteps') || 0;
           log.steps = inputStepsVal;
           log.steps_source = 'manual';
           if (typeof window.AndroidInterface.saveStepsToday === 'function') {
             window.AndroidInterface.saveStepsToday(log.steps);
           }
-        } else if (log.steps_source !== 'manual') {
+        } else {
+          // Always trust native steps as the source of truth when user has not manually edited
           log.steps = nativeSteps;
+          log.steps_source = 'auto';
         }
       } else {
         log.steps = getInputNumber('inputSteps') || 0;
       }
-      
+
       log.sleep_hours = getInputNumber('inputSleep') || log.sleep_hours;
       log.water_litres = getInputNumber('inputWater') || log.water_litres;
       log.energy_level = getInputNumber('inputEnergy') || log.energy_level;
@@ -1049,7 +1064,7 @@ function bindMealDaySelector() {
 
       selector.querySelectorAll('.day-pill').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
-      
+
       const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
       const targetDayIndex = weekdays.indexOf(pill.dataset.day);
       if (targetDayIndex !== -1) {
@@ -1149,7 +1164,7 @@ function syncChecklistToMealLogs(dateStr, checklistKey, isChecked) {
 
   const meals = getOrCreateMealLogs(dateStr);
   const meal = meals[mealIndex];
-  
+
   if (meal.completed === isChecked) return; // already in sync
 
   meal.completed = isChecked;
@@ -1169,7 +1184,7 @@ function syncChecklistToMealLogs(dateStr, checklistKey, isChecked) {
   const totalProtein = meals.reduce((sum, m) => sum + (m.protein_estimated || 0), 0);
   const settings = getSettings();
   const proteinTarget = settings.protein_target_g || 100;
-  
+
   const checklist = getChecklist(dateStr);
   if (!checklist.food) checklist.food = {};
   checklist.food.protein_target = totalProtein >= proteinTarget;
@@ -1211,7 +1226,7 @@ function bindMealEditEvents() {
 
       const textarea = cardEl.querySelector('.meal-items-textarea');
       const proteinInput = cardEl.querySelector('.meal-protein-input');
-      
+
       const itemsText = textarea ? textarea.value.trim() : '';
       const proteinVal = proteinInput ? parseInt(proteinInput.value) || 0 : 0;
 
@@ -1377,7 +1392,7 @@ function renderMealPlan() {
 
     const templateMeal = templates[i] || templates[0];
     const mealThumb = mealThumbs[meal.label] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120&auto=format&fit=crop&q=80';
-    
+
     const isEditing = editingMealIndexes[i];
 
     if (isEditing) {
@@ -1537,14 +1552,14 @@ function renderWorkout() {
   if (typeTag) {
     typeTag.textContent = schedule.morning_plan;
     typeTag.className = 'tag tag--' + (schedule.morning_plan.toLowerCase().includes('workout') ? 'primary' : 'accent');
-    
+
     // Add fitness level badge dynamically
     const typeContainer = typeTag.parentElement;
     if (typeContainer) {
       const profile = getProfile();
       const fitnessLevel = profile.fitness_level || 'beginner';
       const capitalizedLevel = fitnessLevel.charAt(0).toUpperCase() + fitnessLevel.slice(1);
-      
+
       let lvlBadge = document.getElementById('workoutFitnessLevelBadge');
       if (!lvlBadge) {
         lvlBadge = document.createElement('span');
@@ -1629,8 +1644,8 @@ function renderWorkout() {
             <i data-lucide="shield-alert" style="width: 18px; height: 18px;"></i> Medical Clearance Required
           </h4>
           <p style="margin: 0; font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--text);">
-            You have indicated a history of **Heart Blockage / CAD** in your medical history. 
-            For your safety, exercise recommendations are disabled. **Please consult with your doctor before starting or taking any exercise.** 
+            You have indicated a history of **Heart Blockage / CAD** in your medical history.
+            For your safety, exercise recommendations are disabled. **Please consult with your doctor before starting or taking any exercise.**
             Do not perform workouts without medical approval.
           </p>
         `;
@@ -1644,7 +1659,7 @@ function renderWorkout() {
       // Normal exercises loading
       if (exerciseContainer) exerciseContainer.style.display = 'block';
       if (cardFooter) cardFooter.style.display = 'flex';
-      
+
       // Check if other cardiovascular / high BP risks are present
       const meds = (profile.medications || '').toLowerCase();
       const isBetaBlocker = meds.includes('beta') || meds.includes('blocker') || meds.includes('atenolol') || meds.includes('metoprolol') || meds.includes('bisoprolol') || meds.includes('carvedilol') || meds.includes('propranolol') || meds.includes('labetalol');
@@ -1653,7 +1668,7 @@ function renderWorkout() {
       const isDiuretic = meds.includes('diuretic') || meds.includes('lasix') || meds.includes('furosemide') || meds.includes('hydrochlorothiazide') || meds.includes('spironolactone');
       const isNitrate = meds.includes('nitrate') || meds.includes('nitroglycerin') || meds.includes('isosorbide');
       const hasHypertension = profile.has_hypertension || meds.includes('bp') || meds.includes('hypertension') || meds.includes('pressure');
-      
+
       if (hasHypertension || isBetaBlocker || isNitrate) {
         if (alertDiv) {
           alertDiv.style.display = 'block';
@@ -1687,13 +1702,13 @@ function renderWorkout() {
       if (exerciseContainer) {
         exerciseContainer.innerHTML = exercises.map((ex, i) => {
           const isCompleted = !!workoutLog.exercises?.[i];
-          const thumbnailHtml = ex.thumbnail 
-            ? `<img src="${ex.thumbnail}" class="exercise-thumb" alt="${ex.name}">` 
+          const thumbnailHtml = ex.thumbnail
+            ? `<img src="${ex.thumbnail}" class="exercise-thumb" alt="${ex.name}">`
             : '';
-          const videoHtml = ex.video_url 
-            ? `<a href="${ex.video_url}" target="_blank" class="exercise-video-btn" title="Watch form video"><i data-lucide="play-circle"></i> Watch Demo</a>` 
+          const videoHtml = ex.video_url
+            ? `<a href="${ex.video_url}" target="_blank" class="exercise-video-btn" title="Watch form video"><i data-lucide="play-circle"></i> Watch Demo</a>`
             : '';
-          
+
           return `
             <div class="workout-exercise ${isCompleted ? 'completed' : ''}">
               <label class="workout-exercise__check">
@@ -1739,10 +1754,10 @@ function renderWorkout() {
   if (walkingChecklist) {
     const activeSchedule = getActiveSchedule();
     const movementItems = activeSchedule.filter(item => item.category === 'movement' && item.checklist_key && item.checklist_key.includes('walk'));
-    
+
     const checklist = getChecklist(currentDate);
     const movement = checklist.movement || {};
-    
+
     walkingChecklist.innerHTML = movementItems.map(item => {
       const isChecked = !!movement[item.checklist_key];
       let displayTime = item.time;
@@ -1772,7 +1787,7 @@ function renderWorkoutButtons() {
       saveBtn.style.background = 'var(--success)';
       saveBtn.style.borderColor = 'var(--success)';
       saveBtn.style.color = 'oklch(0.13 0.015 260)';
-      
+
       savePartialBtn.innerHTML = '<i data-lucide="x-circle"></i> Skip';
       savePartialBtn.style.background = 'transparent';
       savePartialBtn.style.borderColor = 'var(--border)';
@@ -1782,7 +1797,7 @@ function renderWorkoutButtons() {
       saveBtn.style.background = '';
       saveBtn.style.borderColor = '';
       saveBtn.style.color = '';
-      
+
       savePartialBtn.innerHTML = '<i data-lucide="alert-triangle"></i> Skipped';
       savePartialBtn.style.background = 'var(--danger-subtle, oklch(0.62 0.25 29 / 0.12))';
       savePartialBtn.style.borderColor = 'var(--danger)';
@@ -1792,7 +1807,7 @@ function renderWorkoutButtons() {
       saveBtn.style.background = '';
       saveBtn.style.borderColor = '';
       saveBtn.style.color = '';
-      
+
       savePartialBtn.innerHTML = '<i data-lucide="alert-triangle"></i> Log Partial / Skip';
       savePartialBtn.style.background = 'transparent';
       savePartialBtn.style.borderColor = 'var(--danger)';
@@ -2013,14 +2028,14 @@ function bindWorkoutEvents() {
       if (!checklist.movement) checklist.movement = {};
       checklist.movement[key] = e.target.checked;
       saveChecklist(currentDate, checklist);
-      
+
       // Sync with checklist if it exists
       const mainChecklistInput = document.querySelector(`.checklist input[data-key="${key}"]`);
       if (mainChecklistInput) {
         mainChecklistInput.checked = e.target.checked;
         mainChecklistInput.closest('.checklist-item').classList.toggle('checked', e.target.checked);
       }
-      
+
       // Toggle checked class in UI
       e.target.closest('.checklist-item').classList.toggle('checked', e.target.checked);
       showToast('Walking progress updated! 🚶‍♂️');
@@ -2118,7 +2133,7 @@ function bindWorkoutEvents() {
       btn.style.background = 'var(--primary)';
       btn.style.color = '#ffffff';
       btn.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.25)';
-      
+
       selectedPace = btn.dataset.pace;
       updateMetabolicCalculator();
     });
@@ -2197,7 +2212,7 @@ function renderReview() {
   // Stats
   setTextContent('reviewAvgWeight', review.avg_weight ? review.avg_weight.toFixed(1) + ' kg' : '--');
   setTextContent('reviewWeightDelta', review.weight_change != null ? (review.weight_change > 0 ? '+' : '') + review.weight_change.toFixed(1) + ' kg' : '--');
-  
+
   const reviewHeight = profile.height_cm || 178;
   const avgBmi = review.avg_weight ? review.avg_weight / ((reviewHeight / 100) * (reviewHeight / 100)) : null;
   setTextContent('reviewAvgBmi', avgBmi ? avgBmi.toFixed(1) : '--');
@@ -2255,13 +2270,13 @@ function updateSettingsBmiDisplay() {
   const bmiValEl = document.getElementById('settingBmiValue');
   const bmiStatusEl = document.getElementById('settingBmiStatus');
   if (!weightInput || !heightInput || !bmiValEl || !bmiStatusEl) return;
-  
+
   const w = parseFloat(weightInput.value) || 0;
   const h = parseFloat(heightInput.value) || 0;
   if (w > 0 && h > 0) {
     const bmi = w / ((h / 100) * (h / 100));
     bmiValEl.textContent = bmi.toFixed(1);
-    
+
     let status = 'Normal';
     let color = 'var(--success)';
     if (bmi < 18.5) {
@@ -2274,7 +2289,7 @@ function updateSettingsBmiDisplay() {
       status = 'Overweight';
       color = 'var(--warning)';
     }
-    
+
     bmiStatusEl.textContent = status;
     bmiStatusEl.style.color = color;
     bmiStatusEl.style.background = `${color}1A`;
@@ -2375,14 +2390,14 @@ function bindSettingsModal() {
     const saveSettingsBtn = document.getElementById('saveSettings');
 
     if (!settingCurrentWeight || !settingTargetWeight || !settingTimelineVal || !settingTimelineUnit || !settingGoalAlert || !settingGoalAlertText || !saveSettingsBtn) return false;
-    
+
     const currentW = parseFloat(settingCurrentWeight.value) || 0;
     const targetW = parseFloat(settingTargetWeight.value) || 0;
     const timeVal = parseFloat(settingTimelineVal.value) || 0;
     const unit = settingTimelineUnit.value;
 
     const targetLoss = currentW - targetW;
-    
+
     if (targetLoss <= 0) {
       settingGoalAlert.style.display = 'none';
       saveSettingsBtn.disabled = false;
@@ -2406,12 +2421,12 @@ function bindSettingsModal() {
       if (recommendedWeeks >= 8) {
         recommendedMsg = `${(recommendedWeeks / 4.33).toFixed(1)} months`;
       }
-      
+
       settingGoalAlertText.innerHTML = `
-        Healthcare professionals and nutritionists recommend a safe, sustainable weight loss rate of 
+        Healthcare professionals and nutritionists recommend a safe, sustainable weight loss rate of
         <strong>0.5 - 1 kg per week</strong> (approximately <strong>2 - 4 kg per month</strong>).<br><br>
-        Losing <strong>${targetLoss.toFixed(1)} kg</strong> in that timeframe requires losing 
-        <strong>${lossRatePerWeek.toFixed(1)} kg/week</strong> (<strong>${lossRatePerMonth.toFixed(1)} kg/month</strong>). 
+        Losing <strong>${targetLoss.toFixed(1)} kg</strong> in that timeframe requires losing
+        <strong>${lossRatePerWeek.toFixed(1)} kg/week</strong> (<strong>${lossRatePerMonth.toFixed(1)} kg/month</strong>).
         To avoid muscle wasting, metabolic slowing, or gallstones, we suggest a target duration of at least <strong>${recommendedMsg}</strong>.
       `;
       settingGoalAlert.style.display = 'block';
@@ -2466,7 +2481,7 @@ function bindSettingsModal() {
     // Diet options
     setInputValue('settingDiet', profile.diet_type || 'non_veg');
     setInputValue('settingNonVegFreq', profile.non_veg_frequency || '3_4_weekly');
-    
+
     // Load restricted non-veg days
     const restrictedDays = profile.restricted_non_veg_days || ['monday'];
     document.querySelectorAll('.setting-day-chk').forEach(chk => {
@@ -2493,9 +2508,9 @@ function bindSettingsModal() {
     setCheck('settingHasThyroid', profile.has_thyroid);
     setInputValue('settingThyroidType', profile.thyroid_type || 'hypothyroidism');
     setInputValue('settingThyroidMed', profile.thyroid_medicine || '');
-    
+
     setCheck('settingHasJointPain', profile.has_joint_pain);
-    
+
     // Check the joint pain location boxes
     const jointPainLocs = profile.joint_pain_locations || [];
     document.querySelectorAll('.setting-joint-chk').forEach(chk => {
@@ -2503,7 +2518,7 @@ function bindSettingsModal() {
     });
 
     setInputValue('settingMeds', profile.medications || '');
-    
+
     const chkSettingTerms = document.getElementById('settingAcceptTerms');
     if (chkSettingTerms) chkSettingTerms.checked = !!profile.agreed_to_terms;
     const consentDateSpan = document.getElementById('settingTermsConsentDate');
@@ -2517,7 +2532,7 @@ function bindSettingsModal() {
         consentDateSpan.style.color = 'var(--danger)';
       }
     }
-    
+
     // Load lifestyle options
     setInputValue('settingWorkActivity', profile.work_activity || 'sedentary');
     setInputValue('settingSleepCategory', profile.sleep_category || 'optimal');
@@ -2581,13 +2596,13 @@ function bindSettingsModal() {
         medicalOpts.style.display = hasMedical ? 'flex' : 'none';
       }
     };
-    
+
     const toggleThyroidOpts = () => {
       const hasThyroid = document.getElementById('settingHasThyroid')?.checked;
       const thyroidOpts = document.getElementById('settingThyroidDetailsWrap');
       if (thyroidOpts) thyroidOpts.style.display = hasThyroid ? 'block' : 'none';
     };
-    
+
     const toggleJointOpts = () => {
       const hasJoint = document.getElementById('settingHasJointPain')?.checked;
       const jointOpts = document.getElementById('settingJointPainDetailsWrap');
@@ -2618,7 +2633,7 @@ function bindSettingsModal() {
       hasThyroidCheck.addEventListener('change', toggleThyroidOpts);
       hasThyroidCheck.dataset.listenerBound = 'true';
     }
-    
+
     const hasJointCheck = document.getElementById('settingHasJointPain');
     if (hasJointCheck && !hasJointCheck.dataset.listenerBound) {
       hasJointCheck.addEventListener('change', toggleJointOpts);
@@ -2633,7 +2648,7 @@ function bindSettingsModal() {
     if (settingsBtn) {
       settingsBtn.addEventListener('click', openSettings);
     }
-    
+
     // Open settings from Dashboard "Edit Profile" button
     const dashEditProfileBtn = document.getElementById('dashEditProfileBtn');
     if (dashEditProfileBtn) {
@@ -2643,10 +2658,10 @@ function bindSettingsModal() {
     // Open settings from dashboard cards
     const statWeight = document.getElementById('statWeight');
     if (statWeight) statWeight.addEventListener('click', openSettings);
-    
+
     const statWaist = document.getElementById('statWaist');
     if (statWaist) statWaist.addEventListener('click', openSettings);
-    
+
     const statBmi = document.getElementById('statBmi');
     if (statBmi) statBmi.addEventListener('click', openSettings);
 
@@ -2707,7 +2722,7 @@ function bindSettingsModal() {
 
       profile.diet_type = document.getElementById('settingDiet')?.value || profile.diet_type;
       profile.non_veg_frequency = document.getElementById('settingNonVegFreq')?.value || profile.non_veg_frequency;
-      
+
       const restrictedDays = [];
       document.querySelectorAll('.setting-day-chk:checked').forEach(c => restrictedDays.push(c.value));
       profile.restricted_non_veg_days = restrictedDays;
@@ -2747,7 +2762,7 @@ function bindSettingsModal() {
         profile.has_diabetes ||
         profile.has_thyroid
       );
-      
+
       const conditions = [];
       if (profile.has_triglycerides) conditions.push('High Triglycerides');
       if (profile.has_ldl) conditions.push('High LDL Cholesterol');
@@ -2824,7 +2839,7 @@ function bindSettingsModal() {
       }
 
       saveProfile(profile); // This automatically calls rebuildDynamicData
-      
+
       // Re-configure targets dynamically if weight or height changed
       if (profile.start_weight_kg !== oldWeight || profile.height_cm !== oldHeight) {
         const settings = getSettings();
@@ -2838,7 +2853,7 @@ function bindSettingsModal() {
         } else {
           settings.step_target = 8000;
         }
-        
+
         if (profile.primary_goal === 'muscle_gain') {
           settings.protein_target_g = Math.round(profile.start_weight_kg * 1.5);
         } else {
@@ -2846,7 +2861,7 @@ function bindSettingsModal() {
         }
         saveSettings(settings);
       }
-      
+
       const settings = getSettings();
       settings.lunch_walk_alarm = profile.lunch_walk_time;
       settings.dinner_walk_alarm = profile.dinner_walk_time;
@@ -2869,7 +2884,7 @@ function bindSettingsModal() {
           }
         }
       }
-      
+
       modal?.close();
       showToast('Settings saved! ⚙️', 'success');
       updateProgramInfo();
@@ -3095,7 +3110,7 @@ function getStepsMetrics(steps, weight, height, sex) {
   const s = sex || 'male';
   const strideMultiplier = (s.toLowerCase() === 'female') ? 0.00413 : 0.00415;
   const strideMeters = h * strideMultiplier;
-  
+
   // Calculate distance in kilometers
   const distanceKm = (steps * strideMeters) / 1000;
 
@@ -3212,7 +3227,7 @@ function showToast(message, type = 'info') {
 
   const toast = document.createElement('div');
   toast.className = `toast toast--${type}`;
-  
+
   // Icon based on type
   let iconHtml = '';
   if (type === 'success') {
@@ -3266,7 +3281,7 @@ function bindStepCalculatorModal() {
         if (log.steps !== nativeSteps) {
           log.steps = nativeSteps;
           saveDailyLog(today, log);
-          
+
           // Auto-check checklist compliance
           const checklist = getChecklist(today);
           if (!checklist.movement) checklist.movement = {};
@@ -3312,16 +3327,16 @@ function bindStepCalculatorModal() {
 
       const log = getDailyLog(today);
       const steps = log.steps || 0;
-      
+
       const details = getStepRolloverDetails(today);
       const allLogs = getAllDailyLogs();
       const profile = getProfile();
       const latestWeight = findLatestValue(allLogs, 'weight_kg') || profile.start_weight_kg;
       const height = profile.height_cm;
-      
+
       const stepsMetrics = getStepsMetrics(steps, latestWeight, height, profile.sex);
       const activeMinutes = Math.round(steps * 0.008);
-      
+
       // Update DOM elements
       setTextContent('calcStepsToday', steps.toLocaleString());
       const warningEl = document.getElementById('calcProfileWarning');
@@ -3336,10 +3351,10 @@ function bindStepCalculatorModal() {
       }
       setTextContent('calcActiveMinutes', `${activeMinutes} mins`);
       setTextContent('calcBaseTarget', details.baseTarget.toLocaleString());
-      
+
       setTextContent('calcYesterdaySteps', details.yesterdaySteps.toLocaleString());
       setTextContent('calcYesterdayTarget', details.yesterdayTarget.toLocaleString());
-      
+
       const deltaEl = document.getElementById('calcYesterdayDelta');
       if (deltaEl) {
         if (details.type === 'deficit') {
@@ -3353,9 +3368,9 @@ function bindStepCalculatorModal() {
           deltaEl.style.color = 'var(--text)';
         }
       }
-      
+
       setTextContent('calcAdjustedTarget', details.adjustedTarget.toLocaleString());
-      
+
       const explEl = document.getElementById('calcRolloverExplanation');
       if (explEl) {
         if (details.type === 'deficit') {
@@ -3372,12 +3387,12 @@ function bindStepCalculatorModal() {
       if (statusIcon) {
         const lastSteps = parseInt(statusIcon.dataset.lastSteps || "0");
         const isCurrentlyWalking = (steps > lastSteps && lastSteps > 0);
-        
+
         if (isCurrentlyWalking) {
           statusIcon.innerHTML = `<span class="live-pulse live-pulse--active"></span>Walking detected (Live)`;
           statusIcon.style.color = 'var(--success)';
           statusIcon.classList.add('bouncing');
-          
+
           clearTimeout(window.walkActiveTimeout);
           window.walkActiveTimeout = setTimeout(() => {
             statusIcon.innerHTML = `<span class="live-pulse"></span>Pedometer Active (Standing Still)`;
@@ -3393,15 +3408,70 @@ function bindStepCalculatorModal() {
         }
         statusIcon.dataset.lastSteps = steps;
       }
+
+      // --- Calibration / Test Controls ---
+      const sensitivityPanel = document.getElementById('calcSensitivityPanel');
+      const sensitivitySlider = document.getElementById('calcSensitivitySlider');
+      const sensitivityValue = document.getElementById('calcSensitivityValue');
+      if (sensitivityPanel && isAndroid) {
+        if (deviceInfo.trackingMode === 'accelerometer') {
+          sensitivityPanel.style.display = 'block';
+          if (typeof window.AndroidInterface.getAccelerometerSensitivity === 'function') {
+            const sens = window.AndroidInterface.getAccelerometerSensitivity();
+            if (sensitivitySlider) sensitivitySlider.value = sens;
+            if (sensitivityValue) sensitivityValue.textContent = `Current: ${sens.toFixed(1)}x`;
+          }
+        } else {
+          sensitivityPanel.style.display = 'none';
+        }
+      }
     };
 
     stepsCard.addEventListener('click', () => {
       updateModalData();
       modal.showModal();
-      
+
       // Start polling for real-time updates every 500ms
       if (updateTimer) clearInterval(updateTimer);
       updateTimer = setInterval(updateModalData, 500);
+
+      // Bind calibration controls once
+      const sensitivitySlider = document.getElementById('calcSensitivitySlider');
+      if (sensitivitySlider && !sensitivitySlider.dataset.bound) {
+        sensitivitySlider.dataset.bound = 'true';
+        sensitivitySlider.addEventListener('input', (e) => {
+          const val = parseFloat(e.target.value);
+          const valEl = document.getElementById('calcSensitivityValue');
+          if (valEl) valEl.textContent = `Current: ${val.toFixed(1)}x`;
+        });
+        sensitivitySlider.addEventListener('change', (e) => {
+          const val = parseFloat(e.target.value);
+          if (typeof window.AndroidInterface.setAccelerometerSensitivity === 'function') {
+            window.AndroidInterface.setAccelerometerSensitivity(val);
+          }
+        });
+      }
+
+      const btnReset = document.getElementById('btnResetSteps');
+      if (btnReset && !btnReset.dataset.bound) {
+        btnReset.dataset.bound = 'true';
+        btnReset.addEventListener('click', () => {
+          if (typeof window.AndroidInterface.resetStepsToday === 'function') {
+            window.AndroidInterface.resetStepsToday();
+            showToast('Steps reset for testing. Walk to recalibrate.');
+          }
+        });
+      }
+
+      const btnSync = document.getElementById('btnForceSync');
+      if (btnSync && !btnSync.dataset.bound) {
+        btnSync.dataset.bound = 'true';
+        btnSync.addEventListener('click', () => {
+          syncAndroidSteps();
+          updateModalData();
+          showToast('Steps synced from sensor.');
+        });
+      }
     });
 
     modal.addEventListener('close', () => {
@@ -3409,7 +3479,7 @@ function bindStepCalculatorModal() {
         clearInterval(updateTimer);
         updateTimer = null;
       }
-      
+
       // Refresh dashboard to show latest metrics
       renderDashboard();
     });
@@ -3420,18 +3490,18 @@ function bindStepCalculatorModal() {
 function checkWalkAlarms() {
   const settings = getSettings();
   if (!settings.notifications_enabled) return;
-  
+
   const now = new Date();
   const todayStr = getDateStr(now);
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const currentTimeStr = `${hours}:${minutes}`;
-  
+
   const alarmLunch = settings.lunch_walk_alarm || '13:15';
   const alarmDinner = settings.dinner_walk_alarm || '21:45';
-  
+
   const isAndroid = typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid();
-  
+
   // Check Lunch Walk Alarm
   if (currentTimeStr === alarmLunch) {
     const key = `alarm_sent_lunch_${todayStr}`;
@@ -3447,7 +3517,7 @@ function checkWalkAlarms() {
       }
     }
   }
-  
+
   // Check Dinner Walk Alarm
   if (currentTimeStr === alarmDinner) {
     const key = `alarm_sent_dinner_${todayStr}`;
@@ -3469,10 +3539,10 @@ function checkWalkAlarms() {
 window.triggerWalkReminder = function(walkType) {
   const modal = document.getElementById('walkReminderModal');
   if (!modal) return;
-  
+
   const titleEl = document.getElementById('walkReminderTitle');
   const msgEl = document.getElementById('walkReminderMsg');
-  
+
   if (walkType === 'post_lunch_walk') {
     if (titleEl) titleEl.textContent = 'Post-Lunch Walk';
     if (msgEl) msgEl.textContent = 'Did you complete your 10-minute walk after lunch?';
@@ -3483,29 +3553,29 @@ window.triggerWalkReminder = function(walkType) {
     if (titleEl) titleEl.textContent = 'Walk Reminder';
     if (msgEl) msgEl.textContent = 'Did you complete your scheduled walk?';
   }
-  
+
   const btnYes = document.getElementById('btnLogWalkYes');
   const btnNo = document.getElementById('btnLogWalkNo');
-  
+
   // Remove old listeners by replacing elements with clones
   const newBtnYes = btnYes.cloneNode(true);
   const newBtnNo = btnNo.cloneNode(true);
   btnYes.parentNode.replaceChild(newBtnYes, btnYes);
   btnNo.parentNode.replaceChild(newBtnNo, btnNo);
-  
+
   newBtnYes.addEventListener('click', () => {
     logWalkCompletion(walkType, true);
     modal.close();
   });
-  
+
   newBtnNo.addEventListener('click', () => {
     logWalkCompletion(walkType, false);
     modal.close();
   });
-  
+
   // Re-initialize icons inside modal
   if (typeof lucide !== 'undefined') lucide.createIcons();
-  
+
   modal.showModal();
 };
 
@@ -3515,9 +3585,9 @@ function logWalkCompletion(walkType, isCompleted) {
   if (!checklist.movement) checklist.movement = {};
   checklist.movement[walkType] = isCompleted;
   saveChecklist(today, checklist);
-  
+
   showToast(isCompleted ? 'Walk logged successfully! 🎉' : 'Walk skipped. ⚠️');
-  
+
   // Refresh current screen to update progress
   renderCurrentScreen();
 }
@@ -3557,19 +3627,19 @@ function initMotionPedometer() {
         const now = Date.now();
         if (now - lastShakeTime > 400) { // debounce (max walking step frequency)
           lastShakeTime = now;
-          
+
           const today = getDateStr(new Date());
           const log = getDailyLog(today);
           const currentSteps = log.steps || 0;
           const newSteps = currentSteps + 1;
-          
+
           log.steps = newSteps;
           saveDailyLog(today, log);
-          
+
           if (typeof window.AndroidInterface !== 'undefined' && window.AndroidInterface.isAndroid()) {
             window.AndroidInterface.saveStepsToday(newSteps);
           }
-          
+
           // Smooth dashboard refresh if active
           if (currentScreen === 'dashboard') {
             renderDashboard();
@@ -3633,7 +3703,7 @@ function bindOnboardingEvents() {
       if (obMedicalOpts) obMedicalOpts.style.display = obHasMedical.checked ? 'flex' : 'none';
     });
   }
-  
+
   const obHasThyroid = document.getElementById('obHasThyroid');
   const obThyroidOpts = document.getElementById('obThyroidDetailsWrap');
   if (obHasThyroid) {
@@ -3641,7 +3711,7 @@ function bindOnboardingEvents() {
       if (obThyroidOpts) obThyroidOpts.style.display = obHasThyroid.checked ? 'flex' : 'none';
     });
   }
-  
+
   const obHasJointPain = document.getElementById('obHasJointPain');
   const obJointOpts = document.getElementById('obJointPainDetailsWrap');
   if (obHasJointPain) {
@@ -3663,7 +3733,7 @@ function bindOnboardingEvents() {
     if (w > 0 && h > 0) {
       const bmi = w / ((h / 100) * (h / 100));
       obBmiValue.textContent = bmi.toFixed(1);
-      
+
       let status = 'Normal';
       let color = 'var(--success)';
       if (bmi < 18.5) {
@@ -3676,7 +3746,7 @@ function bindOnboardingEvents() {
         status = 'Overweight';
         color = 'var(--warning)';
       }
-      
+
       obBmiStatus.textContent = status;
       obBmiStatus.style.color = color;
       obBmiStatus.style.background = `${color}1A`;
@@ -3701,7 +3771,7 @@ function bindOnboardingEvents() {
     const unit = obTimelineUnit.value;
 
     const targetLoss = currentW - targetW;
-    
+
     if (targetLoss <= 0) {
       obGoalAlert.style.display = 'none';
       btnNext.disabled = false;
@@ -3725,12 +3795,12 @@ function bindOnboardingEvents() {
       if (recommendedWeeks >= 8) {
         recommendedMsg = `${(recommendedWeeks / 4.33).toFixed(1)} months`;
       }
-      
+
       obGoalAlertText.innerHTML = `
-        Healthcare professionals and nutritionists recommend a safe, sustainable weight loss rate of 
+        Healthcare professionals and nutritionists recommend a safe, sustainable weight loss rate of
         <strong>0.5 - 1 kg per week</strong> (approximately <strong>2 - 4 kg per month</strong>).<br><br>
-        Losing <strong>${targetLoss.toFixed(1)} kg</strong> in that timeframe requires losing 
-        <strong>${lossRatePerWeek.toFixed(1)} kg/week</strong> (<strong>${lossRatePerMonth.toFixed(1)} kg/month</strong>). 
+        Losing <strong>${targetLoss.toFixed(1)} kg</strong> in that timeframe requires losing
+        <strong>${lossRatePerWeek.toFixed(1)} kg/week</strong> (<strong>${lossRatePerMonth.toFixed(1)} kg/month</strong>).
         To avoid muscle wasting, metabolic slowing, or gallstones, we suggest a target duration of at least <strong>${recommendedMsg}</strong>.
       `;
       obGoalAlert.style.display = 'block';
@@ -3860,7 +3930,7 @@ function bindOnboardingEvents() {
     if (obHasJointPain && obJointOpts) {
       obJointOpts.style.display = obHasJointPain.checked ? 'grid' : 'none';
     }
-    
+
     // Update live BMI on load
     updateBmiDisplay();
   };
@@ -3931,7 +4001,7 @@ function bindOnboardingEvents() {
         profile.meals_per_day = parseInt(document.getElementById('obMeals')?.value) || 4;
         profile.diet_type = obDiet.value;
         profile.non_veg_frequency = document.getElementById('obNonVegFreq')?.value || '3_4_weekly';
-        
+
         const restrictedDays = [];
         document.querySelectorAll('.ob-day-chk:checked').forEach(c => restrictedDays.push(c.value));
         profile.restricted_non_veg_days = restrictedDays;
@@ -3962,7 +4032,7 @@ function bindOnboardingEvents() {
         } else {
           profile.joint_pain_locations = [];
         }
-        
+
         profile.has_medical_conditions = !!(
           profile.has_triglycerides ||
           profile.has_ldl ||
@@ -3971,7 +4041,7 @@ function bindOnboardingEvents() {
           profile.has_diabetes ||
           profile.has_thyroid
         );
-        
+
         const conditions = [];
         if (profile.has_triglycerides) conditions.push('High Triglycerides');
         if (profile.has_ldl) conditions.push('High LDL Cholesterol');
@@ -4014,7 +4084,7 @@ function bindOnboardingEvents() {
           } else {
             settings.step_target = 8000;
           }
-          
+
           const startW = profile.start_weight_kg || 70;
           if (profile.primary_goal === 'muscle_gain') {
             settings.protein_target_g = Math.round(startW * 1.5);
@@ -4025,7 +4095,7 @@ function bindOnboardingEvents() {
 
           modal.close();
           showToast("Personalized plan generated successfully! 🎉");
-          
+
           const today = getDateStr(new Date());
           const log = getDailyLog(today);
           log.weight_kg = profile.start_weight_kg;
@@ -4062,7 +4132,7 @@ function bindOnboardingEvents() {
 
 function getDailyCalorieTarget(profile) {
   if (!profile) return 2000;
-  
+
   const w = profile.start_weight_kg || 70;
   const h = profile.height_cm || 170;
   const age = profile.age || 30;
@@ -4115,7 +4185,7 @@ function showLocationRequiredModal() {
     modal.style.boxShadow = 'var(--shadow-lg)';
     modal.style.maxWidth = '400px';
     modal.style.width = '90%';
-    
+
     modal.innerHTML = `
       <div class="card" style="margin: 0; border-color: var(--primary);">
         <div class="card-header" style="justify-content: center; padding-bottom: var(--space-sm);">
@@ -4224,7 +4294,7 @@ function handleLocationFailure() {
         </button>
       </div>
     `;
-    
+
     const inlineBtn = grid.querySelector('#btnEnableLocationInline');
     if (inlineBtn) {
       inlineBtn.addEventListener('click', () => {
@@ -4269,7 +4339,7 @@ function detectUserLocation() {
           const address = data.address || {};
           const city = address.city || address.town || address.state_district || address.village || address.suburb || address.state || "";
           const state = address.state || "";
-          
+
           if (city) {
             isLiveLocationEnabled = true;
             handleDetectedCity(city, state);
@@ -4324,24 +4394,24 @@ function handleDetectedCity(cityName, stateName) {
   if (stateLower.includes('maharashtra') || cityLower.includes('pune') || cityLower.includes('mumbai') || cityLower.includes('bombay') || cityLower.includes('nagpur') || cityLower.includes('pimpri')) {
     regionKey = 'maharashtra';
   } else if (
-    stateLower.includes('delhi') || stateLower.includes('punjab') || stateLower.includes('haryana') || 
+    stateLower.includes('delhi') || stateLower.includes('punjab') || stateLower.includes('haryana') ||
     stateLower.includes('uttar pradesh') || stateLower.includes('uttarakhand') || stateLower.includes('himachal pradesh') ||
     cityLower.includes('noida') || cityLower.includes('gurgaon')
   ) {
     regionKey = 'delhi_region';
   } else if (
-    stateLower.includes('karnataka') || stateLower.includes('tamil nadu') || stateLower.includes('kerala') || 
-    stateLower.includes('andhra pradesh') || stateLower.includes('telangana') || 
+    stateLower.includes('karnataka') || stateLower.includes('tamil nadu') || stateLower.includes('kerala') ||
+    stateLower.includes('andhra pradesh') || stateLower.includes('telangana') ||
     cityLower.includes('bengaluru') || cityLower.includes('bangalore') || cityLower.includes('chennai') || cityLower.includes('hyderabad')
   ) {
     regionKey = 'south_india';
   } else if (
-    stateLower.includes('west bengal') || stateLower.includes('bihar') || stateLower.includes('odisha') || 
+    stateLower.includes('west bengal') || stateLower.includes('bihar') || stateLower.includes('odisha') ||
     stateLower.includes('jharkhand') || cityLower.includes('kolkata')
   ) {
     regionKey = 'east_india';
   } else if (
-    stateLower.includes('gujarat') || stateLower.includes('rajasthan') || stateLower.includes('madhya pradesh') || 
+    stateLower.includes('gujarat') || stateLower.includes('rajasthan') || stateLower.includes('madhya pradesh') ||
     stateLower.includes('goa') || cityLower.includes('ahmedabad') || cityLower.includes('jaipur')
   ) {
     regionKey = 'west_india';
@@ -4355,7 +4425,7 @@ function handleDetectedCity(cityName, stateName) {
     'west_india': 'Western India Specials',
     'default_india': 'Healthy Local Specials'
   };
-  
+
   const localRegionLabel = document.getElementById('localRegionLabel');
   if (localRegionLabel) {
     localRegionLabel.textContent = regionLabels[regionKey] || 'Local Specials';
@@ -4371,17 +4441,17 @@ function handleDetectedCity(cityName, stateName) {
 
 function getClinicalRecommendation(item, profile) {
   if (!profile) return { status: 'moderation', text: 'Moderation Advised', reason: 'Set up your goals in profile settings to customize recommendation.' };
-  
+
   const isWeightLoss = profile.primary_goal === 'weight_loss';
   const hasTriglycerides = profile.has_triglycerides;
   const hasLdl = profile.has_ldl;
   const name = item.name.toLowerCase();
   const warning = (item.warning || '').toLowerCase();
-  
+
   const isFried = warning.includes('fried') || warning.includes('deep fried') || name.includes('bajji') || name.includes('vada') || name.includes('bhature') || name.includes('fritters') || name.includes('bhakarwadi');
   const isHighSugar = warning.includes('sugar') || warning.includes('sweet') || name.includes('roshogolla') || name.includes('mastani') || name.includes('jalebi');
   const isHighFat = warning.includes('butter') || warning.includes('ghee') || warning.includes('cream') || warning.includes('saturated fats') || name.includes('butter chicken');
-  
+
   if (isWeightLoss && (item.calories > 350 || isFried || isHighSugar)) {
     return {
       status: 'discouraged',
@@ -4418,7 +4488,7 @@ function getClinicalRecommendation(item, profile) {
 
 function generateAICoachTip(region, specialties, profile) {
   if (!profile) return "Enable profile details for smart AI coaching.";
-  
+
   const isWeightLoss = profile.primary_goal === 'weight_loss';
   const hasTriglycerides = profile.has_triglycerides;
   const conditionsText = [];
@@ -4552,7 +4622,7 @@ function renderRegionalSpecialties(region) {
 function logFoodDirect(name, calories, protein) {
   const slotSelect = document.getElementById('foodLogMealSlot');
   const mealSlotText = slotSelect ? slotSelect.options[slotSelect.selectedIndex].text : "First Meal";
-  
+
   const newMeal = {
     is_custom: true,
     time: mealSlotText,
@@ -4565,7 +4635,7 @@ function logFoodDirect(name, calories, protein) {
   const meals = getOrCreateMealLogs(currentDate);
   meals.push(newMeal);
   saveAllMealLogs(currentDate, meals);
-  
+
   showToast(`Logged "${name}" to ${newMeal.time}! ✅`);
   renderMealPlan();
 }
@@ -4614,7 +4684,7 @@ function fillFoodLogger(name, calories, protein, fat = 0) {
     'bhature', 'bhaturas',
     'ball', 'balls'
   ];
-  
+
   const hasPortionWord = portionKeywords.some(kw => lowerName.includes(kw));
 
   if (hasPortionWord) {
@@ -4667,7 +4737,7 @@ function fillFoodLogger(name, calories, protein, fat = 0) {
 
   let foundWarning = '';
   let foundSwap = '';
-  
+
   for (const region of Object.keys(REGIONAL_SPECIALTIES)) {
     const matched = REGIONAL_SPECIALTIES[region].find(item => item.name.split('(')[0].trim().toLowerCase() === name.split('(')[0].trim().toLowerCase());
     if (matched) {
@@ -4797,7 +4867,7 @@ function bindLocationAwareLoggerEvents() {
         const currentUnit = unitSelect.value;
         const baseUnit = gramsInput.dataset.baseUnit || 'g';
         const baseQty = parseFloat(gramsInput.dataset.baseQty || 100);
-        
+
         if (currentVal > 0) {
           const foodName = nameInput.value;
           const portionWeight = getStandardPortionWeight(foodName);
@@ -4857,7 +4927,7 @@ function bindLocationAwareLoggerEvents() {
       saveAllMealLogs(currentDate, meals);
 
       showToast(`Logged "${name}" to ${timeSlotText}! ✅`);
-      
+
       if (nameInput) nameInput.value = '';
       if (gramsInput) {
         gramsInput.value = '';
@@ -4870,7 +4940,7 @@ function bindLocationAwareLoggerEvents() {
       if (caloriesInput) caloriesInput.value = '';
       if (proteinInput) proteinInput.value = '';
       if (fatInput) fatInput.value = '';
-      
+
       const unitSelect = document.getElementById('foodLogUnit');
       if (unitSelect) unitSelect.value = 'g';
 
@@ -4904,7 +4974,7 @@ function bindLocationAwareLoggerEvents() {
       try {
         const settings = getSettings();
         const apiKey = settings.gemini_api_key;
-        
+
         let result = null;
         if (apiKey) {
           result = await parseFoodWithGemini(inputVal, apiKey);
@@ -4913,12 +4983,12 @@ function bindLocationAwareLoggerEvents() {
         if (result && result.length > 0) {
           const first = result[0];
           fillFoodLogger(first.name, first.calories, first.protein, first.fat || 0);
-          
+
           if (result.length > 1) {
             const slotSelect = document.getElementById('foodLogMealSlot');
             const mealSlotText = slotSelect ? slotSelect.options[slotSelect.selectedIndex].text : "First Meal";
             const meals = getOrCreateMealLogs(currentDate);
-            
+
             for (let i = 1; i < result.length; i++) {
               const item = result[i];
               meals.push({
@@ -4967,7 +5037,7 @@ function parseFoodInputOffline(inputText) {
   const cleanInput = inputText.toLowerCase().trim();
   let userQty = 100;
   let userUnit = 'g';
-  
+
   let match = cleanInput.match(/(\d+(?:\.\d+)?)\s*(g|gram|grams|ml|milliliter|milliliters)\b/i);
   if (match) {
     userQty = parseFloat(match[1]);
@@ -5037,7 +5107,7 @@ function parseFoodInputOffline(inputText) {
   let baseQty = 100;
   let baseUnit = 'g';
   const nameLower = bestMatch.name.toLowerCase();
-  
+
   if (nameLower.includes('piece') || nameLower.includes('plate') || nameLower.includes('glass') || nameLower.includes('katori') || nameLower.includes('ball') || nameLower.includes('roti') || nameLower.includes('egg') || nameLower.match(/\b\d+\s*$/)) {
     baseUnit = 'pieces';
     baseQty = 1;
@@ -5066,7 +5136,7 @@ function parseFoodInputOffline(inputText) {
       const templateGrams = parseInt(matchGrams[1]);
       factor = userQty / templateGrams;
     } else {
-      factor = userQty / 150; 
+      factor = userQty / 150;
     }
   } else if (userUnit === 'pieces' && baseUnit === 'g') {
     factor = (userQty * 50) / baseQty;
@@ -5083,7 +5153,7 @@ function parseFoodInputOffline(inputText) {
 
 async function parseFoodWithGemini(inputText, apiKey) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const prompt = `You are a professional nutrition analyzer. Parse this food diary input: "${inputText}". 
+  const prompt = `You are a professional nutrition analyzer. Parse this food diary input: "${inputText}".
 Calculate the estimated weight in grams or pieces, total calories (kcal), protein (g), and fat (g) for the food item.
 Return ONLY a valid JSON array of parsed items (no markdown code block wrap, no extra text, just raw JSON). If the description matches multiple items, return all.
 Each object must have these exact keys: "name" (string), "grams" (number), "calories" (number), "protein" (number), "fat" (number).
@@ -5119,7 +5189,7 @@ Example output:
 function updateWaterWidget(dateStr) {
   const log = getDailyLog(dateStr);
   const currentVolume = log.water_litres || 0;
-  
+
   // Dashboard elements
   const displayValEl = document.getElementById('waterDisplayVal');
   if (displayValEl) {
@@ -5202,12 +5272,12 @@ function triggerWaterBubbles(count = 12) {
     for (let i = 0; i < count; i++) {
       const bubble = document.createElement('div');
       bubble.className = 'water-bubble';
-      
+
       const size = Math.random() * 6 + 4;
       bubble.style.width = size + 'px';
       bubble.style.height = size + 'px';
       bubble.style.left = Math.random() * 80 + 10 + '%';
-      
+
       const delay = Math.random() * 0.5;
       const duration = Math.random() * 1.5 + 1.2;
       bubble.style.animationDelay = delay + 's';
@@ -5328,7 +5398,7 @@ function updateWeatherPill(cityName) {
     }
     weatherText = `${cleanCity} ${temp}°C`;
   }
-  
+
   const pills = document.querySelectorAll('.weather-pill span');
   pills.forEach(pill => {
     pill.textContent = weatherText;
@@ -5396,11 +5466,11 @@ function updateTrendsMetrics() {
   const trendsWeeklyStepsGoal = document.getElementById('trendsWeeklyStepsGoal');
 
   const allLogs = getConsolidatedDailyLogs();
-  
+
   // Weekly steps target calculations
   const last7Logs = allLogs.slice(-7);
   const totalSteps = last7Logs.reduce((sum, log) => sum + (log.steps || 0), 0);
-  
+
   let goalMetCount = 0;
   last7Logs.forEach(log => {
     const target = getAdjustedStepTarget(log.date);

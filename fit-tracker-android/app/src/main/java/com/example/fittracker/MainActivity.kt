@@ -438,14 +438,73 @@ class MainActivity : ComponentActivity() {
         fun saveStepsToday(steps: Int) {
             val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
             val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
-            prefs.edit().putInt("steps_$todayStr", steps).apply()
+            prefs.edit()
+                .putInt("steps_$todayStr", steps)
+                .putInt("last_calculated_steps", steps)
+                .putBoolean("steps_rebaseline_requested", true)
+                .apply()
+        }
+
+        @JavascriptInterface
+        fun getAccelerometerSensitivity(): Float {
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            return prefs.getFloat("accel_sensitivity", 1.0f)
+        }
+
+        @JavascriptInterface
+        fun setAccelerometerSensitivity(sensitivity: Float) {
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            prefs.edit().putFloat("accel_sensitivity", sensitivity).apply()
+            Log.d("MainActivity", "Accelerometer sensitivity set to $sensitivity")
+        }
+
+        @JavascriptInterface
+        fun resetStepsToday() {
+            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            prefs.edit()
+                .putInt("steps_$todayStr", 0)
+                .putInt("last_calculated_steps", 0)
+                .putInt("sensor_baseline", -1)
+                .putInt("session_start_steps", 0)
+                .putBoolean("steps_rebaseline_requested", true)
+                .apply()
+            Log.d("MainActivity", "Steps reset for $todayStr")
+        }
+
+        @JavascriptInterface
+        fun getSensorDebugInfo(): String {
+            val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
+            val hasCounter = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_COUNTER, true) != null
+                || sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_COUNTER, false) != null
+            val hasDetector = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_DETECTOR, true) != null
+                || sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_DETECTOR, false) != null
+            val hasAccel = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER) != null
+
+            val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)
+            val trackingMode = prefs.getString("tracking_mode", "unknown") ?: "unknown"
+            val sensitivity = prefs.getFloat("accel_sensitivity", 1.0f)
+            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val stepsToday = prefs.getInt("steps_$todayStr", 0)
+
+            return """{
+                "hasStepCounter": $hasCounter,
+                "hasStepDetector": $hasDetector,
+                "hasAccelerometer": $hasAccel,
+                "trackingMode": "$trackingMode",
+                "sensitivity": $sensitivity,
+                "stepsToday": $stepsToday,
+                "sdk": ${android.os.Build.VERSION.SDK_INT}
+            }""".trimIndent()
         }
 
         @JavascriptInterface
         fun getDeviceInfo(): String {
             val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
-            val hasCounter = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_COUNTER) != null
-            val hasDetector = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_DETECTOR) != null
+            val hasCounter = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_COUNTER, true) != null
+                || sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_COUNTER, false) != null
+            val hasDetector = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_DETECTOR, true) != null
+                || sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_DETECTOR, false) != null
             val hasAccel = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER) != null
             
             val prefs = context.getSharedPreferences("FitTrackerPrefs", Context.MODE_PRIVATE)

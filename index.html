@@ -1928,7 +1928,26 @@
           </div>
         </div>
 
-        <div style="background: var(--bg-elevated); padding: var(--space-md); border-radius: var(--radius-md); border: 1px dashed var(--border); display: flex; flex-direction: column; gap: var(--space-xs);">
+        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: var(--space-md);" id="calcTestControls">
+          <div style="background: var(--surface); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); text-align: center; display: none;" id="calcSensitivityPanel">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 8px;">Sensitivity Calibration</div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+              <span style="color: var(--text-secondary);">Low</span>
+              <input type="range" id="calcSensitivitySlider" min="0.3" max="3.0" step="0.1" value="1.0" style="flex: 1; accent-color: var(--primary);">
+              <span style="color: var(--text-secondary);">High</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;" id="calcSensitivityValue">Current: 1.0x</div>
+          </div>
+          <div style="background: var(--surface); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); text-align: center;">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 8px;">Test Controls</div>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+              <button class="btn btn--secondary" id="btnResetSteps" style="font-size: 12px; padding: 6px 12px;">Reset Steps</button>
+              <button class="btn btn--secondary" id="btnForceSync" style="font-size: 12px; padding: 6px 12px;">Force Sync</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-elevated); padding: var(--space-md); border-radius: var(--radius-md); border: 1px dashed var(--border); display: flex; flex-direction: column; gap: var(--space-xs);" id="calcDebugPanel">
           <h4 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); margin-bottom: 2px;">Yesterday's Goal Rollover</h4>
           <div style="display: flex; justify-content: space-between; font-size: 13px;">
             <span style="color: var(--text-secondary);">Yesterday's Steps Logged:</span>
