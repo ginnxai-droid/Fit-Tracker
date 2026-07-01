@@ -390,6 +390,128 @@ function getBreakfastDefaultAction(profile) {
   return breakfastAction;
 }
 
+function normalizeText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function slugifyClinicalKey(value) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40);
+}
+
+function splitMedicationEntries(value) {
+  return String(value || '')
+    .split(/[,;\n]|\s+\+\s+/)
+    .map(normalizeText)
+    .filter(Boolean);
+}
+
+function addUniqueMedication(entries, value) {
+  const med = normalizeText(value);
+  if (!med) return;
+  const medKey = med.toLowerCase();
+  if (!entries.some(item => item.toLowerCase() === medKey)) {
+    entries.push(med);
+  }
+}
+
+function medicineLooksLikeThyroid(entry, profile) {
+  const text = entry.toLowerCase();
+  const thyroidMed = normalizeText(profile.thyroid_medicine).toLowerCase();
+  return (
+    (thyroidMed && text.includes(thyroidMed)) ||
+    /thyroid|thyrox|levothyrox|eltroxin|thyronorm|euthyrox/.test(text)
+  );
+}
+
+function getMedicationBucket(entry, profile) {
+  const text = entry.toLowerCase();
+  if (profile.has_thyroid && medicineLooksLikeThyroid(entry, profile)) return 'thyroid';
+  if (/telmisartan|amlodipine|losartan|olmesartan|ramipril|enalapril|lisinopril|atenolol|metoprolol|bisoprolol|nebivolol|hctz|hydrochlorothiazide|chlorthalidone|bp|blood pressure|hypertension/.test(text)) return 'bp';
+  if (/atorvastatin|rosuvastatin|simvastatin|pravastatin|fenofibrate|fibrate|omega|icosapent|ezetimibe|lipid|cholesterol|triglyceride/.test(text)) return 'lipid';
+  if (/metformin|insulin|glimepiride|gliclazide|sitagliptin|vildagliptin|linagliptin|dapagliflozin|empagliflozin|diabetes|sugar/.test(text)) return 'diabetes';
+  if (/aspirin|clopidogrel|ecosprin|statin|cardiac|heart/.test(text)) return 'cardiac';
+  if (profile.has_hypertension) return 'bp';
+  return 'general';
+}
+
+function getMedicationLabel(bucket, entry) {
+  const labels = {
+    thyroid: 'Thyroid tablet taken',
+    bp: 'BP tablet taken',
+    lipid: 'Lipid/triglyceride medicine taken',
+    diabetes: 'Diabetes medicine taken',
+    cardiac: 'Heart medicine taken',
+    general: 'Medication taken'
+  };
+  const base = labels[bucket] || labels.general;
+  return entry ? `${base}: ${entry}` : base;
+}
+
+function getClinicalMedicationItems(profile) {
+  const entries = [];
+  if (profile.has_thyroid) {
+    addUniqueMedication(entries, profile.thyroid_medicine || 'Thyroid tablet');
+  }
+  splitMedicationEntries(profile.medications).forEach(entry => {
+    if (profile.has_thyroid && medicineLooksLikeThyroid(entry, profile) && entries.some(item => medicineLooksLikeThyroid(item, profile))) {
+      return;
+    }
+    addUniqueMedication(entries, entry);
+  });
+
+  let thyroidKeyUsed = false;
+  return entries.map((entry, index) => {
+    const bucket = getMedicationBucket(entry, profile);
+    let key = `med_taken_${bucket}_${slugifyClinicalKey(entry) || index}`;
+    if (bucket === 'thyroid' && !thyroidKeyUsed) {
+      key = 'thyroid_taken';
+      thyroidKeyUsed = true;
+    }
+    return {
+      key,
+      label: getMedicationLabel(bucket, entry),
+      scheduleAction: bucket === 'thyroid'
+        ? `${entry || 'Thyroid tablet'} (empty stomach) + 2 glasses warm water. Wait 45 mins before breakfast.`
+        : getMedicationLabel(bucket, entry),
+      points: 0
+    };
+  });
+}
+
+function getClinicalConditionItems(profile) {
+  const items = [];
+  if (profile.has_triglycerides) {
+    const value = profile.triglycerides_value ? ` (${profile.triglycerides_value} mg/dL noted)` : '';
+    items.push({ key: 'condition_triglycerides_reviewed', label: `Triglyceride-safe plan followed${value}`, points: 0 });
+  }
+  if (profile.has_ldl) {
+    items.push({ key: 'condition_ldl_reviewed', label: 'LDL/cholesterol-safe plan followed', points: 0 });
+  }
+  if (profile.has_heart_blockage) {
+    items.push({ key: 'condition_heart_reviewed', label: 'CAD/heart safety precautions reviewed', points: 0 });
+  }
+  if (profile.has_hypertension) {
+    items.push({ key: 'condition_bp_reviewed', label: 'BP status checked / symptoms reviewed', points: 0 });
+  }
+  if (profile.has_diabetes) {
+    items.push({ key: 'condition_diabetes_reviewed', label: 'Diabetes/pre-diabetes sugar discipline followed', points: 0 });
+  }
+  if (profile.has_thyroid) {
+    const type = profile.thyroid_type && profile.thyroid_type !== 'none' ? ` (${profile.thyroid_type})` : '';
+    items.push({ key: 'condition_thyroid_reviewed', label: `Thyroid status noted${type}`, points: 0 });
+  }
+  if (profile.has_joint_pain) {
+    const locations = (profile.joint_pain_locations || []).map(normalizeText).filter(Boolean);
+    const suffix = locations.length ? ` (${locations.join(', ')})` : '';
+    items.push({ key: 'condition_joint_pain_reviewed', label: `Joint pain status checked${suffix}`, points: 0 });
+  }
+  return items;
+}
+
 export function rebuildDynamicData(profile) {
   const weight = profile.start_weight_kg || 90;
   const height = profile.height_cm || 178;
@@ -421,22 +543,16 @@ export function rebuildDynamicData(profile) {
   const schedule = [];
   schedule.push({ time: formatTime12Hour(wakeTime), action: 'Wake up', checklist_key: 'wake_logged', category: 'health' });
   
-  // Medication Checklist Mapping
-  if (profile.has_thyroid) {
-    schedule.push({ 
-      time: formatTime12Hour(wakeTime), 
-      action: `${profile.thyroid_medicine || 'Levothyroxine'} (${profile.thyroid_dose || '62.5 mcg'}) (empty stomach) + 2 glasses warm water. Wait 45 mins before breakfast.`, 
-      checklist_key: 'thyroid_taken', 
-      category: 'health' 
+  // Medication checklist mapping is user-specific and can include multiple active medicines.
+  const clinicalMedicationItems = getClinicalMedicationItems(profile);
+  clinicalMedicationItems.forEach(item => {
+    schedule.push({
+      time: formatTime12Hour(wakeTime),
+      action: item.scheduleAction,
+      checklist_key: item.key,
+      category: 'health'
     });
-  } else if (profile.has_medical_conditions && profile.medications) {
-    schedule.push({ 
-      time: formatTime12Hour(wakeTime), 
-      action: `Take morning medication: ${profile.medications.split(',')[0]}`, 
-      checklist_key: 'meds_taken', 
-      category: 'health' 
-    });
-  }
+  });
 
   // Workout
   schedule.push({ time: formatTime12Hour(exerciseTime), action: exerciseAction, checklist_key: 'morning_workout', category: 'movement' });
@@ -512,11 +628,15 @@ export function rebuildDynamicData(profile) {
     ]
   };
 
-  // Medication checklists points mapping
-  if (profile.has_thyroid) {
-    checklistTemplate.health.push({ key: 'thyroid_taken', label: 'Thyroid tablet taken', points: 5 });
-  } else if (profile.has_medical_conditions && profile.medications) {
-    checklistTemplate.health.push({ key: 'meds_taken', label: `Meds taken (${(profile.medications || '').split(',')[0]})`, points: 5 });
+  getClinicalConditionItems(profile).forEach(item => {
+    checklistTemplate.health.push(item);
+  });
+
+  if (clinicalMedicationItems.length > 0) {
+    const medPoints = +(5 / clinicalMedicationItems.length).toFixed(2);
+    clinicalMedicationItems.forEach(item => {
+      checklistTemplate.health.push({ ...item, points: medPoints });
+    });
   } else {
     // Reallocate points to water and sleep
     checklistTemplate.health.forEach(item => {
@@ -573,13 +693,18 @@ export function getAllDailyLogs() {
 // --- Checklist ---
 export function getChecklist(dateStr) {
   const allChecklists = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHECKLISTS) || '{}');
-  if (allChecklists[dateStr]) return allChecklists[dateStr];
+  const storedChecklist = allChecklists[dateStr] || {};
   
   const defaultChecklist = {};
   for (const category of Object.keys(CHECKLIST_TEMPLATE)) {
     defaultChecklist[category] = {};
     for (const item of CHECKLIST_TEMPLATE[category]) {
-      defaultChecklist[category][item.key] = false;
+      defaultChecklist[category][item.key] = storedChecklist[category]?.[item.key] || false;
+    }
+    if (storedChecklist[category]) {
+      for (const [key, value] of Object.entries(storedChecklist[category])) {
+        if (!(key in defaultChecklist[category])) defaultChecklist[category][key] = value;
+      }
     }
   }
   return defaultChecklist;
@@ -1416,4 +1541,3 @@ export const FOOD_DATABASE = [
   { name: 'Pav Bhaji (1 plate / 2 pavs)', calories: 450, protein: 9, fat: 18 },
   { name: 'Sabudana Khichdi (1 plate / 150g)', calories: 320, protein: 2, fat: 10 }
 ];
-

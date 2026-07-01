@@ -714,8 +714,8 @@ function renderTimeline() {
       <div class="timeline-item timeline-item--${statusClass}">
         <div class="timeline-dot"></div>
         <div class="timeline-content">
-          <span class="timeline-time text-mono">${item.time}</span>
-          <span class="timeline-action">${item.action}</span>
+          <span class="timeline-time text-mono">${escapeHtml(item.time)}</span>
+          <span class="timeline-action">${escapeHtml(item.action)}</span>
         </div>
         ${isChecked ? '<i data-lucide="check" class="timeline-check"></i>' : ''}
       </div>
@@ -750,8 +750,8 @@ function renderChecklists() {
           <input type="checkbox" data-category="${category}" data-key="${item.key}"
                  ${isChecked ? 'checked' : ''}>
           <span class="checkmark"></span>
-          <span class="checklist-item__label">${label}</span>
-          ${item.points > 0 ? `<span class="checklist-item__points text-mono">+${item.points}</span>` : ''}
+          <span class="checklist-item__label">${escapeHtml(label)}</span>
+          ${item.points > 0 ? `<span class="checklist-item__points text-mono">+${formatChecklistPoints(item.points)}</span>` : ''}
         </label>
       `;
     }).join('');
@@ -1766,8 +1766,8 @@ function renderWorkout() {
           <input type="checkbox" class="walk-checkbox" data-key="${item.checklist_key}"
                  ${isChecked ? 'checked' : ''}>
           <span class="checkmark"></span>
-          <span class="checklist-item__label">${item.action}</span>
-          <span class="checklist-item__time">${displayTime}</span>
+          <span class="checklist-item__label">${escapeHtml(item.action)}</span>
+          <span class="checklist-item__time">${escapeHtml(displayTime)}</span>
         </label>
       `;
     }).join('');
@@ -3079,6 +3079,21 @@ function bindExportEvents() {
 function setTextContent(id, value) {
   const el = document.getElementById(id);
   if (el) el.textContent = value;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatChecklistPoints(points) {
+  const value = Number(points);
+  if (!Number.isFinite(value)) return points;
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function setInputValue(id, value) {
