@@ -9,6 +9,7 @@ npm-debug.log
 **/local.properties
 **/*.iml
 .idea/
+.worktrees/
 
 # OS files
 .DS_Store
